@@ -1,0 +1,116 @@
+## .NET
+bin/
+obj/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+## Build results
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+x64/
+x86/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+bld/
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+
+## Visual Studio
+.vs/
+.vscode/
+*.vsidx
+*.vspscc
+*.vsp
+*.vsscc
+*.vssscc
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+## Rider
+.idea/
+*.sln.iml
+
+## NuGet
+*.nupkg
+*.snupkg
+**/packages/*
+!**/packages/build/
+*.nuget.props
+*.nuget.targets
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+## Entity Framework
+*.edmx.diagram
+*.edmx.sql
+
+## SQL Server
+*.mdf
+*.ldf
+*.ndf
+
+## Node.js (för frontend)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+## React build output
+frontend/build/
+frontend/build/**
+
+## Environment variables
+.env
+.env.local
+.env.*.local
+
+## OS
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+## Logs
+*.log
+logs/
+
+## Database
+*.db
+*.sqlite
+*.sqlite3
+
+## Temporary files
+*.tmp
+*.temp
+*.cache
+
+## Test results and coverage
+TestResults/
+[Tt]est[Rr]esult*/
+*.trx
+*.coverage
+*.coveragexml
+coverage/
+coverage.*/
+*.lcov
+.coverlet/
+.coveralls.yml
+# CoverageReport kan genereras lokalt men behöver inte committas
+CoverageReport/
+
+## Test output files
+*.testlog
+*.testresult
+test-results/
+test-output/

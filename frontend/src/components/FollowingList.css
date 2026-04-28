@@ -1,0 +1,140 @@
+.following-list {
+  background: white;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  margin-bottom: 20px;
+}
+
+.following-list-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.following-list h3 {
+  margin: 0;
+  color: #333;
+  font-size: 20px;
+}
+
+.refresh-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.refresh-button:hover:not(:disabled) {
+  background-color: #f0f0f0;
+}
+
+.refresh-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.refresh-icon {
+  font-size: 18px;
+  color: #666;
+  display: inline-block;
+  transition: transform 0.3s;
+}
+
+.refresh-icon.spinning {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.loading,
+.error {
+  padding: 12px;
+  text-align: center;
+  color: #666;
+}
+
+.error {
+  color: #c33;
+  background-color: #fee;
+  border-radius: 4px;
+  border: 1px solid #fcc;
+}
+
+.empty-message {
+  padding: 20px;
+  text-align: center;
+  color: #999;
+  font-style: italic;
+}
+
+.following-list-items {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.following-item {
+  padding: 12px;
+  border-bottom: 1px solid #eee;
+  transition: background-color 0.2s ease;
+}
+
+.following-item:last-child {
+  border-bottom: none;
+}
+
+.following-item:hover {
+  background-color: #f8f9fa;
+}
+
+.following-item-clickable {
+  position: relative;
+}
+
+.following-item-clickable:hover {
+  background-color: #fff3e0;
+  border-left: 3px solid #ff9800;
+}
+
+.following-action-hint {
+  font-size: 12px;
+  color: #ff9800;
+  margin-top: 4px;
+  display: block;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.following-item-clickable:hover .following-action-hint {
+  opacity: 1;
+}
+
+.following-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.following-id {
+  font-weight: 600;
+  color: #333;
+}
+
+.following-date {
+  font-size: 14px;
+  color: #666;
+}

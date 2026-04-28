@@ -1,0 +1,83 @@
+name: .NET CI
+
+on:
+  pull_request:
+    branches: [ develop, main ]
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: 9.0.x
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Build
+        run: dotnet build --no-restore --configuration Release
+
+      - name: Run tests with coverage
+        run: |
+          dotnet test \
+            --no-build \
+            --configuration Release \
+            --verbosity normal \
+            --collect:"XPlat Code Coverage" \
+            --results-directory:"${{ github.workspace }}/TestResults" \
+            -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=cobertura
+
+      - name: Generate coverage report
+        if: always()
+        run: |
+          dotnet tool install -g dotnet-reportgenerator-globaltool || true
+          reportgenerator \
+            -reports:"${{ github.workspace }}/TestResults/**/coverage.cobertura.xml" \
+            -targetdir:"${{ github.workspace }}/CoverageReport" \
+            -reporttypes:"Html;Badges;TextSummary"
+
+      - name: Upload coverage reports
+        if: always()
+        uses: codecov/codecov-action@v4
+        with:
+          files: ${{ github.workspace }}/TestResults/**/coverage.cobertura.xml
+          fail_ci_if_error: false
+
+      - name: Display coverage summary
+        if: always()
+        run: |
+          if [ -f "${{ github.workspace }}/CoverageReport/Summary.txt" ]; then
+            cat "${{ github.workspace }}/CoverageReport/Summary.txt"
+          fi
+
+  code-quality:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: 9.0.x
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Run code analysis
+        run: |
+          dotnet build --no-restore --configuration Release /p:RunAnalyzersDuringBuild=true /p:EnableNETAnalyzers=true /p:AnalysisLevel=latest
+
+      - name: Check for warnings
+        run: |
+          dotnet build --no-restore --configuration Release /p:TreatWarningsAsErrors=false 2>&1 | tee build-output.txt
+          if grep -q "warning" build-output.txt; then
+            echo "⚠️ Build warnings detected. Review the output above."
+            exit 0  # Don't fail the build, just warn
+          fi
+
