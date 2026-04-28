@@ -1,0 +1,140 @@
+.followers-list {
+  background: white;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  margin-bottom: 20px;
+}
+
+.followers-list-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.followers-list h3 {
+  margin: 0;
+  color: #333;
+  font-size: 20px;
+}
+
+.refresh-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.refresh-button:hover:not(:disabled) {
+  background-color: #f0f0f0;
+}
+
+.refresh-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.refresh-icon {
+  font-size: 18px;
+  color: #666;
+  display: inline-block;
+  transition: transform 0.3s;
+}
+
+.refresh-icon.spinning {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.loading,
+.error {
+  padding: 12px;
+  text-align: center;
+  color: #666;
+}
+
+.error {
+  color: #c33;
+  background-color: #fee;
+  border-radius: 4px;
+  border: 1px solid #fcc;
+}
+
+.empty-message {
+  padding: 20px;
+  text-align: center;
+  color: #999;
+  font-style: italic;
+}
+
+.followers-list-items {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.follower-item {
+  padding: 12px;
+  border-bottom: 1px solid #eee;
+  transition: background-color 0.2s ease;
+}
+
+.follower-item:last-child {
+  border-bottom: none;
+}
+
+.follower-item:hover {
+  background-color: #f8f9fa;
+}
+
+.follower-item-clickable {
+  position: relative;
+}
+
+.follower-item-clickable:hover {
+  background-color: #e3f2fd;
+  border-left: 3px solid #2196f3;
+}
+
+.follower-action-hint {
+  font-size: 12px;
+  color: #2196f3;
+  margin-top: 4px;
+  display: block;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.follower-item-clickable:hover .follower-action-hint {
+  opacity: 1;
+}
+
+.follower-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.follower-id {
+  font-weight: 600;
+  color: #333;
+}
+
+.follower-date {
+  font-size: 14px;
+  color: #666;
+}

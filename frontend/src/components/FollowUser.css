@@ -1,0 +1,57 @@
+.follow-user {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.follow-user-loading {
+  color: #666;
+  font-size: 14px;
+}
+
+.follow-user-error {
+  background-color: #fee;
+  color: #c33;
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-size: 14px;
+  border: 1px solid #fcc;
+}
+
+.follow-user-button {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 120px;
+}
+
+.follow-user-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.follow-button {
+  background-color: #007bff;
+  color: white;
+}
+
+.follow-button:hover:not(:disabled) {
+  background-color: #0056b3;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 123, 255, 0.3);
+}
+
+.unfollow-button {
+  background-color: #6c757d;
+  color: white;
+}
+
+.unfollow-button:hover:not(:disabled) {
+  background-color: #5a6268;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(108, 117, 125, 0.3);
+}
