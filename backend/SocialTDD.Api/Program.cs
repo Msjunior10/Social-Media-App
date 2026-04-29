@@ -5,6 +5,7 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using FluentValidation;
 using FluentValidation.AspNetCore;
+using SocialTDD.Api.Middleware;
 using SocialTDD.Application.Configuration;
 using SocialTDD.Application.Interfaces;
 using SocialTDD.Application.Services;
@@ -92,6 +93,7 @@ builder.Services.AddValidatorsFromAssemblyContaining<CreatePostRequestDtoValidat
 builder.Services.AddValidatorsFromAssemblyContaining<CreateDirectMessageRequestValidator>();
 builder.Services.AddValidatorsFromAssemblyContaining<RegisterRequestValidator>();
 builder.Services.AddValidatorsFromAssemblyContaining<LoginRequestValidator>();
+builder.Services.AddValidatorsFromAssemblyContaining<UpdateUserProfileRequestValidator>();
 
 // Add CORS
 builder.Services.AddCors(options =>
@@ -124,6 +126,7 @@ else
 
 app.UseCors();
 app.UseAuthentication(); // Lägg till detta före UseAuthorization
+app.UseMiddleware<UpdateLastActivityMiddleware>();
 app.UseAuthorization();
 app.MapControllers();
 

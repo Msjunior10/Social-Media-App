@@ -107,3 +107,8 @@
   border-radius: 8px;
   margin-top: 20px;
 }
+
+.profile-page-container {
+  max-width: 900px;
+  margin: 0 auto;
+}

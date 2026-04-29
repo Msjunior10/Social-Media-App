@@ -71,6 +71,14 @@ function App() {
                   </ProtectedRoute>
                 }
               />
+              <Route
+                path="/profile"
+                element={
+                  <ProtectedRoute>
+                    <ProfilePage />
+                  </ProtectedRoute>
+                }
+              />
               
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
@@ -183,6 +191,19 @@ function CreatePostPage() {
           console.log('Nytt inlägg skapat!');
         }}
       />
+    </div>
+  );
+}
+
+function ProfilePage() {
+  const { userId } = useAuth();
+
+  return (
+    <div>
+      <Navigation />
+      <div className="profile-page-container">
+        <UserProfile userId={userId} isEditable />
+      </div>
     </div>
   );
 }
