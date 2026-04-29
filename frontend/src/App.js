@@ -12,6 +12,7 @@ import Timeline from './components/Timeline';
 import Wall from './components/Wall';
 import DirectMessages from './components/DirectMessages';
 import CreatePost from './components/CreatePost';
+import ProfilePosts from './components/ProfilePosts';
 import UserSearch from './components/UserSearch';
 import UserProfile from './components/UserProfile';
 import './App.css';
@@ -196,13 +197,14 @@ function CreatePostPage() {
 }
 
 function ProfilePage() {
-  const { userId } = useAuth();
+  const { userId, username } = useAuth();
 
   return (
     <div>
       <Navigation />
       <div className="profile-page-container">
         <UserProfile userId={userId} isEditable />
+        <ProfilePosts userId={userId} username={username} isOwnProfile />
       </div>
     </div>
   );

@@ -9,6 +9,12 @@ export const postsApi = {
     return await handleApiResponse(response);
   },
 
+  // Hämta tidslinje för vald användarprofil
+  async getTimelineByUserId(userId) {
+    const response = await authenticatedFetch(`${API_BASE_URL}/posts/timeline/${userId}`);
+    return await handleApiResponse(response);
+  },
+
   // Skapa ett nytt inlägg
   async createPost(recipientId, message) {
     const response = await authenticatedFetch(`${API_BASE_URL}/posts`, {
