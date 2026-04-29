@@ -122,4 +122,27 @@ public class PostsController : ControllerBase
             ));
         }
     }
+
+    [HttpGet("timeline/{userId}")]
+    public async Task<ActionResult<List<PostResponse>>> GetTimelineByUserId(Guid userId)
+    {
+        try
+        {
+            var result = await _timelineService.GetTimelineAsync(userId);
+            return Ok(result);
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogWarning("Ogiltigt argument vid hämtning av användarens tidslinje: {Message}", ex.Message);
+            return BadRequest(new ErrorResponse(ErrorCodes.INVALID_USER_ID, ex.Message));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Ett oväntat fel uppstod vid hämtning av användarens tidslinje");
+            return StatusCode(500, new ErrorResponse(
+                ErrorCodes.INTERNAL_SERVER_ERROR,
+                "Ett oväntat fel uppstod. Försök igen senare."
+            ));
+        }
+    }
 }
