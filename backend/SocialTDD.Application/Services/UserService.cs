@@ -16,17 +16,20 @@ public class UserService : IUserService
     private readonly IUserRepository _userRepository;
     private readonly IValidator<RegisterRequest> _registerValidator;
     private readonly IValidator<LoginRequest> _loginValidator;
+    private readonly IValidator<UpdateUserProfileRequest> _updateProfileValidator;
     private readonly JwtConfiguration _jwtConfig;
 
     public UserService(
         IUserRepository userRepository,
         IValidator<RegisterRequest> registerValidator,
         IValidator<LoginRequest> loginValidator,
+        IValidator<UpdateUserProfileRequest> updateProfileValidator,
         JwtConfiguration jwtConfig)
     {
         _userRepository = userRepository ?? throw new ArgumentNullException(nameof(userRepository));
         _registerValidator = registerValidator ?? throw new ArgumentNullException(nameof(registerValidator));
         _loginValidator = loginValidator ?? throw new ArgumentNullException(nameof(loginValidator));
+        _updateProfileValidator = updateProfileValidator ?? throw new ArgumentNullException(nameof(updateProfileValidator));
         _jwtConfig = jwtConfig ?? throw new ArgumentNullException(nameof(jwtConfig));
     }
 
@@ -63,7 +66,10 @@ public class UserService : IUserService
             Username = request.Username,
             Email = request.Email,
             PasswordHash = passwordHash,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = DateTime.UtcNow,
+            LastActiveAt = DateTime.UtcNow,
+            Bio = string.Empty,
+            ProfileImageUrl = null
         };
 
         var createdUser = await _userRepository.CreateUserAsync(user, passwordHash);
@@ -109,6 +115,9 @@ public class UserService : IUserService
             throw new ArgumentException("Användarnamn eller lösenord är felaktigt.", nameof(request.Password));
         }
 
+        user.LastActiveAt = DateTime.UtcNow;
+        await _userRepository.UpdateUserAsync(user);
+
         // Generera JWT token
         var token = GenerateJwtToken(user);
 
@@ -153,13 +162,7 @@ public class UserService : IUserService
             return null;
         }
 
-        return new UserResponse
-        {
-            Id = user.Id,
-            Username = user.Username,
-            Email = user.Email,
-            CreatedAt = user.CreatedAt
-        };
+        return MapToUserResponse(user);
     }
 
     public async Task<UserResponse?> GetUserByUsernameAsync(string username)
@@ -170,36 +173,60 @@ public class UserService : IUserService
             return null;
         }
 
-        return new UserResponse
+        return MapToUserResponse(user);
+    }
+
+    public async Task<UserResponse?> GetCurrentUserAsync(Guid userId)
+    {
+        return await GetUserByIdAsync(userId);
+    }
+
+    public async Task<UserResponse> UpdateProfileAsync(Guid userId, UpdateUserProfileRequest request)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        var validationResult = await _updateProfileValidator.ValidateAsync(request);
+        if (!validationResult.IsValid)
         {
-            Id = user.Id,
-            Username = user.Username,
-            Email = user.Email,
-            CreatedAt = user.CreatedAt
-        };
+            throw new ValidationException(validationResult.Errors);
+        }
+
+        var user = await _userRepository.GetByIdAsync(userId)
+            ?? throw new ArgumentException("Användaren hittades inte.", nameof(userId));
+
+        user.Bio = request.Bio?.Trim() ?? string.Empty;
+        user.ProfileImageUrl = string.IsNullOrWhiteSpace(request.ProfileImageUrl)
+            ? null
+            : request.ProfileImageUrl.Trim();
+        user.LastActiveAt = DateTime.UtcNow;
+
+        var updatedUser = await _userRepository.UpdateUserAsync(user);
+        return MapToUserResponse(updatedUser);
     }
 
     public async Task<List<UserResponse>> GetAllUsersAsync()
     {
         var users = await _userRepository.GetAllUsersAsync();
-        return users.Select(u => new UserResponse
-        {
-            Id = u.Id,
-            Username = u.Username,
-            Email = u.Email,
-            CreatedAt = u.CreatedAt
-        }).ToList();
+        return users.Select(MapToUserResponse).ToList();
     }
 
     public async Task<List<UserResponse>> SearchUsersAsync(string searchTerm)
     {
         var users = await _userRepository.SearchUsersAsync(searchTerm);
-        return users.Select(u => new UserResponse
+        return users.Select(MapToUserResponse).ToList();
+    }
+
+    private static UserResponse MapToUserResponse(User user)
+    {
+        return new UserResponse
         {
-            Id = u.Id,
-            Username = u.Username,
-            Email = u.Email,
-            CreatedAt = u.CreatedAt
-        }).ToList();
+            Id = user.Id,
+            Username = user.Username,
+            Email = user.Email,
+            Bio = user.Bio,
+            ProfileImageUrl = user.ProfileImageUrl,
+            CreatedAt = user.CreatedAt,
+            LastActiveAt = user.LastActiveAt
+        };
     }
 }

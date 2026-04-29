@@ -5,5 +5,8 @@ public class UserResponse
     public Guid Id { get; set; }
     public string Username { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
+    public string Bio { get; set; } = string.Empty;
+    public string? ProfileImageUrl { get; set; }
     public DateTime CreatedAt { get; set; }
+    public DateTime LastActiveAt { get; set; }
 }

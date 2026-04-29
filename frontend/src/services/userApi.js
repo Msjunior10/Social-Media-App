@@ -3,6 +3,12 @@ import { authenticatedFetch, handleApiResponse } from '../utils/apiClient';
 const API_BASE_URL = 'http://localhost:5000/api';
 
 export const userApi = {
+  // Hämta aktuell användare
+  async getCurrentUser() {
+    const response = await authenticatedFetch(`${API_BASE_URL}/user/me`);
+    return await handleApiResponse(response);
+  },
+
   // Hämta användare med ID
   async getUserById(userId) {
     const response = await authenticatedFetch(`${API_BASE_URL}/user/${userId}`);
@@ -18,6 +24,15 @@ export const userApi = {
   // Hämta alla användare
   async getAllUsers() {
     const response = await authenticatedFetch(`${API_BASE_URL}/user`);
+    return await handleApiResponse(response);
+  },
+
+  // Uppdatera aktuell användares profil
+  async updateCurrentUserProfile(profileData) {
+    const response = await authenticatedFetch(`${API_BASE_URL}/user/me`, {
+      method: 'PUT',
+      body: JSON.stringify(profileData),
+    });
     return await handleApiResponse(response);
   },
 

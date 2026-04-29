@@ -17,6 +17,7 @@ public class UserServiceTests
     private readonly Mock<IUserRepository> _mockRepository;
     private readonly IValidator<RegisterRequest> _registerValidator;
     private readonly IValidator<LoginRequest> _loginValidator;
+    private readonly IValidator<UpdateUserProfileRequest> _updateUserProfileValidator;
     private readonly UserService _userService;
     private readonly string _testJwtSecret = "TestSecretKeyThatIsAtLeast32CharactersLong!";
     private readonly string _testIssuer = "TestIssuer";
@@ -27,6 +28,7 @@ public class UserServiceTests
         _mockRepository = new Mock<IUserRepository>();
         _registerValidator = new RegisterRequestValidator();
         _loginValidator = new LoginRequestValidator();
+        _updateUserProfileValidator = new UpdateUserProfileRequestValidator();
         
         var jwtConfig = new JwtConfiguration
         {
@@ -36,7 +38,7 @@ public class UserServiceTests
             ExpirationInMinutes = 60
         };
         
-        _userService = new UserService(_mockRepository.Object, _registerValidator, _loginValidator, jwtConfig);
+        _userService = new UserService(_mockRepository.Object, _registerValidator, _loginValidator, _updateUserProfileValidator, jwtConfig);
     }
 
     #region RegisterAsync Tests
@@ -192,6 +194,65 @@ public class UserServiceTests
             () => _userService.RegisterAsync(request));
         
         _mockRepository.Verify(r => r.CreateUserAsync(It.IsAny<User>(), It.IsAny<string>()), Times.Never);
+    }
+
+    #endregion
+
+    #region UpdateProfileAsync Tests
+
+    [Fact]
+    public async Task UpdateProfileAsync_ValidInput_UpdatesProfileFields()
+    {
+        // Arrange
+        var userId = Guid.NewGuid();
+        var request = new UpdateUserProfileRequest
+        {
+            Bio = "Jag gillar testdriven utveckling.",
+            ProfileImageUrl = "https://example.com/avatar.jpg"
+        };
+
+        var existingUser = new User
+        {
+            Id = userId,
+            Username = "testuser",
+            Email = "test@example.com",
+            CreatedAt = DateTime.UtcNow.AddDays(-10),
+            LastActiveAt = DateTime.UtcNow.AddDays(-1)
+        };
+
+        _mockRepository.Setup(r => r.GetByIdAsync(userId)).ReturnsAsync(existingUser);
+        _mockRepository.Setup(r => r.UpdateUserAsync(It.IsAny<User>()))
+            .ReturnsAsync((User u) => u);
+
+        // Act
+        var result = await _userService.UpdateProfileAsync(userId, request);
+
+        // Assert
+        result.Bio.Should().Be(request.Bio);
+        result.ProfileImageUrl.Should().Be(request.ProfileImageUrl);
+        result.LastActiveAt.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(5));
+
+        _mockRepository.Verify(r => r.UpdateUserAsync(It.Is<User>(u =>
+            u.Id == userId &&
+            u.Bio == request.Bio &&
+            u.ProfileImageUrl == request.ProfileImageUrl)), Times.Once);
+    }
+
+    [Fact]
+    public async Task UpdateProfileAsync_InvalidProfileImageUrl_ThrowsValidationException()
+    {
+        // Arrange
+        var request = new UpdateUserProfileRequest
+        {
+            Bio = "Kort bio",
+            ProfileImageUrl = "invalid-url"
+        };
+
+        // Act
+        Func<Task> act = () => _userService.UpdateProfileAsync(Guid.NewGuid(), request);
+
+        // Assert
+        await act.Should().ThrowAsync<ValidationException>();
     }
 
     #endregion

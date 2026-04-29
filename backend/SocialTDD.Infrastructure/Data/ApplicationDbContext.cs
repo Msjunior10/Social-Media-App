@@ -41,7 +41,13 @@ public class ApplicationDbContext : DbContext
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Username).IsRequired().HasMaxLength(100);
             entity.Property(e => e.Email).IsRequired().HasMaxLength(255);
+            entity.Property(e => e.Bio).HasMaxLength(500);
+            entity.Property(e => e.ProfileImageUrl).HasMaxLength(2048);
             entity.Property(e => e.CreatedAt).IsRequired();
+            entity.Property(e => e.LastActiveAt).IsRequired();
+
+            entity.HasIndex(e => e.Username).IsUnique();
+            entity.HasIndex(e => e.Email).IsUnique();
         });
 
         modelBuilder.Entity<DirectMessage>(entity =>

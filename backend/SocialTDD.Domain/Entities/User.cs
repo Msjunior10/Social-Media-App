@@ -6,5 +6,8 @@ public class User
     public string Username { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
     public string PasswordHash { get; set; } = string.Empty;
+    public string Bio { get; set; } = string.Empty;
+    public string? ProfileImageUrl { get; set; }
     public DateTime CreatedAt { get; set; }
+    public DateTime LastActiveAt { get; set; }
 }

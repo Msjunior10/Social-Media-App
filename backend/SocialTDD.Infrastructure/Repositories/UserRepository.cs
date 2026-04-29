@@ -34,6 +34,13 @@ public class UserRepository : IUserRepository
         return user;
     }
 
+    public async Task<User> UpdateUserAsync(User user)
+    {
+        _context.Users.Update(user);
+        await _context.SaveChangesAsync();
+        return user;
+    }
+
     public async Task<string?> GetUserPasswordHashAsync(Guid userId)
     {
         var user = await _context.Users
@@ -50,6 +57,14 @@ public class UserRepository : IUserRepository
     {
         return await _context.Users
             .FirstOrDefaultAsync(u => u.Id == userId);
+    }
+
+    public async Task UpdateLastActiveAsync(Guid userId, DateTime lastActiveAt)
+    {
+        await _context.Users
+            .Where(u => u.Id == userId)
+            .ExecuteUpdateAsync(setters => setters
+                .SetProperty(u => u.LastActiveAt, lastActiveAt));
     }
 
     public async Task<IEnumerable<User>> GetAllUsersAsync()

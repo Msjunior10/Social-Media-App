@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using SocialTDD.Api.Extensions;
 using SocialTDD.Api.Models;
 using SocialTDD.Application.DTOs;
 using SocialTDD.Application.Interfaces;
@@ -57,6 +58,69 @@ public class UserController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Ett oväntat fel uppstod vid hämtning av användare");
+            return StatusCode(500, new ErrorResponse(
+                ErrorCodes.INTERNAL_SERVER_ERROR,
+                "Ett oväntat fel uppstod. Försök igen senare."
+            ));
+        }
+    }
+
+    [HttpGet("me")]
+    public async Task<ActionResult<UserResponse>> GetCurrentUser()
+    {
+        try
+        {
+            var userId = User.GetUserId();
+            var user = await _userService.GetCurrentUserAsync(userId);
+            if (user == null)
+            {
+                return NotFound(new ErrorResponse(ErrorCodes.USER_NOT_FOUND, "Din användarprofil hittades inte."));
+            }
+
+            return Ok(user);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Unauthorized(new ErrorResponse(ErrorCodes.UNAUTHORIZED, ex.Message));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Ett oväntat fel uppstod vid hämtning av aktuell användare");
+            return StatusCode(500, new ErrorResponse(
+                ErrorCodes.INTERNAL_SERVER_ERROR,
+                "Ett oväntat fel uppstod. Försök igen senare."
+            ));
+        }
+    }
+
+    [HttpPut("me")]
+    public async Task<ActionResult<UserResponse>> UpdateCurrentUserProfile([FromBody] UpdateUserProfileRequest request)
+    {
+        try
+        {
+            var userId = User.GetUserId();
+            var updatedUser = await _userService.UpdateProfileAsync(userId, request);
+            return Ok(updatedUser);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Unauthorized(new ErrorResponse(ErrorCodes.UNAUTHORIZED, ex.Message));
+        }
+        catch (ArgumentException ex)
+        {
+            return NotFound(new ErrorResponse(ErrorCodes.USER_NOT_FOUND, ex.Message));
+        }
+        catch (FluentValidation.ValidationException ex)
+        {
+            var details = new Dictionary<string, object>
+            {
+                { "errors", ex.Errors.Select(e => new { property = e.PropertyName, message = e.ErrorMessage }) }
+            };
+            return BadRequest(new ErrorResponse(ErrorCodes.VALIDATION_ERROR, "Valideringsfel", details));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Ett oväntat fel uppstod vid uppdatering av användarprofil");
             return StatusCode(500, new ErrorResponse(
                 ErrorCodes.INTERNAL_SERVER_ERROR,
                 "Ett oväntat fel uppstod. Försök igen senare."

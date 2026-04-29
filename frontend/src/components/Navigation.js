@@ -46,6 +46,12 @@ function Navigation() {
         >
           Skapa inlägg
         </Link>
+        <Link 
+          to="/profile" 
+          className={location.pathname === '/profile' ? 'nav-link active' : 'nav-link'}
+        >
+          Min profil
+        </Link>
       </nav>
       <div className="navigation-user">
         <span className="navigation-username">Inloggad som: {username}</span>
