@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { postsApi } from '../services/postsApi';
 import { userApi } from '../services/userApi';
 import { ApiError, ErrorCodes } from '../utils/ApiError';
+import PostItem from './PostItem';
 import './Timeline.css';
 
 function Timeline({ userId }) {
@@ -89,6 +90,8 @@ function Timeline({ userId }) {
     });
   };
 
+  const isPublicPost = (post) => !post.recipientId || post.recipientId === post.senderId;
+
   if (loading && posts.length === 0) {
     return (
       <div className="timeline">
@@ -131,21 +134,21 @@ function Timeline({ userId }) {
       {posts.length === 0 && !loading && !error ? (
         <div className="empty-message">
           <p>Inga inlägg att visa i tidslinjen.</p>
-          <p className="empty-hint">Skapa ett inlägg eller vänta på att någon postar på din tidslinje.</p>
+          <p className="empty-hint">Skapa ditt första offentliga inlägg så visas det här.</p>
         </div>
       ) : (
         <div className="timeline-posts">
           {posts.map((post) => (
-            <div key={post.id} className="post-item">
-              <div className="post-header">
-                <span className="post-sender">Från: {usernames[post.senderId] || post.senderId}</span>
-                <span className="post-date">{formatDate(post.createdAt)}</span>
-              </div>
-              <div className="post-message">{post.message}</div>
-              {post.recipientId && (
-                <div className="post-recipient">Till: {usernames[post.recipientId] || post.recipientId}</div>
-              )}
-            </div>
+            <PostItem
+              key={post.id}
+              post={post}
+              usernames={usernames}
+              currentUserId={userId}
+              formatDate={formatDate}
+              isPublicPost={isPublicPost}
+              onPostChanged={fetchTimeline}
+              containerClassName="post-item"
+            />
           ))}
         </div>
       )}

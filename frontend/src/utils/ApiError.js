@@ -18,6 +18,7 @@ export class ApiError extends Error {
     
     // Authentication errors (401)
     UNAUTHORIZED: 'UNAUTHORIZED',
+    FORBIDDEN: 'FORBIDDEN',
     TOKEN_EXPIRED: 'TOKEN_EXPIRED',
     INVALID_CREDENTIALS: 'INVALID_CREDENTIALS',
     

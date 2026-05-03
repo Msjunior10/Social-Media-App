@@ -8,18 +8,23 @@ namespace SocialTDD.Application.Services;
 public class PostService : IPostService
 {
     private readonly IPostRepository _postRepository;
-    private readonly IValidator<CreatePostRequest> _validator;
+    private readonly IValidator<CreatePostRequest> _createValidator;
+    private readonly IValidator<UpdatePostRequest> _updateValidator;
 
-    public PostService(IPostRepository postRepository, IValidator<CreatePostRequest> validator)
+    public PostService(
+        IPostRepository postRepository,
+        IValidator<CreatePostRequest> createValidator,
+        IValidator<UpdatePostRequest> updateValidator)
     {
         _postRepository = postRepository;
-        _validator = validator;
+        _createValidator = createValidator;
+        _updateValidator = updateValidator;
     }
 
     public async Task<PostResponse> CreatePostAsync(CreatePostRequest request)
     {
         // Validera input
-        var validationResult = await _validator.ValidateAsync(request);
+        var validationResult = await _createValidator.ValidateAsync(request);
         if (!validationResult.IsValid)
         {
             throw new ValidationException(validationResult.Errors);
@@ -32,25 +37,12 @@ public class PostService : IPostService
             throw new ArgumentException($"Avsändare med ID {request.SenderId} finns inte.", nameof(request.SenderId));
         }
 
-        // Validera att mottagare existerar
-        var recipientExists = await _postRepository.UserExistsAsync(request.RecipientId);
-        if (!recipientExists)
-        {
-            throw new ArgumentException($"Mottagare med ID {request.RecipientId} finns inte.", nameof(request.RecipientId));
-        }
-
-        // Validera att avsändare och mottagare inte är samma
-        if (request.SenderId == request.RecipientId)
-        {
-            throw new ArgumentException("Avsändare och mottagare kan inte vara samma användare.", nameof(request.RecipientId));
-        }
-
-        // Skapa post
+        // Skapa offentligt inlägg på användarens egen tidslinje
         var post = new Post
         {
             Id = Guid.NewGuid(),
             SenderId = request.SenderId,
-            RecipientId = request.RecipientId,
+            RecipientId = request.SenderId,
             Message = request.Message,
             CreatedAt = DateTime.UtcNow
         };
@@ -65,6 +57,55 @@ public class PostService : IPostService
             Message = createdPost.Message,
             CreatedAt = createdPost.CreatedAt
         };
+    }
+
+    public async Task<PostResponse> UpdatePostAsync(Guid postId, Guid userId, UpdatePostRequest request)
+    {
+        var validationResult = await _updateValidator.ValidateAsync(request);
+        if (!validationResult.IsValid)
+        {
+            throw new ValidationException(validationResult.Errors);
+        }
+
+        var post = await _postRepository.GetByIdAsync(postId);
+        if (post == null)
+        {
+            throw new KeyNotFoundException($"Inlägg med ID {postId} finns inte.");
+        }
+
+        if (post.SenderId != userId)
+        {
+            throw new UnauthorizedAccessException("Du kan bara redigera dina egna inlägg.");
+        }
+
+        post.Message = request.Message.Trim();
+
+        var updatedPost = await _postRepository.UpdateAsync(post);
+
+        return new PostResponse
+        {
+            Id = updatedPost.Id,
+            SenderId = updatedPost.SenderId,
+            RecipientId = updatedPost.RecipientId,
+            Message = updatedPost.Message,
+            CreatedAt = updatedPost.CreatedAt
+        };
+    }
+
+    public async Task DeletePostAsync(Guid postId, Guid userId)
+    {
+        var post = await _postRepository.GetByIdAsync(postId);
+        if (post == null)
+        {
+            throw new KeyNotFoundException($"Inlägg med ID {postId} finns inte.");
+        }
+
+        if (post.SenderId != userId)
+        {
+            throw new UnauthorizedAccessException("Du kan bara ta bort dina egna inlägg.");
+        }
+
+        await _postRepository.DeleteAsync(postId);
     }
 
     public async Task<List<PostResponse>> GetConversationAsync(Guid userId1, Guid userId2)

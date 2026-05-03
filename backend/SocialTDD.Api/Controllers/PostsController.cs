@@ -36,19 +36,11 @@ public class PostsController : ControllerBase
                 return BadRequest(new ErrorResponse(ErrorCodes.VALIDATION_ERROR, "Request body saknas."));
             }
             
-            _logger.LogInformation("Request body: RecipientId={RecipientId}, Message length={MessageLength}", 
-                requestDto.RecipientId, requestDto.Message?.Length ?? 0);
+            _logger.LogInformation("Request body: Message length={MessageLength}", requestDto.Message?.Length ?? 0);
             
             // Hämta UserId från JWT token
             var userId = User.GetUserId();
-            _logger.LogInformation("SenderId från token: {SenderId}, RecipientId från request: {RecipientId}", userId, requestDto.RecipientId);
-            
-            // Kontrollera om RecipientId är tomt eller ogiltigt
-            if (requestDto.RecipientId == Guid.Empty)
-            {
-                _logger.LogWarning("RecipientId är tomt eller ogiltigt. RecipientId: {RecipientId}", requestDto.RecipientId);
-                return BadRequest(new ErrorResponse(ErrorCodes.INVALID_RECIPIENT_ID, "RecipientId är obligatoriskt och måste vara ett giltigt användar-ID."));
-            }
+            _logger.LogInformation("SenderId från token: {SenderId}", userId);
             
             // Kontrollera om Message är tomt eller null
             if (string.IsNullOrWhiteSpace(requestDto.Message))
@@ -61,7 +53,6 @@ public class PostsController : ControllerBase
             var authenticatedRequest = new CreatePostRequest
             {
                 SenderId = userId,
-                RecipientId = requestDto.RecipientId,
                 Message = requestDto.Message
             };
             
@@ -76,7 +67,7 @@ public class PostsController : ControllerBase
         catch (ArgumentException ex)
         {
             _logger.LogWarning("Ogiltigt argument vid skapande av inlägg: {Message}", ex.Message);
-            return BadRequest(new ErrorResponse(ErrorCodes.INVALID_RECIPIENT_ID, ex.Message));
+            return BadRequest(new ErrorResponse(ErrorCodes.VALIDATION_ERROR, ex.Message));
         }
         catch (FluentValidation.ValidationException ex)
         {
@@ -89,12 +80,77 @@ public class PostsController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Ett oväntat fel uppstod vid skapande av inlägg. Request: RecipientId={RecipientId}, Message length={MessageLength}", 
-                requestDto?.RecipientId, requestDto?.Message?.Length ?? 0);
+            _logger.LogError(ex, "Ett oväntat fel uppstod vid skapande av inlägg. Message length={MessageLength}", 
+                requestDto?.Message?.Length ?? 0);
             return StatusCode(500, new ErrorResponse(
                 ErrorCodes.INTERNAL_SERVER_ERROR, 
                 "Ett oväntat fel uppstod. Försök igen senare."
             ));
+        }
+    }
+
+    [HttpPut("{postId}")]
+    public async Task<ActionResult<PostResponse>> UpdatePost(Guid postId, [FromBody] UpdatePostRequest request)
+    {
+        try
+        {
+            if (request == null)
+            {
+                return BadRequest(new ErrorResponse(ErrorCodes.VALIDATION_ERROR, "Request body saknas."));
+            }
+
+            var userId = User.GetUserId();
+            var result = await _postService.UpdatePostAsync(postId, userId, request);
+            return Ok(result);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            _logger.LogWarning(ex, "Otillåtet försök att redigera inlägg {PostId}", postId);
+            return StatusCode(403, new ErrorResponse(ErrorCodes.FORBIDDEN, ex.Message));
+        }
+        catch (KeyNotFoundException ex)
+        {
+            _logger.LogWarning(ex, "Inlägg hittades inte vid redigering {PostId}", postId);
+            return NotFound(new ErrorResponse(ErrorCodes.POST_NOT_FOUND, ex.Message));
+        }
+        catch (FluentValidation.ValidationException ex)
+        {
+            var details = new Dictionary<string, object>
+            {
+                { "errors", ex.Errors.Select(e => new { property = e.PropertyName, message = e.ErrorMessage }) }
+            };
+            return BadRequest(new ErrorResponse(ErrorCodes.VALIDATION_ERROR, ex.Message, details));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Ett oväntat fel uppstod vid redigering av inlägg {PostId}", postId);
+            return StatusCode(500, new ErrorResponse(ErrorCodes.INTERNAL_SERVER_ERROR, "Ett oväntat fel uppstod. Försök igen senare."));
+        }
+    }
+
+    [HttpDelete("{postId}")]
+    public async Task<IActionResult> DeletePost(Guid postId)
+    {
+        try
+        {
+            var userId = User.GetUserId();
+            await _postService.DeletePostAsync(postId, userId);
+            return NoContent();
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            _logger.LogWarning(ex, "Otillåtet försök att ta bort inlägg {PostId}", postId);
+            return StatusCode(403, new ErrorResponse(ErrorCodes.FORBIDDEN, ex.Message));
+        }
+        catch (KeyNotFoundException ex)
+        {
+            _logger.LogWarning(ex, "Inlägg hittades inte vid borttagning {PostId}", postId);
+            return NotFound(new ErrorResponse(ErrorCodes.POST_NOT_FOUND, ex.Message));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Ett oväntat fel uppstod vid borttagning av inlägg {PostId}", postId);
+            return StatusCode(500, new ErrorResponse(ErrorCodes.INTERNAL_SERVER_ERROR, "Ett oväntat fel uppstod. Försök igen senare."));
         }
     }
 

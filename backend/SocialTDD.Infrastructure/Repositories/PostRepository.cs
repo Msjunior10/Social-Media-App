@@ -21,6 +21,35 @@ public class PostRepository : IPostRepository
         return post;
     }
 
+    public async Task<Post> UpdateAsync(Post post)
+    {
+        _context.Posts.Update(post);
+        await _context.SaveChangesAsync();
+        return post;
+    }
+
+    public async Task<bool> DeleteAsync(Guid id)
+    {
+        var post = await _context.Posts.FindAsync(id);
+        if (post == null)
+        {
+            return false;
+        }
+
+        _context.Posts.Remove(post);
+        await _context.SaveChangesAsync();
+        return true;
+    }
+
+    public async Task<IEnumerable<Post>> GetAllPostsAsync()
+    {
+        return await _context.Posts
+            .Include(p => p.Sender)
+            .Include(p => p.Recipient)
+            .OrderByDescending(p => p.CreatedAt)
+            .ToListAsync();
+    }
+
     public async Task<Post?> GetByIdAsync(Guid id)
     {
         return await _context.Posts
@@ -61,7 +90,8 @@ public class PostRepository : IPostRepository
             .OrderBy(p => p.CreatedAt)
             .ToListAsync();
     }
-        public async Task<IEnumerable<Post>> GetPostsBySenderIdsAsync(IEnumerable<Guid> senderIds)
+
+    public async Task<IEnumerable<Post>> GetPostsBySenderIdsAsync(IEnumerable<Guid> senderIds)
     {
         var senderIdsList = senderIds.ToList();
         if (!senderIdsList.Any())

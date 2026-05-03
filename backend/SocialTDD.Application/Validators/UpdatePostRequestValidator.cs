@@ -3,14 +3,13 @@ using SocialTDD.Application.DTOs;
 
 namespace SocialTDD.Application.Validators;
 
-public class CreatePostRequestDtoValidator : AbstractValidator<CreatePostRequestDto>
+public class UpdatePostRequestValidator : AbstractValidator<UpdatePostRequest>
 {
     private const int MaxMessageLength = 500;
     private const int MinMessageLength = 1;
 
-    public CreatePostRequestDtoValidator()
+    public UpdatePostRequestValidator()
     {
-        // Validera Message
         RuleFor(x => x.Message)
             .NotNull()
             .WithMessage("Meddelande är obligatoriskt.")

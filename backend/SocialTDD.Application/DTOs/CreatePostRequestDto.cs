@@ -5,6 +5,5 @@ namespace SocialTDD.Application.DTOs;
 /// </summary>
 public class CreatePostRequestDto
 {
-    public Guid RecipientId { get; set; }
     public string Message { get; set; } = string.Empty;
 }

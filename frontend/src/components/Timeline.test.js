@@ -2,10 +2,23 @@ import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import Timeline from './Timeline';
-import * as postsApi from '../services/postsApi';
+import { postsApi } from '../services/postsApi';
+import { userApi } from '../services/userApi';
 
 // Mock the API module
-jest.mock('../services/postsApi');
+jest.mock('../services/postsApi', () => ({
+  postsApi: {
+    createPost: jest.fn(),
+    getTimeline: jest.fn(),
+    getTimelineByUserId: jest.fn(),
+  },
+}));
+
+jest.mock('../services/userApi', () => ({
+  userApi: {
+    getUserById: jest.fn(async (id) => ({ id, username: id })),
+  },
+}));
 
 describe('Timeline', () => {
   const mockUserId = '123e4567-e89b-12d3-a456-426614174000';
@@ -14,14 +27,14 @@ describe('Timeline', () => {
     {
       id: 'post-1',
       senderId: 'sender-1',
-      recipientId: mockUserId,
+      recipientId: 'sender-1',
       message: 'First post',
       createdAt: '2024-01-15T10:00:00Z',
     },
     {
       id: 'post-2',
       senderId: 'sender-2',
-      recipientId: mockUserId,
+      recipientId: 'sender-2',
       message: 'Second post',
       createdAt: '2024-01-16T10:00:00Z',
     },
@@ -29,6 +42,7 @@ describe('Timeline', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    userApi.getUserById.mockImplementation(async (id) => ({ id, username: id }));
   });
 
   it('renders loading state initially', () => {
@@ -36,7 +50,7 @@ describe('Timeline', () => {
     
     render(<Timeline userId={mockUserId} />);
     
-    expect(screen.getByText(/tidslinje/i)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /tidslinje/i })).toBeInTheDocument();
     expect(screen.getByText(/laddar tidslinje/i)).toBeInTheDocument();
   });
 
@@ -75,6 +89,7 @@ describe('Timeline', () => {
 
     await waitFor(() => {
       expect(screen.getByText(/inga inlägg att visa i tidslinjen/i)).toBeInTheDocument();
+      expect(screen.getByText(/skapa ditt första offentliga inlägg så visas det här/i)).toBeInTheDocument();
     });
   });
 
@@ -132,7 +147,7 @@ describe('Timeline', () => {
     });
   });
 
-  it('displays sender and recipient IDs for posts', async () => {
+  it('displays sender IDs for posts and hides recipient for public posts', async () => {
     postsApi.getTimeline.mockResolvedValue(mockPosts);
 
     render(<Timeline userId={mockUserId} />);
@@ -140,7 +155,7 @@ describe('Timeline', () => {
     await waitFor(() => {
       expect(screen.getByText(/från: sender-1/i)).toBeInTheDocument();
       expect(screen.getByText(/från: sender-2/i)).toBeInTheDocument();
-      expect(screen.getByText(new RegExp(`till: ${mockUserId}`, 'i'))).toBeInTheDocument();
+      expect(screen.queryByText(/till:/i)).not.toBeInTheDocument();
     });
   });
 });

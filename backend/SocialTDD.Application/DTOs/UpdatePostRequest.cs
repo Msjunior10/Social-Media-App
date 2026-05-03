@@ -1,10 +1,6 @@
 namespace SocialTDD.Application.DTOs;
 
-public class CreatePostRequest
+public class UpdatePostRequest
 {
-    public Guid SenderId { get; set; }
     public string Message { get; set; } = string.Empty;
 }
-
-
-

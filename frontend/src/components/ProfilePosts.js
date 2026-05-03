@@ -2,9 +2,10 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { postsApi } from '../services/postsApi';
 import { userApi } from '../services/userApi';
 import { ApiError, ErrorCodes } from '../utils/ApiError';
+import PostItem from './PostItem';
 import './Timeline.css';
 
-function ProfilePosts({ userId, username, isOwnProfile = false }) {
+function ProfilePosts({ userId, username, isOwnProfile = false, currentUserId = null }) {
   const [posts, setPosts] = useState([]);
   const [usernames, setUsernames] = useState({});
   const [loading, setLoading] = useState(true);
@@ -86,6 +87,8 @@ function ProfilePosts({ userId, username, isOwnProfile = false }) {
     });
   };
 
+  const isPublicPost = (post) => !post.recipientId || post.recipientId === post.senderId;
+
   const title = isOwnProfile
     ? 'Mina inlägg'
     : `${username || 'Användarens'} inlägg`;
@@ -134,21 +137,23 @@ function ProfilePosts({ userId, username, isOwnProfile = false }) {
           <p>Inga inlägg att visa ännu.</p>
           <p className="empty-hint">
             {isOwnProfile
-              ? 'När någon postar på din tidslinje visas det här.'
-              : 'Den här användaren har inga inlägg på sin tidslinje ännu.'}
+              ? 'När du skapar ett offentligt inlägg visas det här.'
+              : 'Den här användaren har inte skapat några offentliga inlägg ännu.'}
           </p>
         </div>
       ) : (
         <div className="timeline-posts">
           {posts.map((post) => (
-            <div key={post.id} className="post-item">
-              <div className="post-header">
-                <span className="post-sender">Från: {usernames[post.senderId] || post.senderId}</span>
-                <span className="post-date">{formatDate(post.createdAt)}</span>
-              </div>
-              <div className="post-message">{post.message}</div>
-              <div className="post-recipient">Till: {usernames[post.recipientId] || post.recipientId}</div>
-            </div>
+            <PostItem
+              key={post.id}
+              post={post}
+              usernames={usernames}
+              currentUserId={currentUserId}
+              formatDate={formatDate}
+              isPublicPost={isPublicPost}
+              onPostChanged={fetchPosts}
+              containerClassName="post-item"
+            />
           ))}
         </div>
       )}

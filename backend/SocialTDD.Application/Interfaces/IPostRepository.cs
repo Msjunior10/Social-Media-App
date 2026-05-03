@@ -5,6 +5,9 @@ namespace SocialTDD.Application.Interfaces;
 public interface IPostRepository
 {
     Task<Post> CreateAsync(Post post);
+    Task<Post> UpdateAsync(Post post);
+    Task<bool> DeleteAsync(Guid id);
+    Task<IEnumerable<Post>> GetAllPostsAsync();
     Task<Post?> GetByIdAsync(Guid id);
     Task<IEnumerable<Post>> GetByRecipientIdAsync(Guid recipientId);
     Task<IEnumerable<Post>> GetTimelinePostsAsync(Guid userId); // NY METOD
