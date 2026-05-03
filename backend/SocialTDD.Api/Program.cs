@@ -91,6 +91,7 @@ builder.Services.AddFluentValidationClientsideAdapters();
 builder.Services.AddValidatorsFromAssemblyContaining<CreatePostRequestValidator>();
 builder.Services.AddValidatorsFromAssemblyContaining<CreatePostRequestDtoValidator>();
 builder.Services.AddValidatorsFromAssemblyContaining<CreateDirectMessageRequestValidator>();
+builder.Services.AddValidatorsFromAssemblyContaining<CreatePostCommentRequestValidator>();
 builder.Services.AddValidatorsFromAssemblyContaining<RegisterRequestValidator>();
 builder.Services.AddValidatorsFromAssemblyContaining<LoginRequestValidator>();
 builder.Services.AddValidatorsFromAssemblyContaining<UpdateUserProfileRequestValidator>();
@@ -124,6 +125,7 @@ else
     app.UseHttpsRedirection();
 }
 
+app.UseStaticFiles();
 app.UseCors();
 app.UseAuthentication(); // Lägg till detta före UseAuthorization
 app.UseMiddleware<UpdateLastActivityMiddleware>();

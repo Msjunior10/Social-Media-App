@@ -16,6 +16,9 @@ public class WallServiceTests
     {
         _mockFollowRepository = new Mock<IFollowRepository>();
         _mockPostRepository = new Mock<IPostRepository>();
+        _mockPostRepository.Setup(r => r.GetCommentsByPostIdAsync(It.IsAny<Guid>())).ReturnsAsync(new List<PostComment>());
+        _mockPostRepository.Setup(r => r.GetLikeCountAsync(It.IsAny<Guid>())).ReturnsAsync(0);
+        _mockPostRepository.Setup(r => r.IsLikedByUserAsync(It.IsAny<Guid>(), It.IsAny<Guid>())).ReturnsAsync(false);
         _wallService = new WallService(_mockFollowRepository.Object, _mockPostRepository.Object);
     }
 
@@ -53,7 +56,7 @@ public class WallServiceTests
         _mockPostRepository.Setup(r => r.UserExistsAsync(userId)).ReturnsAsync(true);
         _mockPostRepository.Setup(r => r.GetAllPostsAsync()).ReturnsAsync(posts);
 
-        var result = await _wallService.GetWallAsync(userId);
+        var result = await _wallService.GetWallAsync(userId, userId);
 
         result.Should().HaveCount(2);
         result.Should().Contain(p => p.SenderId == user1Id);
@@ -68,7 +71,7 @@ public class WallServiceTests
         _mockPostRepository.Setup(r => r.UserExistsAsync(userId)).ReturnsAsync(true);
         _mockPostRepository.Setup(r => r.GetAllPostsAsync()).ReturnsAsync(new List<Post>());
 
-        var result = await _wallService.GetWallAsync(userId);
+        var result = await _wallService.GetWallAsync(userId, userId);
 
         result.Should().NotBeNull();
         result.Should().BeEmpty();
@@ -118,7 +121,7 @@ public class WallServiceTests
         _mockPostRepository.Setup(r => r.UserExistsAsync(userId)).ReturnsAsync(true);
         _mockPostRepository.Setup(r => r.GetAllPostsAsync()).ReturnsAsync(new List<Post> { oldestPost, middlePost, newestPost });
 
-        var result = await _wallService.GetWallAsync(userId);
+        var result = await _wallService.GetWallAsync(userId, userId);
 
         result.Should().HaveCount(3);
         result[0].Message.Should().Be("Nyaste posten");
@@ -132,7 +135,7 @@ public class WallServiceTests
         var userId = Guid.NewGuid();
         _mockPostRepository.Setup(r => r.UserExistsAsync(userId)).ReturnsAsync(false);
 
-        var exception = await Assert.ThrowsAsync<ArgumentException>(() => _wallService.GetWallAsync(userId));
+        var exception = await Assert.ThrowsAsync<ArgumentException>(() => _wallService.GetWallAsync(userId, userId));
 
         exception.Message.Should().Contain("finns inte");
         _mockFollowRepository.Verify(r => r.GetFollowingAsync(It.IsAny<Guid>()), Times.Never);

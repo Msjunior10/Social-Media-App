@@ -20,11 +20,15 @@ const createTimeoutPromise = (timeoutMs) => {
 // Helper function för att göra autentiserade API-anrop
 export const authenticatedFetch = async (url, options = {}) => {
   const token = getAuthToken();
+  const isFormData = typeof FormData !== 'undefined' && options.body instanceof FormData;
   
   const headers = {
-    'Content-Type': 'application/json',
     ...options.headers,
   };
+
+  if (!isFormData && !headers['Content-Type']) {
+    headers['Content-Type'] = 'application/json';
+  }
 
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;

@@ -14,6 +14,7 @@ public class PostServiceTests
     private readonly Mock<IPostRepository> _mockRepository;
     private readonly IValidator<CreatePostRequest> _createValidator;
     private readonly IValidator<UpdatePostRequest> _updateValidator;
+    private readonly IValidator<CreatePostCommentRequest> _commentValidator;
     private readonly PostService _postService;
 
     public PostServiceTests()
@@ -21,7 +22,11 @@ public class PostServiceTests
         _mockRepository = new Mock<IPostRepository>();
         _createValidator = new CreatePostRequestValidator();
         _updateValidator = new UpdatePostRequestValidator();
-        _postService = new PostService(_mockRepository.Object, _createValidator, _updateValidator);
+        _commentValidator = new CreatePostCommentRequestValidator();
+        _mockRepository.Setup(r => r.GetCommentsByPostIdAsync(It.IsAny<Guid>())).ReturnsAsync(new List<PostComment>());
+        _mockRepository.Setup(r => r.GetLikeCountAsync(It.IsAny<Guid>())).ReturnsAsync(0);
+        _mockRepository.Setup(r => r.IsLikedByUserAsync(It.IsAny<Guid>(), It.IsAny<Guid>())).ReturnsAsync(false);
+        _postService = new PostService(_mockRepository.Object, _createValidator, _updateValidator, _commentValidator);
     }
 
     [Fact]

@@ -4,7 +4,7 @@ import { userApi } from '../services/userApi';
 import PostItem from './PostItem';
 import './Wall.css';
 
-function Wall({ userId }) {
+function Wall({ userId, refreshKey = 0, showHeader = true }) {
   const [posts, setPosts] = useState([]);
   const [usernames, setUsernames] = useState({});
   const [loading, setLoading] = useState(true);
@@ -30,6 +30,9 @@ function Wall({ userId }) {
       sortedPosts.forEach(post => {
         if (post.senderId) uniqueUserIds.add(post.senderId);
         if (post.recipientId) uniqueUserIds.add(post.recipientId);
+        (post.comments || []).forEach(comment => {
+          if (comment.userId) uniqueUserIds.add(comment.userId);
+        });
       });
 
       const usernameMap = {};
@@ -57,17 +60,19 @@ function Wall({ userId }) {
     if (userId) {
       fetchWall();
     }
-  }, [userId, fetchWall]);
+  }, [userId, fetchWall, refreshKey]);
 
   const formatDate = (dateString) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('sv-SE', {
-      year: 'numeric',
-      month: 'long',
+    const datePart = date.toLocaleDateString('sv-SE', {
+      month: 'short',
       day: 'numeric',
+    });
+    const timePart = date.toLocaleTimeString('sv-SE', {
       hour: '2-digit',
       minute: '2-digit',
     });
+    return `${datePart} · ${timePart}`;
   };
 
   const isPublicPost = (post) => !post.recipientId || post.recipientId === post.senderId;
@@ -76,7 +81,7 @@ function Wall({ userId }) {
     return (
       <div className="wall">
         <div className="wall-header">
-          <h2>Vägg</h2>
+          {showHeader && <h2>Vägg</h2>}
         </div>
         <div className="loading">
           <span className="loading-spinner"></span>
@@ -88,18 +93,20 @@ function Wall({ userId }) {
 
   return (
     <div className="wall">
-      <div className="wall-header">
-        <h2>Vägg</h2>
-        <button
-          onClick={fetchWall}
-          className="wall-refresh-button"
-          disabled={loading}
-          title="Uppdatera vägg"
-          aria-label="Uppdatera vägg"
-        >
-          <span className={loading ? 'refresh-icon spinning' : 'refresh-icon'}>⟳</span>
-        </button>
-      </div>
+      {showHeader && (
+        <div className="wall-header">
+          <h2>Vägg</h2>
+          <button
+            onClick={fetchWall}
+            className="wall-refresh-button"
+            disabled={loading}
+            title="Uppdatera vägg"
+            aria-label="Uppdatera vägg"
+          >
+            <span className={loading ? 'refresh-icon spinning' : 'refresh-icon'}>⟳</span>
+          </button>
+        </div>
+      )}
 
       {error && (
         <div className="error-message" role="alert">

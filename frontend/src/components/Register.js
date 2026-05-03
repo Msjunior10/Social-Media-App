@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { authApi } from '../services/authApi';
 import { useAuth } from '../contexts/AuthContext';
 import { ApiError, ErrorCodes } from '../utils/ApiError';
@@ -130,7 +130,18 @@ function Register() {
   return (
     <div className="register-container">
       <div className="register-card">
+        <div className="register-badge">Create your Socially identity</div>
         <h2 className="register-title">Registrera dig</h2>
+        <p className="register-subtitle">
+          Skapa en profil med mer närvaro, dela snabbare och bygg ett nätverk i en mer
+          genomarbetad upplevelse.
+        </p>
+
+        <div className="register-highlights" aria-hidden="true">
+          <span className="register-highlight-pill">Snabb onboarding</span>
+          <span className="register-highlight-pill">Ren profilkänsla</span>
+          <span className="register-highlight-pill">Modern social app</span>
+        </div>
         
         {error && (
           <div className="register-error" role="alert">
@@ -219,9 +230,9 @@ function Register() {
         <div className="register-footer">
           <p>
             Har du redan ett konto?{' '}
-            <a href="/login" className="register-link">
+            <Link to="/login" className="register-link">
               Logga in här
-            </a>
+            </Link>
           </p>
         </div>
       </div>

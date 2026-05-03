@@ -10,15 +10,18 @@ public class PostService : IPostService
     private readonly IPostRepository _postRepository;
     private readonly IValidator<CreatePostRequest> _createValidator;
     private readonly IValidator<UpdatePostRequest> _updateValidator;
+    private readonly IValidator<CreatePostCommentRequest> _commentValidator;
 
     public PostService(
         IPostRepository postRepository,
         IValidator<CreatePostRequest> createValidator,
-        IValidator<UpdatePostRequest> updateValidator)
+        IValidator<UpdatePostRequest> updateValidator,
+        IValidator<CreatePostCommentRequest> commentValidator)
     {
         _postRepository = postRepository;
         _createValidator = createValidator;
         _updateValidator = updateValidator;
+        _commentValidator = commentValidator;
     }
 
     public async Task<PostResponse> CreatePostAsync(CreatePostRequest request)
@@ -44,19 +47,13 @@ public class PostService : IPostService
             SenderId = request.SenderId,
             RecipientId = request.SenderId,
             Message = request.Message,
+            ImageUrl = string.IsNullOrWhiteSpace(request.ImageUrl) ? null : request.ImageUrl.Trim(),
             CreatedAt = DateTime.UtcNow
         };
 
         var createdPost = await _postRepository.CreateAsync(post);
 
-        return new PostResponse
-        {
-            Id = createdPost.Id,
-            SenderId = createdPost.SenderId,
-            RecipientId = createdPost.RecipientId,
-            Message = createdPost.Message,
-            CreatedAt = createdPost.CreatedAt
-        };
+        return await MapToPostResponseAsync(createdPost, request.SenderId);
     }
 
     public async Task<PostResponse> UpdatePostAsync(Guid postId, Guid userId, UpdatePostRequest request)
@@ -82,14 +79,7 @@ public class PostService : IPostService
 
         var updatedPost = await _postRepository.UpdateAsync(post);
 
-        return new PostResponse
-        {
-            Id = updatedPost.Id,
-            SenderId = updatedPost.SenderId,
-            RecipientId = updatedPost.RecipientId,
-            Message = updatedPost.Message,
-            CreatedAt = updatedPost.CreatedAt
-        };
+        return await MapToPostResponseAsync(updatedPost, userId);
     }
 
     public async Task DeletePostAsync(Guid postId, Guid userId)
@@ -106,6 +96,86 @@ public class PostService : IPostService
         }
 
         await _postRepository.DeleteAsync(postId);
+    }
+
+    public async Task<PostResponse> LikePostAsync(Guid postId, Guid userId)
+    {
+        var post = await _postRepository.GetByIdAsync(postId);
+        if (post == null)
+        {
+            throw new KeyNotFoundException($"Inlägg med ID {postId} finns inte.");
+        }
+
+        var userExists = await _postRepository.UserExistsAsync(userId);
+        if (!userExists)
+        {
+            throw new ArgumentException($"Användare med ID {userId} finns inte.", nameof(userId));
+        }
+
+        var isLiked = await _postRepository.IsLikedByUserAsync(postId, userId);
+        if (!isLiked)
+        {
+            await _postRepository.AddLikeAsync(new PostLike
+            {
+                Id = Guid.NewGuid(),
+                PostId = postId,
+                UserId = userId,
+                CreatedAt = DateTime.UtcNow
+            });
+        }
+
+        return await MapToPostResponseAsync(post, userId);
+    }
+
+    public async Task<PostResponse> UnlikePostAsync(Guid postId, Guid userId)
+    {
+        var post = await _postRepository.GetByIdAsync(postId);
+        if (post == null)
+        {
+            throw new KeyNotFoundException($"Inlägg med ID {postId} finns inte.");
+        }
+
+        await _postRepository.RemoveLikeAsync(postId, userId);
+        return await MapToPostResponseAsync(post, userId);
+    }
+
+    public async Task<PostCommentResponse> AddCommentAsync(Guid postId, Guid userId, CreatePostCommentRequest request)
+    {
+        var validationResult = await _commentValidator.ValidateAsync(request);
+        if (!validationResult.IsValid)
+        {
+            throw new ValidationException(validationResult.Errors);
+        }
+
+        var post = await _postRepository.GetByIdAsync(postId);
+        if (post == null)
+        {
+            throw new KeyNotFoundException($"Inlägg med ID {postId} finns inte.");
+        }
+
+        var userExists = await _postRepository.UserExistsAsync(userId);
+        if (!userExists)
+        {
+            throw new ArgumentException($"Användare med ID {userId} finns inte.", nameof(userId));
+        }
+
+        var createdComment = await _postRepository.AddCommentAsync(new PostComment
+        {
+            Id = Guid.NewGuid(),
+            PostId = postId,
+            UserId = userId,
+            Message = request.Message.Trim(),
+            CreatedAt = DateTime.UtcNow
+        });
+
+        return new PostCommentResponse
+        {
+            Id = createdComment.Id,
+            PostId = createdComment.PostId,
+            UserId = createdComment.UserId,
+            Message = createdComment.Message,
+            CreatedAt = createdComment.CreatedAt
+        };
     }
 
     public async Task<List<PostResponse>> GetConversationAsync(Guid userId1, Guid userId2)
@@ -139,8 +209,34 @@ public class PostService : IPostService
             SenderId = p.SenderId,
             RecipientId = p.RecipientId,
             Message = p.Message,
+            ImageUrl = p.ImageUrl,
             CreatedAt = p.CreatedAt
         }).ToList();
+    }
+
+    private async Task<PostResponse> MapToPostResponseAsync(Post post, Guid currentUserId)
+    {
+        var comments = await _postRepository.GetCommentsByPostIdAsync(post.Id);
+
+        return new PostResponse
+        {
+            Id = post.Id,
+            SenderId = post.SenderId,
+            RecipientId = post.RecipientId,
+            Message = post.Message,
+            ImageUrl = post.ImageUrl,
+            CreatedAt = post.CreatedAt,
+            LikeCount = await _postRepository.GetLikeCountAsync(post.Id),
+            IsLikedByCurrentUser = await _postRepository.IsLikedByUserAsync(post.Id, currentUserId),
+            Comments = comments.Select(c => new PostCommentResponse
+            {
+                Id = c.Id,
+                PostId = c.PostId,
+                UserId = c.UserId,
+                Message = c.Message,
+                CreatedAt = c.CreatedAt
+            }).ToList()
+        };
     }
 }
 

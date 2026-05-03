@@ -1,9 +1,8 @@
 .followers-list {
   background: white;
-  border-radius: 8px;
+  border-radius: 18px;
   padding: 20px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  margin-bottom: 20px;
+  border: 1px solid #eff3f4;
 }
 
 .followers-list-header {
@@ -15,16 +14,17 @@
 
 .followers-list h3 {
   margin: 0;
-  color: #333;
+  color: var(--app-text);
   font-size: 20px;
+  font-weight: 800;
 }
 
 .refresh-button {
   background: none;
   border: none;
   cursor: pointer;
-  padding: 4px 8px;
-  border-radius: 4px;
+  padding: 6px 10px;
+  border-radius: 999px;
   transition: background-color 0.2s;
   display: flex;
   align-items: center;
@@ -32,7 +32,7 @@
 }
 
 .refresh-button:hover:not(:disabled) {
-  background-color: #f0f0f0;
+  background-color: var(--app-accent-soft);
 }
 
 .refresh-button:disabled {
@@ -42,7 +42,7 @@
 
 .refresh-icon {
   font-size: 18px;
-  color: #666;
+  color: var(--app-muted);
   display: inline-block;
   transition: transform 0.3s;
 }
@@ -64,20 +64,20 @@
 .error {
   padding: 12px;
   text-align: center;
-  color: #666;
+  color: var(--app-muted);
 }
 
 .error {
-  color: #c33;
-  background-color: #fee;
-  border-radius: 4px;
-  border: 1px solid #fcc;
+  color: #b91c1c;
+  background-color: #fee2e2;
+  border-radius: 12px;
+  border: 1px solid #fecaca;
 }
 
 .empty-message {
   padding: 20px;
   text-align: center;
-  color: #999;
+  color: #94a3b8;
   font-style: italic;
 }
 
@@ -89,7 +89,7 @@
 
 .follower-item {
   padding: 12px;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid #eff3f4;
   transition: background-color 0.2s ease;
 }
 
@@ -98,7 +98,7 @@
 }
 
 .follower-item:hover {
-  background-color: #f8f9fa;
+  background-color: var(--app-surface-soft);
 }
 
 .follower-item-clickable {
@@ -106,13 +106,13 @@
 }
 
 .follower-item-clickable:hover {
-  background-color: #e3f2fd;
-  border-left: 3px solid #2196f3;
+  background-color: var(--app-accent-soft);
+  border-left: 3px solid var(--app-accent);
 }
 
 .follower-action-hint {
   font-size: 12px;
-  color: #2196f3;
+  color: var(--app-accent);
   margin-top: 4px;
   display: block;
   opacity: 0;
@@ -130,11 +130,30 @@
 }
 
 .follower-id {
-  font-weight: 600;
-  color: #333;
+  font-weight: 700;
+  color: var(--app-text);
 }
 
 .follower-date {
   font-size: 14px;
-  color: #666;
+  color: var(--app-muted);
+}
+
+@media (max-width: 560px) {
+  .followers-list {
+    padding: 16px;
+  }
+
+  .followers-list-header {
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .follower-item {
+    padding: 10px 0;
+  }
+
+  .follower-action-hint {
+    opacity: 1;
+  }
 }

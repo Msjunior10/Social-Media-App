@@ -1,207 +1,183 @@
 .timeline {
-    background: white;
-    border-radius: 8px;
-    padding: 20px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    margin-bottom: 20px;
+  background: var(--app-surface);
+}
+
+.timeline-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--app-border);
+}
+
+.timeline h3 {
+  margin: 0;
+  color: var(--app-text);
+  font-size: 20px;
+  font-weight: 800;
+}
+
+.timeline-refresh-button {
+  background: var(--app-surface);
+  border: 1px solid var(--app-border);
+  border-radius: 999px;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 40px;
+  height: 40px;
+}
+
+.timeline-refresh-button:hover:not(:disabled) {
+  background: var(--app-accent-soft);
+  border-color: var(--app-accent);
+}
+
+.timeline-refresh-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.refresh-icon {
+  font-size: 18px;
+  color: var(--app-accent);
+  transition: transform 0.3s ease;
+}
+
+.refresh-icon.spinning {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
   }
-  
-  .timeline-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 16px;
-    padding-bottom: 12px;
-    border-bottom: 2px solid #eee;
+  to {
+    transform: rotate(360deg);
   }
-  
-  .timeline h3 {
-    margin: 0;
-    color: #333;
-    font-size: 20px;
-  }
-  
-  .timeline-refresh-button {
-    background: #f8f9fa;
-    border: 1px solid #dee2e6;
-    border-radius: 6px;
-    padding: 8px 12px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 40px;
-    height: 40px;
-  }
-  
-  .timeline-refresh-button:hover:not(:disabled) {
-    background: #e9ecef;
-    border-color: #adb5bd;
-    transform: scale(1.05);
-  }
-  
-  .timeline-refresh-button:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-  }
-  
-  .refresh-icon {
-    font-size: 18px;
-    color: #495057;
-    transition: transform 0.3s ease;
-  }
-  
-  .refresh-icon.spinning {
-    animation: spin 1s linear infinite;
-  }
-  
-  @keyframes spin {
-    from {
-      transform: rotate(0deg);
-    }
-    to {
-      transform: rotate(360deg);
-    }
-  }
-  
-  .loading {
-    padding: 40px;
-    text-align: center;
-    color: #666;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 12px;
-  }
-  
-  .loading-spinner {
-    width: 32px;
-    height: 32px;
-    border: 3px solid #f3f3f3;
-    border-top: 3px solid #007bff;
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-  }
-  
-  .error-message {
-    padding: 16px;
-    background-color: #fff3cd;
-    border: 1px solid #ffc107;
-    border-radius: 6px;
-    margin-bottom: 16px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    color: #856404;
-  }
-  
-  .error-icon {
-    font-size: 20px;
-    flex-shrink: 0;
-  }
-  
-  .error-text {
-    flex: 1;
-    font-size: 14px;
-  }
-  
-  .error-retry-button {
-    background: #ffc107;
-    border: none;
-    border-radius: 4px;
-    padding: 6px 12px;
-    color: #856404;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background 0.2s ease;
-    flex-shrink: 0;
-  }
-  
-  .error-retry-button:hover {
-    background: #ffca2c;
-  }
-  
-  .empty-message {
-    padding: 40px 20px;
-    text-align: center;
-    color: #999;
-  }
-  
-  .empty-message p {
-    margin: 8px 0;
-    font-size: 16px;
-  }
-  
-  .empty-hint {
-    font-size: 14px;
-    font-style: italic;
-    color: #bbb;
-    margin-top: 8px;
-  }
-  
-  .timeline-posts {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-  }
-  
+}
+
+.loading {
+  padding: 40px 20px;
+  text-align: center;
+  color: var(--app-muted);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.loading-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid #f1f5f9;
+  border-top: 3px solid var(--app-accent);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.error-message {
+  padding: 16px;
+  background-color: var(--app-warning-soft);
+  border: 1px solid #f4d7a1;
+  border-radius: 16px;
+  margin: 16px 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #8a5a16;
+}
+
+.error-icon {
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.error-text {
+  flex: 1;
+  font-size: 14px;
+}
+
+.error-retry-button {
+  background: rgba(183, 121, 31, 0.16);
+  border: none;
+  border-radius: 999px;
+  padding: 8px 14px;
+  color: var(--app-warning);
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  flex-shrink: 0;
+}
+
+.error-retry-button:hover {
+  background: rgba(183, 121, 31, 0.24);
+}
+
+.empty-message {
+  padding: 48px 20px;
+  text-align: center;
+  color: var(--app-muted);
+}
+
+.empty-message p {
+  margin: 8px 0;
+  font-size: 16px;
+}
+
+.empty-hint {
+  font-size: 14px;
+  font-style: italic;
+  color: #94a3b8;
+  margin-top: 8px;
+}
+
+.timeline-posts {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.post-item {
+  padding: 18px 20px;
+  border-bottom: 1px solid var(--app-border);
+  background-color: var(--app-surface);
+  transition: background-color 0.2s ease;
+}
+
+.post-item:hover {
+  background: var(--app-surface-soft);
+}
+
+@media (max-width: 768px) {
+  .timeline-header,
   .post-item {
-    padding: 16px;
-    border: 1px solid #eee;
-    border-radius: 6px;
-    background-color: #fafafa;
-    transition: box-shadow 0.2s ease, transform 0.1s ease;
+    padding-left: 16px;
+    padding-right: 16px;
   }
-  
-  .post-item:hover {
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    transform: translateY(-1px);
+
+  .timeline-header,
+  .error-message {
+    gap: 10px;
   }
-  
-  .post-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 12px;
-    padding-bottom: 8px;
-    border-bottom: 1px solid #eee;
+
+  .error-message {
+    flex-direction: column;
+    align-items: flex-start;
   }
-  
-  .post-sender {
-    font-weight: 600;
-    color: #333;
-    font-size: 14px;
+}
+
+@media (max-width: 480px) {
+  .timeline-header,
+  .post-item {
+    padding-left: 12px;
+    padding-right: 12px;
   }
-  
-  .post-date {
-    font-size: 12px;
-    color: #666;
+
+  .timeline h3 {
+    font-size: 18px;
   }
-  
-  .post-message {
-    margin: 12px 0;
-    color: #333;
-    line-height: 1.6;
-    font-size: 15px;
-    word-wrap: break-word;
-  }
-  
-  .post-recipient {
-    font-size: 13px;
-    color: #666;
-    font-style: italic;
-    margin-top: 8px;
-  }
-  
-  @media (max-width: 768px) {
-    .post-header {
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 4px;
-    }
-  
-    .post-date {
-      font-size: 11px;
-    }
-  }
+}

@@ -5,7 +5,7 @@ import { ApiError, ErrorCodes } from '../utils/ApiError';
 import PostItem from './PostItem';
 import './Timeline.css';
 
-function ProfilePosts({ userId, username, isOwnProfile = false, currentUserId = null }) {
+function ProfilePosts({ userId, username, isOwnProfile = false, currentUserId = null, refreshKey = 0 }) {
   const [posts, setPosts] = useState([]);
   const [usernames, setUsernames] = useState({});
   const [loading, setLoading] = useState(true);
@@ -28,6 +28,9 @@ function ProfilePosts({ userId, username, isOwnProfile = false, currentUserId = 
       sortedPosts.forEach((post) => {
         if (post.senderId) uniqueUserIds.add(post.senderId);
         if (post.recipientId) uniqueUserIds.add(post.recipientId);
+        (post.comments || []).forEach((comment) => {
+          if (comment.userId) uniqueUserIds.add(comment.userId);
+        });
       });
 
       const usernameMap = {};
@@ -74,17 +77,19 @@ function ProfilePosts({ userId, username, isOwnProfile = false, currentUserId = 
     if (userId) {
       fetchPosts();
     }
-  }, [userId, fetchPosts]);
+  }, [userId, fetchPosts, refreshKey]);
 
   const formatDate = (dateString) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('sv-SE', {
-      year: 'numeric',
-      month: 'long',
+    const datePart = date.toLocaleDateString('sv-SE', {
+      month: 'short',
       day: 'numeric',
+    });
+    const timePart = date.toLocaleTimeString('sv-SE', {
       hour: '2-digit',
       minute: '2-digit',
     });
+    return `${datePart} · ${timePart}`;
   };
 
   const isPublicPost = (post) => !post.recipientId || post.recipientId === post.senderId;
@@ -137,7 +142,7 @@ function ProfilePosts({ userId, username, isOwnProfile = false, currentUserId = 
           <p>Inga inlägg att visa ännu.</p>
           <p className="empty-hint">
             {isOwnProfile
-              ? 'När du skapar ett offentligt inlägg visas det här.'
+              ? 'När du skapar ett offentligt inlägg från din profil visas det här.'
               : 'Den här användaren har inte skapat några offentliga inlägg ännu.'}
           </p>
         </div>

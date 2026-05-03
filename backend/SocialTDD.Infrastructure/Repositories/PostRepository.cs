@@ -106,6 +106,49 @@ public class PostRepository : IPostRepository
             .ToListAsync();
     }
 
+    public async Task<int> GetLikeCountAsync(Guid postId)
+    {
+        return await _context.PostLikes.CountAsync(l => l.PostId == postId);
+    }
+
+    public async Task<bool> IsLikedByUserAsync(Guid postId, Guid userId)
+    {
+        return await _context.PostLikes.AnyAsync(l => l.PostId == postId && l.UserId == userId);
+    }
+
+    public async Task AddLikeAsync(PostLike like)
+    {
+        _context.PostLikes.Add(like);
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task RemoveLikeAsync(Guid postId, Guid userId)
+    {
+        var like = await _context.PostLikes.FirstOrDefaultAsync(l => l.PostId == postId && l.UserId == userId);
+        if (like == null)
+        {
+            return;
+        }
+
+        _context.PostLikes.Remove(like);
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task<IEnumerable<PostComment>> GetCommentsByPostIdAsync(Guid postId)
+    {
+        return await _context.PostComments
+            .Where(c => c.PostId == postId)
+            .OrderBy(c => c.CreatedAt)
+            .ToListAsync();
+    }
+
+    public async Task<PostComment> AddCommentAsync(PostComment comment)
+    {
+        _context.PostComments.Add(comment);
+        await _context.SaveChangesAsync();
+        return comment;
+    }
+
     public async Task<bool> UserExistsAsync(Guid userId)
     {
         return await _context.Users.AnyAsync(u => u.Id == userId);

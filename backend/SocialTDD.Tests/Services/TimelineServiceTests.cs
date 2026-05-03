@@ -15,6 +15,9 @@ public class TimelineServiceTests
     public TimelineServiceTests()
     {
         _mockRepository = new Mock<IPostRepository>();
+        _mockRepository.Setup(r => r.GetCommentsByPostIdAsync(It.IsAny<Guid>())).ReturnsAsync(new List<PostComment>());
+        _mockRepository.Setup(r => r.GetLikeCountAsync(It.IsAny<Guid>())).ReturnsAsync(0);
+        _mockRepository.Setup(r => r.IsLikedByUserAsync(It.IsAny<Guid>(), It.IsAny<Guid>())).ReturnsAsync(false);
         _timelineService = new TimelineService(_mockRepository.Object);
     }
 
@@ -64,7 +67,7 @@ public class TimelineServiceTests
         _mockRepository.Setup(r => r.GetTimelinePostsAsync(userId)).ReturnsAsync(posts);
 
         // Act
-        var result = await _timelineService.GetTimelineAsync(userId);
+        var result = await _timelineService.GetTimelineAsync(userId, userId);
 
         // Assert
         result.Should().NotBeNull();
@@ -89,7 +92,7 @@ public class TimelineServiceTests
         _mockRepository.Setup(r => r.GetTimelinePostsAsync(userId)).ReturnsAsync(new List<Post>());
 
         // Act
-        var result = await _timelineService.GetTimelineAsync(userId);
+        var result = await _timelineService.GetTimelineAsync(userId, userId);
 
         // Assert
         result.Should().NotBeNull();
@@ -105,7 +108,7 @@ public class TimelineServiceTests
 
         // Act & Assert
         var exception = await Assert.ThrowsAsync<ArgumentException>(
-            async () => await _timelineService.GetTimelineAsync(userId));
+            async () => await _timelineService.GetTimelineAsync(userId, userId));
         
         exception.Message.Should().Contain("finns inte");
         _mockRepository.Verify(r => r.GetTimelinePostsAsync(It.IsAny<Guid>()), Times.Never);
@@ -146,7 +149,7 @@ public class TimelineServiceTests
         _mockRepository.Setup(r => r.GetTimelinePostsAsync(userId)).ReturnsAsync(posts);
 
         // Act
-        var result = await _timelineService.GetTimelineAsync(userId);
+        var result = await _timelineService.GetTimelineAsync(userId, userId);
 
         // Assert
         result.Should().HaveCount(2);
@@ -191,7 +194,7 @@ public class TimelineServiceTests
         _mockRepository.Setup(r => r.GetTimelinePostsAsync(timelineOwnerId)).ReturnsAsync(posts);
 
         // Act
-        var result = await _timelineService.GetTimelineAsync(timelineOwnerId);
+        var result = await _timelineService.GetTimelineAsync(timelineOwnerId, viewingUserId);
 
         // Assert
         result.Should().HaveCount(2);
@@ -234,7 +237,7 @@ public class TimelineServiceTests
         _mockRepository.Setup(r => r.GetTimelinePostsAsync(userId)).ReturnsAsync(posts);
 
         // Act
-        var result = await _timelineService.GetTimelineAsync(userId);
+        var result = await _timelineService.GetTimelineAsync(userId, userId);
 
         // Assert
         result.Should().HaveCount(2);
@@ -269,7 +272,7 @@ public class TimelineServiceTests
         _mockRepository.Setup(r => r.GetTimelinePostsAsync(userId)).ReturnsAsync(posts);
 
         // Act
-        var result = await _timelineService.GetTimelineAsync(userId);
+        var result = await _timelineService.GetTimelineAsync(userId, userId);
 
         // Assert
         result.Should().NotBeNull();

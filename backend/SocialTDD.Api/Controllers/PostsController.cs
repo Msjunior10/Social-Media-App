@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using SocialTDD.Api.Extensions;
 using SocialTDD.Api.Models;
@@ -12,19 +13,30 @@ namespace SocialTDD.Api.Controllers;
 [Authorize]
 public class PostsController : ControllerBase
 {
+    private static readonly HashSet<string> AllowedImageExtensions = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ".jpg", ".jpeg", ".png", ".gif", ".webp"
+    };
+
+    private const long MaxImageSizeBytes = 5 * 1024 * 1024;
+
     private readonly IPostService _postService;
     private readonly ITimelineService _timelineService;
     private readonly ILogger<PostsController> _logger;
+    private readonly IWebHostEnvironment _environment;
 
-    public PostsController(IPostService postService, ITimelineService timelineService, ILogger<PostsController> logger)
+    public PostsController(IPostService postService, ITimelineService timelineService, ILogger<PostsController> logger, IWebHostEnvironment environment)
     {
         _postService = postService;
         _timelineService = timelineService;
         _logger = logger;
+        _environment = environment;
     }
 
     [HttpPost]
-    public async Task<ActionResult<PostResponse>> CreatePost([FromBody] CreatePostRequestDto requestDto)
+    [RequestFormLimits(MultipartBodyLengthLimit = MaxImageSizeBytes)]
+    [RequestSizeLimit(MaxImageSizeBytes)]
+    public async Task<ActionResult<PostResponse>> CreatePost([FromForm] CreatePostFormRequest requestDto)
     {
         try
         {
@@ -36,7 +48,7 @@ public class PostsController : ControllerBase
                 return BadRequest(new ErrorResponse(ErrorCodes.VALIDATION_ERROR, "Request body saknas."));
             }
             
-            _logger.LogInformation("Request body: Message length={MessageLength}", requestDto.Message?.Length ?? 0);
+            _logger.LogInformation("Request body: Message length={MessageLength}, HasImage={HasImage}", requestDto.Message?.Length ?? 0, requestDto.Image != null);
             
             // Hämta UserId från JWT token
             var userId = User.GetUserId();
@@ -48,12 +60,26 @@ public class PostsController : ControllerBase
                 _logger.LogWarning("Message är tomt eller null. Message length: {MessageLength}", requestDto.Message?.Length ?? 0);
                 return BadRequest(new ErrorResponse(ErrorCodes.VALIDATION_ERROR, "Meddelande är obligatoriskt och får inte vara tomt."));
             }
+
+            if (requestDto.Image != null)
+            {
+                var imageValidationError = ValidateImage(requestDto.Image);
+                if (imageValidationError != null)
+                {
+                    return BadRequest(new ErrorResponse(ErrorCodes.VALIDATION_ERROR, imageValidationError));
+                }
+            }
+
+            var imageUrl = requestDto.Image != null
+                ? await SavePostImageAsync(requestDto.Image)
+                : null;
             
             // Mappa från DTO till Request och sätt SenderId från token för säkerhet
             var authenticatedRequest = new CreatePostRequest
             {
                 SenderId = userId,
-                Message = requestDto.Message
+                Message = requestDto.Message,
+                ImageUrl = imageUrl
             };
             
             var result = await _postService.CreatePostAsync(authenticatedRequest);
@@ -161,7 +187,7 @@ public class PostsController : ControllerBase
         {
             // Hämta UserId från JWT token
             var userId = User.GetUserId();
-            var result = await _timelineService.GetTimelineAsync(userId);
+            var result = await _timelineService.GetTimelineAsync(userId, userId);
             return Ok(result);
         }
         catch (ArgumentException ex)
@@ -184,7 +210,8 @@ public class PostsController : ControllerBase
     {
         try
         {
-            var result = await _timelineService.GetTimelineAsync(userId);
+            var currentUserId = User.GetUserId();
+            var result = await _timelineService.GetTimelineAsync(userId, currentUserId);
             return Ok(result);
         }
         catch (ArgumentException ex)
@@ -200,5 +227,126 @@ public class PostsController : ControllerBase
                 "Ett oväntat fel uppstod. Försök igen senare."
             ));
         }
+    }
+
+    [HttpPost("{postId}/likes")]
+    public async Task<ActionResult<PostResponse>> LikePost(Guid postId)
+    {
+        try
+        {
+            var userId = User.GetUserId();
+            var result = await _postService.LikePostAsync(postId, userId);
+            return Ok(result);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new ErrorResponse(ErrorCodes.POST_NOT_FOUND, ex.Message));
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new ErrorResponse(ErrorCodes.INVALID_USER_ID, ex.Message));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Ett oväntat fel uppstod vid gillning av inlägg {PostId}", postId);
+            return StatusCode(500, new ErrorResponse(ErrorCodes.INTERNAL_SERVER_ERROR, "Ett oväntat fel uppstod. Försök igen senare."));
+        }
+    }
+
+    [HttpDelete("{postId}/likes")]
+    public async Task<ActionResult<PostResponse>> UnlikePost(Guid postId)
+    {
+        try
+        {
+            var userId = User.GetUserId();
+            var result = await _postService.UnlikePostAsync(postId, userId);
+            return Ok(result);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new ErrorResponse(ErrorCodes.POST_NOT_FOUND, ex.Message));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Ett oväntat fel uppstod vid borttagning av gillning på inlägg {PostId}", postId);
+            return StatusCode(500, new ErrorResponse(ErrorCodes.INTERNAL_SERVER_ERROR, "Ett oväntat fel uppstod. Försök igen senare."));
+        }
+    }
+
+    [HttpPost("{postId}/comments")]
+    public async Task<ActionResult<PostCommentResponse>> AddComment(Guid postId, [FromBody] CreatePostCommentRequest request)
+    {
+        try
+        {
+            if (request == null)
+            {
+                return BadRequest(new ErrorResponse(ErrorCodes.VALIDATION_ERROR, "Request body saknas."));
+            }
+
+            var userId = User.GetUserId();
+            var result = await _postService.AddCommentAsync(postId, userId, request);
+            return Ok(result);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new ErrorResponse(ErrorCodes.POST_NOT_FOUND, ex.Message));
+        }
+        catch (FluentValidation.ValidationException ex)
+        {
+            var details = new Dictionary<string, object>
+            {
+                { "errors", ex.Errors.Select(e => new { property = e.PropertyName, message = e.ErrorMessage }) }
+            };
+            return BadRequest(new ErrorResponse(ErrorCodes.VALIDATION_ERROR, ex.Message, details));
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new ErrorResponse(ErrorCodes.INVALID_USER_ID, ex.Message));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Ett oväntat fel uppstod vid kommentering av inlägg {PostId}", postId);
+            return StatusCode(500, new ErrorResponse(ErrorCodes.INTERNAL_SERVER_ERROR, "Ett oväntat fel uppstod. Försök igen senare."));
+        }
+    }
+
+    private string? ValidateImage(IFormFile image)
+    {
+        if (image.Length <= 0)
+        {
+            return "Den uppladdade bilden är tom.";
+        }
+
+        if (image.Length > MaxImageSizeBytes)
+        {
+            return $"Bilden får inte vara större än {MaxImageSizeBytes / (1024 * 1024)} MB.";
+        }
+
+        var extension = Path.GetExtension(image.FileName);
+        if (string.IsNullOrWhiteSpace(extension) || !AllowedImageExtensions.Contains(extension))
+        {
+            return "Endast JPG, PNG, GIF och WEBP-bilder är tillåtna.";
+        }
+
+        return null;
+    }
+
+    private async Task<string> SavePostImageAsync(IFormFile image)
+    {
+        var webRootPath = string.IsNullOrWhiteSpace(_environment.WebRootPath)
+            ? Path.Combine(_environment.ContentRootPath, "wwwroot")
+            : _environment.WebRootPath;
+
+        var uploadsDirectory = Path.Combine(webRootPath, "uploads", "posts");
+        Directory.CreateDirectory(uploadsDirectory);
+
+        var extension = Path.GetExtension(image.FileName).ToLowerInvariant();
+        var fileName = $"{Guid.NewGuid()}{extension}";
+        var filePath = Path.Combine(uploadsDirectory, fileName);
+
+        await using var stream = new FileStream(filePath, FileMode.Create);
+        await image.CopyToAsync(stream);
+
+        return $"{Request.Scheme}://{Request.Host}/uploads/posts/{fileName}";
     }
 }

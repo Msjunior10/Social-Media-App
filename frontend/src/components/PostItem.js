@@ -15,10 +15,15 @@ function PostItem({
 }) {
   const [isEditing, setIsEditing] = useState(false);
   const [editedMessage, setEditedMessage] = useState(post.message);
+  const [showComments, setShowComments] = useState(false);
+  const [commentMessage, setCommentMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [actionError, setActionError] = useState(null);
 
   const isOwner = useMemo(() => currentUserId && currentUserId === post.senderId, [currentUserId, post.senderId]);
+  const senderName = usernames[post.senderId] || post.senderId;
+  const senderHandle = `@${String(senderName).toLowerCase().replace(/\s+/g, '')}`;
+  const senderInitial = String(senderName).charAt(0).toUpperCase();
 
   const getFriendlyError = (error, fallbackMessage) => {
     if (error instanceof ApiError) {
@@ -89,6 +94,44 @@ function PostItem({
     }
   };
 
+  const handleToggleLike = async () => {
+    try {
+      setIsSubmitting(true);
+      setActionError(null);
+      if (post.isLikedByCurrentUser) {
+        await postsApi.unlikePost(post.id);
+      } else {
+        await postsApi.likePost(post.id);
+      }
+
+      if (onPostChanged) {
+        await onPostChanged();
+      }
+    } catch (error) {
+      setActionError(getFriendlyError(error, 'Kunde inte uppdatera gillningen.'));
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleAddComment = async () => {
+    try {
+      setIsSubmitting(true);
+      setActionError(null);
+      await postsApi.addComment(post.id, commentMessage.trim());
+      setCommentMessage('');
+      setShowComments(true);
+
+      if (onPostChanged) {
+        await onPostChanged();
+      }
+    } catch (error) {
+      setActionError(getFriendlyError(error, 'Kunde inte lägga till kommentaren.'));
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const recipientContent = !isPublicPost(post) && (
     recipientWrapperClassName ? (
       <div className={recipientWrapperClassName}>
@@ -101,69 +144,145 @@ function PostItem({
 
   return (
     <div className={containerClassName}>
-      <div className="post-header">
-        <span className="post-sender">Från: {usernames[post.senderId] || post.senderId}</span>
-        <span className="post-date">{formatDate(post.createdAt)}</span>
-      </div>
+      <div className="post-layout">
+        <div className="post-avatar" aria-hidden="true">{senderInitial}</div>
+        <div className="post-content">
+          <div className="post-header">
+            <div className="post-identity-row">
+              <span className="post-sender">{senderName}</span>
+              <span className="post-handle">{senderHandle}</span>
+              <span className="post-separator">·</span>
+              <span className="post-date">{formatDate(post.createdAt)}</span>
+            </div>
+          </div>
 
-      {isEditing ? (
-        <div className="post-edit-container">
-          <textarea
-            className="post-edit-textarea"
-            value={editedMessage}
-            onChange={(event) => setEditedMessage(event.target.value)}
-            disabled={isSubmitting}
-            rows="4"
-            maxLength={500}
-          />
-          <div className="post-edit-meta">{editedMessage.length} / 500 tecken</div>
-          <div className="post-edit-actions">
+          {isEditing ? (
+            <div className="post-edit-container">
+              <textarea
+                className="post-edit-textarea"
+                value={editedMessage}
+                onChange={(event) => setEditedMessage(event.target.value)}
+                disabled={isSubmitting}
+                rows="4"
+                maxLength={500}
+              />
+              <div className="post-edit-meta">{editedMessage.length} / 500 tecken</div>
+              <div className="post-edit-actions">
+                <button
+                  type="button"
+                  className="post-action-button post-action-primary"
+                  onClick={handleSaveEdit}
+                  disabled={isSubmitting || !editedMessage.trim()}
+                >
+                  {isSubmitting ? 'Sparar...' : 'Spara'}
+                </button>
+                <button
+                  type="button"
+                  className="post-action-button"
+                  onClick={handleCancelEdit}
+                  disabled={isSubmitting}
+                >
+                  Avbryt
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="post-message">{post.message}</div>
+          )}
+
+          {post.imageUrl && (
+            <div className="post-image-wrapper">
+              <img src={post.imageUrl} alt="Bild bifogad till inlägg" className="post-image" />
+            </div>
+          )}
+
+          {recipientContent}
+
+          <div className="post-social-bar">
             <button
               type="button"
-              className="post-action-button post-action-primary"
-              onClick={handleSaveEdit}
-              disabled={isSubmitting || !editedMessage.trim()}
+              className={`post-action-button ${post.isLikedByCurrentUser ? 'post-action-liked' : ''}`}
+              onClick={handleToggleLike}
+              disabled={isSubmitting}
             >
-              {isSubmitting ? 'Sparar...' : 'Spara'}
+              {post.isLikedByCurrentUser ? 'Gillad' : 'Gilla'} ({post.likeCount || 0})
             </button>
             <button
               type="button"
               className="post-action-button"
-              onClick={handleCancelEdit}
-              disabled={isSubmitting}
+              onClick={() => setShowComments((prev) => !prev)}
             >
-              Avbryt
+              Svar ({post.comments?.length || 0})
             </button>
           </div>
+
+          {showComments && (
+            <div className="post-comments-section">
+              <div className="post-comment-form">
+                <textarea
+                  className="post-comment-textarea"
+                  value={commentMessage}
+                  onChange={(event) => setCommentMessage(event.target.value)}
+                  placeholder="Skriv en kommentar..."
+                  rows="3"
+                  disabled={isSubmitting}
+                  maxLength={500}
+                />
+                <div className="post-comment-form-footer">
+                  <span className="post-edit-meta">{commentMessage.length} / 500 tecken</span>
+                  <button
+                    type="button"
+                    className="post-action-button post-action-primary"
+                    onClick={handleAddComment}
+                    disabled={isSubmitting || !commentMessage.trim()}
+                  >
+                    Svara
+                  </button>
+                </div>
+              </div>
+
+              <div className="post-comments-list">
+                {(post.comments || []).length === 0 ? (
+                  <div className="post-comments-empty">Inga kommentarer ännu.</div>
+                ) : (
+                  post.comments.map((comment) => (
+                    <div key={comment.id} className="post-comment-item">
+                      <div className="post-comment-header">
+                        <span className="post-comment-user">{usernames[comment.userId] || comment.userId}</span>
+                        <span className="post-comment-date">{formatDate(comment.createdAt)}</span>
+                      </div>
+                      <div className="post-comment-message">{comment.message}</div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          )}
+
+          {isOwner && !isEditing && (
+            <div className="post-actions">
+              <button
+                type="button"
+                className="post-action-button"
+                onClick={handleStartEdit}
+                disabled={isSubmitting}
+              >
+                Redigera
+              </button>
+              <button
+                type="button"
+                className="post-action-button post-action-danger"
+                onClick={handleDelete}
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? 'Tar bort...' : 'Ta bort'}
+              </button>
+            </div>
+          )}
+
+          {actionError && <div className="post-action-error">{actionError}</div>}
         </div>
-      ) : (
-        <div className="post-message">{post.message}</div>
-      )}
-
-      {recipientContent}
-
-      {isOwner && !isEditing && (
-        <div className="post-actions">
-          <button
-            type="button"
-            className="post-action-button"
-            onClick={handleStartEdit}
-            disabled={isSubmitting}
-          >
-            Redigera
-          </button>
-          <button
-            type="button"
-            className="post-action-button post-action-danger"
-            onClick={handleDelete}
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? 'Tar bort...' : 'Ta bort'}
-          </button>
-        </div>
-      )}
-
-      {actionError && <div className="post-action-error">{actionError}</div>}
+      </div>
     </div>
   );
 }

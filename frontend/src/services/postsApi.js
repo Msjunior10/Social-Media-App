@@ -16,12 +16,16 @@ export const postsApi = {
   },
 
   // Skapa ett nytt inlägg
-  async createPost(message) {
+  async createPost(message, imageFile = null) {
+    const formData = new FormData();
+    formData.append('message', message);
+    if (imageFile) {
+      formData.append('image', imageFile);
+    }
+
     const response = await authenticatedFetch(`${API_BASE_URL}/posts`, {
       method: 'POST',
-      body: JSON.stringify({
-        message: message,
-      }),
+      body: formData,
     });
     return await handleApiResponse(response);
   },
@@ -39,6 +43,28 @@ export const postsApi = {
   async deletePost(postId) {
     const response = await authenticatedFetch(`${API_BASE_URL}/posts/${postId}`, {
       method: 'DELETE',
+    });
+    return await handleApiResponse(response);
+  },
+
+  async likePost(postId) {
+    const response = await authenticatedFetch(`${API_BASE_URL}/posts/${postId}/likes`, {
+      method: 'POST',
+    });
+    return await handleApiResponse(response);
+  },
+
+  async unlikePost(postId) {
+    const response = await authenticatedFetch(`${API_BASE_URL}/posts/${postId}/likes`, {
+      method: 'DELETE',
+    });
+    return await handleApiResponse(response);
+  },
+
+  async addComment(postId, message) {
+    const response = await authenticatedFetch(`${API_BASE_URL}/posts/${postId}/comments`, {
+      method: 'POST',
+      body: JSON.stringify({ message }),
     });
     return await handleApiResponse(response);
   },
