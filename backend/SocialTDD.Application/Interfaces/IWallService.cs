@@ -4,5 +4,5 @@ namespace SocialTDD.Application.Interfaces;
 
 public interface IWallService
 {
-    Task<List<PostResponse>> GetWallAsync(Guid userId);
+    Task<List<PostResponse>> GetWallAsync(Guid userId, Guid currentUserId);
 }

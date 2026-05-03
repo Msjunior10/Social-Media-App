@@ -1,30 +1,26 @@
 .wall {
-  background: white;
-  border-radius: 12px;
-  padding: 30px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  margin-bottom: 20px;
+  background: var(--app-surface);
 }
 
 .wall-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 24px;
-  padding-bottom: 12px;
-  border-bottom: 2px solid #eee;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--app-border);
 }
 
 .wall h2 {
   margin: 0;
-  color: #333;
-  font-size: 24px;
+  color: var(--app-text);
+  font-size: 20px;
+  font-weight: 800;
 }
 
 .wall-refresh-button {
-  background: #f8f9fa;
-  border: 1px solid #dee2e6;
-  border-radius: 6px;
+  background: var(--app-surface);
+  border: 1px solid var(--app-border);
+  border-radius: 999px;
   padding: 8px 12px;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -36,9 +32,8 @@
 }
 
 .wall-refresh-button:hover:not(:disabled) {
-  background: #e9ecef;
-  border-color: #adb5bd;
-  transform: scale(1.05);
+  background: var(--app-accent-soft);
+  border-color: var(--app-accent);
 }
 
 .wall-refresh-button:disabled {
@@ -47,9 +42,9 @@
 }
 
 .loading {
-  padding: 40px;
+  padding: 40px 20px;
   text-align: center;
-  color: #666;
+  color: var(--app-muted);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -60,8 +55,8 @@
 .loading-spinner {
   width: 32px;
   height: 32px;
-  border: 3px solid #f3f3f3;
-  border-top: 3px solid #007bff;
+  border: 3px solid #f1f5f9;
+  border-top: 3px solid var(--app-accent);
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
@@ -77,14 +72,14 @@
 
 .error-message {
   padding: 16px;
-  background-color: #fff3cd;
-  border: 1px solid #ffc107;
-  border-radius: 6px;
-  margin-bottom: 16px;
+  background-color: var(--app-warning-soft);
+  border: 1px solid #f4d7a1;
+  border-radius: 16px;
+  margin: 16px 20px;
   display: flex;
   align-items: center;
   gap: 12px;
-  color: #856404;
+  color: #8a5a16;
 }
 
 .error-icon {
@@ -98,25 +93,25 @@
 }
 
 .error-retry-button {
-  background: #ffc107;
+  background: rgba(183, 121, 31, 0.16);
   border: none;
-  border-radius: 4px;
-  padding: 6px 12px;
-  color: #856404;
-  font-weight: 600;
+  border-radius: 999px;
+  padding: 8px 14px;
+  color: var(--app-warning);
+  font-weight: 700;
   cursor: pointer;
   transition: background 0.2s ease;
   flex-shrink: 0;
 }
 
 .error-retry-button:hover {
-  background: #ffca2c;
+  background: rgba(183, 121, 31, 0.24);
 }
 
 .empty-message {
-  padding: 60px 20px;
+  padding: 48px 20px;
   text-align: center;
-  color: #999;
+  color: var(--app-muted);
 }
 
 .empty-message p {
@@ -127,81 +122,59 @@
 .empty-hint {
   font-size: 14px;
   font-style: italic;
-  color: #bbb;
+  color: #94a3b8;
   margin-top: 8px;
 }
 
 .posts-container {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 0;
 }
 
 .post-card {
-  background: #f8f9fa;
-  border: 1px solid #e9ecef;
-  border-radius: 8px;
-  padding: 20px;
-  transition: all 0.2s ease;
+  background: var(--app-surface);
+  border-bottom: 1px solid var(--app-border);
+  padding: 18px 20px;
+  transition: background-color 0.2s ease;
 }
 
 .post-card:hover {
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  transform: translateY(-2px);
-  border-color: #dee2e6;
-}
-
-.post-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 12px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid #e9ecef;
-}
-
-.post-sender {
-  font-weight: 600;
-  color: #495057;
-  font-size: 14px;
-}
-
-.post-date {
-  font-size: 12px;
-  color: #6c757d;
-}
-
-.post-message {
-  font-size: 16px;
-  line-height: 1.6;
-  color: #212529;
-  margin-bottom: 12px;
-  padding: 12px;
-  background: white;
-  border-radius: 6px;
-  border-left: 3px solid #007bff;
+  background: var(--app-surface-soft);
 }
 
 .post-footer {
   display: flex;
-  justify-content: flex-end;
-  padding-top: 8px;
-  border-top: 1px solid #e9ecef;
+  justify-content: flex-start;
+  padding-top: 4px;
 }
 
 .post-recipient {
   font-size: 12px;
-  color: #6c757d;
+  color: var(--app-muted);
 }
 
 @media (max-width: 768px) {
-  .post-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 8px;
+  .wall-header,
+  .post-card {
+    padding-left: 16px;
+    padding-right: 16px;
   }
 
-  .wall {
-    padding: 20px;
+  .error-message {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 480px) {
+  .wall-header,
+  .post-card {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  .wall h2 {
+    font-size: 18px;
   }
 }

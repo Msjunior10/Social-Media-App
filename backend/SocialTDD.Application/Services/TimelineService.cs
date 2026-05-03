@@ -12,7 +12,7 @@ public class TimelineService : ITimelineService
         _postRepository = postRepository ?? throw new ArgumentNullException(nameof(postRepository));
     }
 
-    public async Task<List<PostResponse>> GetTimelineAsync(Guid userId)
+    public async Task<List<PostResponse>> GetTimelineAsync(Guid userId, Guid currentUserId)
     {
         // Validera att användaren existerar
         var userExists = await _postRepository.UserExistsAsync(userId);
@@ -25,17 +25,31 @@ public class TimelineService : ITimelineService
         var posts = await _postRepository.GetTimelinePostsAsync(userId);
 
         // Konvertera Post entities till PostResponse DTOs och sortera kronologiskt (senaste först)
-        var postResponses = posts
-            .OrderByDescending(p => p.CreatedAt)
-            .Select(p => new PostResponse
+        var postResponses = new List<PostResponse>();
+
+        foreach (var post in posts.OrderByDescending(p => p.CreatedAt))
+        {
+            var comments = await _postRepository.GetCommentsByPostIdAsync(post.Id);
+            postResponses.Add(new PostResponse
             {
-                Id = p.Id,
-                SenderId = p.SenderId,
-                RecipientId = p.RecipientId,
-                Message = p.Message,
-                CreatedAt = p.CreatedAt
-            })
-            .ToList();
+                Id = post.Id,
+                SenderId = post.SenderId,
+                RecipientId = post.RecipientId,
+                Message = post.Message,
+                ImageUrl = post.ImageUrl,
+                CreatedAt = post.CreatedAt,
+                LikeCount = await _postRepository.GetLikeCountAsync(post.Id),
+                IsLikedByCurrentUser = await _postRepository.IsLikedByUserAsync(post.Id, currentUserId),
+                Comments = comments.Select(c => new PostCommentResponse
+                {
+                    Id = c.Id,
+                    PostId = c.PostId,
+                    UserId = c.UserId,
+                    Message = c.Message,
+                    CreatedAt = c.CreatedAt
+                }).ToList()
+            });
+        }
 
         return postResponses;
     }

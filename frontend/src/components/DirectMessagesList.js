@@ -106,7 +106,11 @@ function DirectMessagesList({ userId }) {
   if (loading) {
     return (
       <div className="dm-list-container">
-        <h2 className="dm-list-title">Mottagna meddelanden</h2>
+        <div className="dm-list-heading-block">
+          <span className="dm-list-badge">Inbox</span>
+          <h2 className="dm-list-title">Mottagna meddelanden</h2>
+          <p className="dm-list-subtitle">Se senaste meddelanden, markera dem som lästa och håll koll på din privata inkorg.</p>
+        </div>
         <div className="dm-list-loading">Laddar meddelanden...</div>
       </div>
     );
@@ -115,7 +119,11 @@ function DirectMessagesList({ userId }) {
   return (
     <div className="dm-list-container">
       <div className="dm-list-header">
-        <h2 className="dm-list-title">Mottagna meddelanden</h2>
+        <div className="dm-list-heading-block">
+          <span className="dm-list-badge">Inbox</span>
+          <h2 className="dm-list-title">Mottagna meddelanden</h2>
+          <p className="dm-list-subtitle">Ett tydligare meddelandeflöde som passar resten av Socially.</p>
+        </div>
         <button
           onClick={fetchMessages}
           className="dm-list-refresh-button"
@@ -141,7 +149,8 @@ function DirectMessagesList({ userId }) {
 
       {messages.length === 0 && !loading && !error && (
         <div className="dm-list-empty">
-          Du har inga mottagna meddelanden än.
+          <strong>Inga meddelanden ännu.</strong>
+          <span> När någon skriver till dig dyker allt upp här i din inbox.</span>
         </div>
       )}
 
@@ -154,7 +163,8 @@ function DirectMessagesList({ userId }) {
             >
               <div className="dm-message-header">
                 <div className="dm-message-sender">
-                  Från: {usernames[message.senderId] || message.senderId}
+                  <span className="dm-message-sender-label">Från</span>
+                  <span className="dm-message-sender-name">{usernames[message.senderId] || message.senderId}</span>
                 </div>
                 <div className="dm-message-date">
                   {formatDate(message.createdAt)}

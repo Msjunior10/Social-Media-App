@@ -5,7 +5,7 @@ import { ApiError, ErrorCodes } from '../utils/ApiError';
 import PostItem from './PostItem';
 import './Timeline.css';
 
-function Timeline({ userId }) {
+function Timeline({ userId, refreshKey = 0, showHeader = true }) {
   const [posts, setPosts] = useState([]);
   const [usernames, setUsernames] = useState({});
   const [loading, setLoading] = useState(true);
@@ -31,6 +31,9 @@ function Timeline({ userId }) {
       sortedPosts.forEach(post => {
         if (post.senderId) uniqueUserIds.add(post.senderId);
         if (post.recipientId) uniqueUserIds.add(post.recipientId);
+        (post.comments || []).forEach(comment => {
+          if (comment.userId) uniqueUserIds.add(comment.userId);
+        });
       });
 
       const usernameMap = {};
@@ -77,17 +80,19 @@ function Timeline({ userId }) {
     if (userId) {
       fetchTimeline();
     }
-  }, [userId, fetchTimeline]);
+  }, [userId, fetchTimeline, refreshKey]);
 
   const formatDate = (dateString) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('sv-SE', {
-      year: 'numeric',
-      month: 'long',
+    const datePart = date.toLocaleDateString('sv-SE', {
+      month: 'short',
       day: 'numeric',
+    });
+    const timePart = date.toLocaleTimeString('sv-SE', {
       hour: '2-digit',
       minute: '2-digit',
     });
+    return `${datePart} · ${timePart}`;
   };
 
   const isPublicPost = (post) => !post.recipientId || post.recipientId === post.senderId;
@@ -96,7 +101,7 @@ function Timeline({ userId }) {
     return (
       <div className="timeline">
         <div className="timeline-header">
-          <h3>Tidslinje</h3>
+          {showHeader && <h3>Tidslinje</h3>}
         </div>
         <div className="loading">
           <span className="loading-spinner"></span>
@@ -108,18 +113,20 @@ function Timeline({ userId }) {
 
   return (
     <div className="timeline">
-      <div className="timeline-header">
-        <h3>Tidslinje</h3>
-        <button
-          onClick={fetchTimeline}
-          className="timeline-refresh-button"
-          disabled={loading}
-          title="Uppdatera tidslinje"
-          aria-label="Uppdatera tidslinje"
-        >
-          <span className={loading ? 'refresh-icon spinning' : 'refresh-icon'}>⟳</span>
-        </button>
-      </div>
+      {showHeader && (
+        <div className="timeline-header">
+          <h3>Tidslinje</h3>
+          <button
+            onClick={fetchTimeline}
+            className="timeline-refresh-button"
+            disabled={loading}
+            title="Uppdatera tidslinje"
+            aria-label="Uppdatera tidslinje"
+          >
+            <span className={loading ? 'refresh-icon spinning' : 'refresh-icon'}>⟳</span>
+          </button>
+        </div>
+      )}
       
       {error && (
         <div className="error-message" role="alert">

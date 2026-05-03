@@ -3,24 +3,83 @@
   justify-content: center;
   align-items: center;
   min-height: 60vh;
-  padding: 20px;
+  padding: 28px 20px;
 }
 
 .register-card {
-  background: white;
-  border-radius: 12px;
+  position: relative;
+  overflow: hidden;
+  background: var(--app-surface);
+  border: 1px solid var(--app-border);
+  border-radius: 28px;
   padding: 40px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--app-shadow-medium);
+  background-image:
+    radial-gradient(circle at top right, rgba(34, 197, 94, 0.12), transparent 28%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.95));
   width: 100%;
   max-width: 450px;
+  animation: appSlideUp 0.5s ease both;
+}
+
+.register-card::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 5px;
+  background: var(--app-gradient-strong);
+}
+
+.register-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 7px 12px;
+  border-radius: 999px;
+  margin-bottom: 18px;
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.1), rgba(124, 58, 237, 0.1));
+  color: var(--app-accent-strong);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .register-title {
-  margin: 0 0 30px 0;
-  color: #333;
-  font-size: 28px;
-  font-weight: 600;
-  text-align: center;
+  margin: 0;
+  color: var(--app-text);
+  font-size: 32px;
+  font-weight: 800;
+  text-align: left;
+  letter-spacing: -0.03em;
+  font-family: var(--app-font-display);
+}
+
+.register-subtitle {
+  margin: 12px 0 18px;
+  color: var(--app-muted);
+  line-height: 1.6;
+}
+
+.register-highlights {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 22px;
+}
+
+.register-highlight-pill {
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.04);
+  color: var(--app-text);
+  font-size: 12px;
+  font-weight: 700;
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.register-highlight-pill:hover {
+  transform: translateY(-1px);
+  background: var(--app-accent-soft);
 }
 
 .register-form {
@@ -36,53 +95,54 @@
 }
 
 .register-field label {
-  font-weight: 500;
-  color: #555;
+  font-weight: 600;
+  color: var(--app-muted);
   font-size: 14px;
 }
 
 .register-input {
-  padding: 12px;
-  border: 2px solid #ddd;
-  border-radius: 6px;
+  padding: 12px 14px;
+  border: 1px solid var(--app-border);
+  border-radius: 14px;
   font-size: 16px;
-  transition: border-color 0.2s ease;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  background: rgba(255, 255, 255, 0.88);
 }
 
 .register-input:focus {
   outline: none;
-  border-color: #667eea;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  border-color: var(--app-accent);
+  box-shadow: 0 0 0 3px var(--app-accent-soft);
 }
 
 .register-input:disabled {
-  background-color: #f5f5f5;
+  background-color: var(--app-surface-soft);
   cursor: not-allowed;
 }
 
 .register-input.input-error {
-  border-color: #c33;
+  border-color: var(--app-danger);
 }
 
 .register-input.input-error:focus {
-  border-color: #c33;
-  box-shadow: 0 0 0 3px rgba(204, 51, 51, 0.1);
+  border-color: var(--app-danger);
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.12);
 }
 
 .field-error {
-  color: #c33;
+  color: var(--app-danger);
   font-size: 12px;
   margin-top: -4px;
 }
 
 .register-button {
   padding: 14px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--app-gradient-strong);
   color: white;
   border: none;
-  border-radius: 6px;
+  border-radius: 999px;
   font-size: 16px;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
   margin-top: 10px;
@@ -90,36 +150,36 @@
 
 .register-button:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 14px 28px rgba(37, 99, 235, 0.22);
 }
 
 .register-button:disabled {
-  background: #ccc;
+  background: #cbd5e1;
   cursor: not-allowed;
   transform: none;
 }
 
 .register-error {
   padding: 12px;
-  background-color: #fee;
-  color: #c33;
-  border-radius: 6px;
-  border: 1px solid #fcc;
+  background-color: var(--app-danger-soft);
+  color: #b91c1c;
+  border-radius: 12px;
+  border: 1px solid #fecaca;
   margin-bottom: 20px;
   font-size: 14px;
 }
 
 .register-footer {
   margin-top: 30px;
-  text-align: center;
-  color: #666;
+  text-align: left;
+  color: var(--app-muted);
   font-size: 14px;
 }
 
 .register-link {
-  color: #667eea;
+  color: var(--app-accent);
   text-decoration: none;
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .register-link:hover {
@@ -132,6 +192,6 @@
   }
 
   .register-title {
-    font-size: 24px;
+    font-size: 28px;
   }
 }

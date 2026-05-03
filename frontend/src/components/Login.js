@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { authApi } from '../services/authApi';
 import { useAuth } from '../contexts/AuthContext';
 import { ApiError, ErrorCodes } from '../utils/ApiError';
@@ -64,7 +64,18 @@ function Login() {
   return (
     <div className="login-container">
       <div className="login-card">
+        <div className="login-badge">Socially Access</div>
         <h2 className="login-title">Logga in</h2>
+        <p className="login-subtitle">
+          Välkommen tillbaka till ett mer kuraterat socialt flöde med fokus på identitet,
+          tempo och känsla.
+        </p>
+
+        <div className="login-highlights" aria-hidden="true">
+          <span className="login-highlight-pill">Premium feed</span>
+          <span className="login-highlight-pill">Direkta inlägg</span>
+          <span className="login-highlight-pill">Tydlig profil</span>
+        </div>
         
         {error && (
           <div className="login-error" role="alert">
@@ -113,9 +124,9 @@ function Login() {
         <div className="login-footer">
           <p>
             Har du inget konto?{' '}
-            <a href="/register" className="login-link">
+            <Link to="/register" className="login-link">
               Registrera dig här
-            </a>
+            </Link>
           </p>
         </div>
       </div>

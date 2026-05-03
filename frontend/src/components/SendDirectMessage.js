@@ -200,7 +200,11 @@ function SendDirectMessage({ senderId, onMessageSent }) {
 
   return (
     <div className="send-dm-container">
-      <h2 className="send-dm-title">Skicka direktmeddelande</h2>
+      <div className="send-dm-header">
+        <span className="send-dm-badge">Compose</span>
+        <h2 className="send-dm-title">Skicka direktmeddelande</h2>
+        <p className="send-dm-subtitle">Välj mottagare och skriv ett snabbt meddelande med tydlig, ren layout.</p>
+      </div>
       
       {error && (
         <div className="send-dm-error" role="alert">

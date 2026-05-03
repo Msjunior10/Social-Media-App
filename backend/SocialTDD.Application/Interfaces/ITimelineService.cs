@@ -4,6 +4,6 @@ namespace SocialTDD.Application.Interfaces;
 
 public interface ITimelineService
 {
-    Task<List<PostResponse>> GetTimelineAsync(Guid userId);
+    Task<List<PostResponse>> GetTimelineAsync(Guid userId, Guid currentUserId);
 }
 

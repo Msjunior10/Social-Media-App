@@ -13,8 +13,19 @@ function DirectMessages({ userId }) {
 
   return (
     <div className="direct-messages-container">
-      <SendDirectMessage senderId={userId} onMessageSent={handleMessageSent} />
-      <DirectMessagesList key={refreshKey} userId={userId} />
+      <section className="direct-messages-intro">
+        <span className="direct-messages-intro-badge">Inbox</span>
+        <h2 className="direct-messages-intro-title">Privata konversationer med samma känsla som resten av appen</h2>
+        <p className="direct-messages-intro-text">
+          Skriv direkt, håll koll på inkommande meddelanden och hantera din inbox i ett mer
+          kuraterat flöde.
+        </p>
+      </section>
+
+      <div className="direct-messages-grid">
+        <SendDirectMessage senderId={userId} onMessageSent={handleMessageSent} />
+        <DirectMessagesList key={refreshKey} userId={userId} />
+      </div>
     </div>
   );
 }

@@ -28,7 +28,7 @@ public class WallController : ControllerBase
         {
             // Hämta UserId från JWT token
             var userId = User.GetUserId();
-            var result = await _wallService.GetWallAsync(userId);
+            var result = await _wallService.GetWallAsync(userId, userId);
             return Ok(result);
         }
         catch (ArgumentException ex)

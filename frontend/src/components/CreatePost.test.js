@@ -59,7 +59,7 @@ describe('CreatePost', () => {
     fireEvent.click(screen.getByRole('button', { name: /skapa inlägg/i }));
 
     await waitFor(() => {
-      expect(postsApi.createPost).toHaveBeenCalledWith('Test message');
+      expect(postsApi.createPost).toHaveBeenCalledWith('Test message', null);
     });
 
     expect(mockOnPostCreated).toHaveBeenCalled();
@@ -94,7 +94,7 @@ describe('CreatePost', () => {
     });
 
     await waitFor(() => {
-      expect(postsApi.createPost).toHaveBeenCalledWith('Test message');
+      expect(postsApi.createPost).toHaveBeenCalledWith('Test message', null);
     }, { timeout: 200 });
   });
 
