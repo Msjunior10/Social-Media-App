@@ -16,13 +16,29 @@ export const postsApi = {
   },
 
   // Skapa ett nytt inlägg
-  async createPost(recipientId, message) {
+  async createPost(message) {
     const response = await authenticatedFetch(`${API_BASE_URL}/posts`, {
       method: 'POST',
       body: JSON.stringify({
-        recipientId: recipientId,
         message: message,
       }),
+    });
+    return await handleApiResponse(response);
+  },
+
+  async updatePost(postId, message) {
+    const response = await authenticatedFetch(`${API_BASE_URL}/posts/${postId}`, {
+      method: 'PUT',
+      body: JSON.stringify({
+        message,
+      }),
+    });
+    return await handleApiResponse(response);
+  },
+
+  async deletePost(postId) {
+    const response = await authenticatedFetch(`${API_BASE_URL}/posts/${postId}`, {
+      method: 'DELETE',
     });
     return await handleApiResponse(response);
   },

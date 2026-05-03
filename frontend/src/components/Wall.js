@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { wallApi } from '../services/wallApi';
 import { userApi } from '../services/userApi';
+import PostItem from './PostItem';
 import './Wall.css';
 
 function Wall({ userId }) {
@@ -69,6 +70,8 @@ function Wall({ userId }) {
     });
   };
 
+  const isPublicPost = (post) => !post.recipientId || post.recipientId === post.senderId;
+
   if (loading && posts.length === 0) {
     return (
       <div className="wall">
@@ -110,24 +113,23 @@ function Wall({ userId }) {
 
       {posts.length === 0 && !loading && !error ? (
         <div className="empty-message">
-          <p>Inga inlägg från följda användare att visa.</p>
-          <p className="empty-hint">Följ användare för att se deras inlägg här.</p>
+          <p>Inga offentliga inlägg att visa ännu.</p>
+          <p className="empty-hint">Skapa ett inlägg för att fylla flödet.</p>
         </div>
       ) : (
         <div className="posts-container">
           {posts.map((post) => (
-            <div key={post.id} className="post-card">
-              <div className="post-header">
-                <span className="post-sender">Från: {usernames[post.senderId] || post.senderId}</span>
-                <span className="post-date">{formatDate(post.createdAt)}</span>
-              </div>
-              <div className="post-message">{post.message}</div>
-              {post.recipientId && (
-                <div className="post-footer">
-                  <span className="post-recipient">Till: {usernames[post.recipientId] || post.recipientId}</span>
-                </div>
-              )}
-            </div>
+            <PostItem
+              key={post.id}
+              post={post}
+              usernames={usernames}
+              currentUserId={userId}
+              formatDate={formatDate}
+              isPublicPost={isPublicPost}
+              onPostChanged={fetchWall}
+              containerClassName="post-card"
+              recipientWrapperClassName="post-footer"
+            />
           ))}
         </div>
       )}

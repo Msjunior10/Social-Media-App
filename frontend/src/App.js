@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, useParams } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import Navigation from './components/Navigation';
 import Login from './components/Login';
@@ -80,6 +80,14 @@ function App() {
                   </ProtectedRoute>
                 }
               />
+              <Route
+                path="/users/:userId"
+                element={
+                  <ProtectedRoute>
+                    <PublicProfilePage />
+                  </ProtectedRoute>
+                }
+              />
               
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
@@ -93,19 +101,12 @@ function App() {
 // Komponent för Följ-sidan
 function FollowPage() {
   const { userId } = useAuth();
-  const [targetUserId, setTargetUserId] = useState(null);
-  const [refreshKey, setRefreshKey] = useState(0);
+  const navigate = useNavigate();
 
   const handleUserSelect = (user) => {
-    if (user) {
-      setTargetUserId(user.id);
-    } else {
-      setTargetUserId(null);
+    if (user?.id) {
+      navigate(`/users/${user.id}`);
     }
-  };
-
-  const handleFollowChange = () => {
-    setRefreshKey(prev => prev + 1);
   };
 
   return (
@@ -120,28 +121,15 @@ function FollowPage() {
             excludeUserId={userId}
           />
         </div>
-
-        {targetUserId && (
-          <div className="follow-section">
-            <UserProfile userId={targetUserId} />
-            <FollowUser
-              followerId={userId}
-              followingId={targetUserId}
-              onFollowChange={handleFollowChange}
-            />
-          </div>
-        )}
       </div>
 
       <div className="lists-section">
         <div className="lists-container">
           <FollowersList 
-            key={`followers-${refreshKey}`} 
             userId={userId}
             onFollowerClick={handleUserSelect}
           />
           <FollowingList 
-            key={`following-${refreshKey}`} 
             userId={userId}
             onFollowingClick={handleUserSelect}
           />
@@ -204,7 +192,33 @@ function ProfilePage() {
       <Navigation />
       <div className="profile-page-container">
         <UserProfile userId={userId} isEditable />
-        <ProfilePosts userId={userId} username={username} isOwnProfile />
+        <ProfilePosts userId={userId} username={username} isOwnProfile currentUserId={userId} />
+      </div>
+    </div>
+  );
+}
+
+function PublicProfilePage() {
+  const { userId: currentUserId } = useAuth();
+  const { userId: profileUserId } = useParams();
+
+  if (!profileUserId) {
+    return <Navigate to="/" replace />;
+  }
+
+  const isOwnProfile = currentUserId === profileUserId;
+
+  return (
+    <div>
+      <Navigation />
+      <div className="profile-page-container">
+        <UserProfile userId={profileUserId} isEditable={false} />
+        {!isOwnProfile && (
+          <div className="public-profile-actions">
+            <FollowUser followerId={currentUserId} followingId={profileUserId} />
+          </div>
+        )}
+        <ProfilePosts userId={profileUserId} isOwnProfile={false} currentUserId={currentUserId} />
       </div>
     </div>
   );

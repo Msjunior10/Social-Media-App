@@ -106,7 +106,7 @@ function FollowersList({ userId, onFollowerClick }) {
                 </span>
               </div>
               {onFollowerClick && (
-                <span className="follower-action-hint">Klicka för att följa tillbaka</span>
+                <span className="follower-action-hint">Klicka för att öppna profil</span>
               )}
             </li>
           ))}

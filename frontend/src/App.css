@@ -112,3 +112,7 @@
   max-width: 900px;
   margin: 0 auto;
 }
+
+.public-profile-actions {
+  margin: 0 0 24px;
+}

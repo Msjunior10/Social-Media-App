@@ -33,6 +33,13 @@
     font-size: 14px;
   }
 
+  .create-post-helper-text {
+    margin: 0;
+    color: #666;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
   .required-asterisk {
     color: #dc3545;
     margin-left: 4px;

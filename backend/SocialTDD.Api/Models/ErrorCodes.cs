@@ -11,6 +11,7 @@ public static class ErrorCodes
     
     // Authentication errors (401)
     public const string UNAUTHORIZED = "UNAUTHORIZED";
+    public const string FORBIDDEN = "FORBIDDEN";
     public const string TOKEN_EXPIRED = "TOKEN_EXPIRED";
     public const string INVALID_CREDENTIALS = "INVALID_CREDENTIALS";
     

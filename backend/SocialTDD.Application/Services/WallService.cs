@@ -23,18 +23,8 @@ public class WallService : IWallService
             throw new ArgumentException($"Användare med ID {userId} finns inte.", nameof(userId));
         }
 
-        // Hämta alla användare som användaren följer
-        var follows = await _followRepository.GetFollowingAsync(userId);
-        var followedUserIds = follows.Select(f => f.FollowingId).ToList();
-
-        // Om användaren inte följer någon, returnera tom lista
-        if (!followedUserIds.Any())
-        {
-            return new List<PostResponse>();
-        }
-
-        // Hämta alla posts från följda användare
-        var posts = await _postRepository.GetPostsBySenderIdsAsync(followedUserIds);
+        // Hämta alla offentliga inlägg i appen
+        var posts = await _postRepository.GetAllPostsAsync();
 
         // Konvertera Post entities till PostResponse DTOs och sortera kronologiskt (senaste först)
         var postResponses = posts

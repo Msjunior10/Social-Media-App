@@ -2,10 +2,21 @@ import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import Wall from './Wall';
-import * as wallApi from '../services/wallApi';
+import { wallApi } from '../services/wallApi';
+import { userApi } from '../services/userApi';
 
 // Mock the API module
-jest.mock('../services/wallApi');
+jest.mock('../services/wallApi', () => ({
+  wallApi: {
+    getWall: jest.fn(),
+  },
+}));
+
+jest.mock('../services/userApi', () => ({
+  userApi: {
+    getUserById: jest.fn(async (id) => ({ id, username: id })),
+  },
+}));
 
 describe('Wall', () => {
   const mockUserId = '123e4567-e89b-12d3-a456-426614174000';
@@ -29,6 +40,7 @@ describe('Wall', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    userApi.getUserById.mockImplementation(async (id) => ({ id, username: id }));
   });
 
   it('renders loading state initially', () => {
@@ -36,7 +48,7 @@ describe('Wall', () => {
     
     render(<Wall userId={mockUserId} />);
     
-    expect(screen.getByText(/vägg/i)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /vägg/i })).toBeInTheDocument();
     expect(screen.getByText(/laddar vägg/i)).toBeInTheDocument();
   });
 
@@ -74,8 +86,8 @@ describe('Wall', () => {
     render(<Wall userId={mockUserId} />);
 
     await waitFor(() => {
-      expect(screen.getByText(/inga inlägg från följda användare att visa/i)).toBeInTheDocument();
-      expect(screen.getByText(/följ användare för att se deras inlägg här/i)).toBeInTheDocument();
+      expect(screen.getByText(/inga offentliga inlägg att visa ännu/i)).toBeInTheDocument();
+      expect(screen.getByText(/skapa ett inlägg för att fylla flödet/i)).toBeInTheDocument();
     });
   });
 
@@ -160,6 +172,24 @@ describe('Wall', () => {
 
     await waitFor(() => {
       expect(screen.getByText(/till: recipient-1/i)).toBeInTheDocument();
+    });
+  });
+
+  it('hides recipient ID for public posts', async () => {
+    wallApi.getWall.mockResolvedValue([
+      {
+        id: 'post-1',
+        senderId: 'sender-1',
+        recipientId: 'sender-1',
+        message: 'Public post',
+        createdAt: '2024-01-15T10:00:00Z',
+      },
+    ]);
+
+    render(<Wall userId={mockUserId} />);
+
+    await waitFor(() => {
+      expect(screen.queryByText(/till:/i)).not.toBeInTheDocument();
     });
   });
 });

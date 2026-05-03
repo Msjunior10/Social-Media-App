@@ -1,6 +1,5 @@
 using FluentAssertions;
 using Moq;
-using SocialTDD.Application.DTOs;
 using SocialTDD.Application.Interfaces;
 using SocialTDD.Application.Services;
 using SocialTDD.Domain.Entities;
@@ -21,245 +20,122 @@ public class WallServiceTests
     }
 
     [Fact]
-    public async Task GetWallAsync_WithMultipleFollowedUsers_ReturnsPostsFromAllFollowedUsers()
+    public async Task GetWallAsync_WithMultipleUsers_ReturnsPostsFromAllUsers()
     {
-        // Arrange
         var userId = Guid.NewGuid();
-        var followedUser1Id = Guid.NewGuid();
-        var followedUser2Id = Guid.NewGuid();
-
-        var follows = new List<Follow>
-        {
-            new Follow
-            {
-                Id = Guid.NewGuid(),
-                FollowerId = userId,
-                FollowingId = followedUser1Id,
-                CreatedAt = DateTime.UtcNow
-            },
-            new Follow
-            {
-                Id = Guid.NewGuid(),
-                FollowerId = userId,
-                FollowingId = followedUser2Id,
-                CreatedAt = DateTime.UtcNow
-            }
-        };
+        var user1Id = Guid.NewGuid();
+        var user2Id = Guid.NewGuid();
 
         var posts = new List<Post>
         {
-            new Post
+            new()
             {
                 Id = Guid.NewGuid(),
-                SenderId = followedUser1Id,
-                RecipientId = followedUser1Id,
-                Message = "Post från följd användare 1",
+                SenderId = user1Id,
+                RecipientId = user1Id,
+                Message = "Post från användare 1",
                 CreatedAt = DateTime.UtcNow.AddHours(-2),
-                Sender = new User { Id = followedUser1Id, Username = "FollowedUser1" },
-                Recipient = new User { Id = followedUser1Id, Username = "FollowedUser1" }
+                Sender = new User { Id = user1Id, Username = "User1" },
+                Recipient = new User { Id = user1Id, Username = "User1" }
             },
-            new Post
+            new()
             {
                 Id = Guid.NewGuid(),
-                SenderId = followedUser2Id,
-                RecipientId = followedUser2Id,
-                Message = "Post från följd användare 2",
+                SenderId = user2Id,
+                RecipientId = user2Id,
+                Message = "Post från användare 2",
                 CreatedAt = DateTime.UtcNow.AddHours(-1),
-                Sender = new User { Id = followedUser2Id, Username = "FollowedUser2" },
-                Recipient = new User { Id = followedUser2Id, Username = "FollowedUser2" }
+                Sender = new User { Id = user2Id, Username = "User2" },
+                Recipient = new User { Id = user2Id, Username = "User2" }
             }
         };
 
         _mockPostRepository.Setup(r => r.UserExistsAsync(userId)).ReturnsAsync(true);
-        _mockFollowRepository.Setup(r => r.GetFollowingAsync(userId)).ReturnsAsync(follows);
-        _mockPostRepository.Setup(r => r.GetPostsBySenderIdsAsync(It.Is<IEnumerable<Guid>>(ids => 
-            ids.Contains(followedUser1Id) && ids.Contains(followedUser2Id))))
-            .ReturnsAsync(posts);
+        _mockPostRepository.Setup(r => r.GetAllPostsAsync()).ReturnsAsync(posts);
 
-        // Act
         var result = await _wallService.GetWallAsync(userId);
 
-        // Assert
-        result.Should().NotBeNull();
         result.Should().HaveCount(2);
-        result.Should().Contain(p => p.SenderId == followedUser1Id);
-        result.Should().Contain(p => p.SenderId == followedUser2Id);
+        result.Should().Contain(p => p.SenderId == user1Id);
+        result.Should().Contain(p => p.SenderId == user2Id);
     }
 
     [Fact]
-    public async Task GetWallAsync_WithNoFollowedUsers_ReturnsEmptyList()
+    public async Task GetWallAsync_WithNoPosts_ReturnsEmptyList()
     {
-        // Arrange
         var userId = Guid.NewGuid();
 
         _mockPostRepository.Setup(r => r.UserExistsAsync(userId)).ReturnsAsync(true);
-        _mockFollowRepository.Setup(r => r.GetFollowingAsync(userId)).ReturnsAsync(new List<Follow>());
+        _mockPostRepository.Setup(r => r.GetAllPostsAsync()).ReturnsAsync(new List<Post>());
 
-        // Act
         var result = await _wallService.GetWallAsync(userId);
 
-        // Assert
         result.Should().NotBeNull();
         result.Should().BeEmpty();
-        _mockPostRepository.Verify(r => r.GetPostsBySenderIdsAsync(It.IsAny<IEnumerable<Guid>>()), Times.Never);
+        _mockPostRepository.Verify(r => r.GetAllPostsAsync(), Times.Once);
     }
 
     [Fact]
     public async Task GetWallAsync_ReturnsPostsInChronologicalOrder_NewestFirst()
     {
-        // Arrange
         var userId = Guid.NewGuid();
-        var followedUser1Id = Guid.NewGuid();
-        var followedUser2Id = Guid.NewGuid();
-
-        var follows = new List<Follow>
-        {
-            new Follow
-            {
-                Id = Guid.NewGuid(),
-                FollowerId = userId,
-                FollowingId = followedUser1Id,
-                CreatedAt = DateTime.UtcNow
-            },
-            new Follow
-            {
-                Id = Guid.NewGuid(),
-                FollowerId = userId,
-                FollowingId = followedUser2Id,
-                CreatedAt = DateTime.UtcNow
-            }
-        };
+        var user1Id = Guid.NewGuid();
+        var user2Id = Guid.NewGuid();
 
         var oldestPost = new Post
         {
             Id = Guid.NewGuid(),
-            SenderId = followedUser1Id,
-            RecipientId = followedUser1Id,
+            SenderId = user1Id,
+            RecipientId = user1Id,
             Message = "Äldsta posten",
             CreatedAt = new DateTime(2024, 1, 1, 10, 0, 0),
-            Sender = new User { Id = followedUser1Id, Username = "FollowedUser1" },
-            Recipient = new User { Id = followedUser1Id, Username = "FollowedUser1" }
+            Sender = new User { Id = user1Id, Username = "User1" },
+            Recipient = new User { Id = user1Id, Username = "User1" }
         };
 
         var middlePost = new Post
         {
             Id = Guid.NewGuid(),
-            SenderId = followedUser2Id,
-            RecipientId = followedUser2Id,
+            SenderId = user2Id,
+            RecipientId = user2Id,
             Message = "Mellersta posten",
             CreatedAt = new DateTime(2024, 1, 1, 11, 0, 0),
-            Sender = new User { Id = followedUser2Id, Username = "FollowedUser2" },
-            Recipient = new User { Id = followedUser2Id, Username = "FollowedUser2" }
+            Sender = new User { Id = user2Id, Username = "User2" },
+            Recipient = new User { Id = user2Id, Username = "User2" }
         };
 
         var newestPost = new Post
         {
             Id = Guid.NewGuid(),
-            SenderId = followedUser1Id,
-            RecipientId = followedUser1Id,
+            SenderId = user1Id,
+            RecipientId = user1Id,
             Message = "Nyaste posten",
             CreatedAt = new DateTime(2024, 1, 1, 12, 0, 0),
-            Sender = new User { Id = followedUser1Id, Username = "FollowedUser1" },
-            Recipient = new User { Id = followedUser1Id, Username = "FollowedUser1" }
+            Sender = new User { Id = user1Id, Username = "User1" },
+            Recipient = new User { Id = user1Id, Username = "User1" }
         };
 
-        var posts = new List<Post> { oldestPost, middlePost, newestPost };
-
         _mockPostRepository.Setup(r => r.UserExistsAsync(userId)).ReturnsAsync(true);
-        _mockFollowRepository.Setup(r => r.GetFollowingAsync(userId)).ReturnsAsync(follows);
-        _mockPostRepository.Setup(r => r.GetPostsBySenderIdsAsync(It.IsAny<IEnumerable<Guid>>()))
-            .ReturnsAsync(posts);
+        _mockPostRepository.Setup(r => r.GetAllPostsAsync()).ReturnsAsync(new List<Post> { oldestPost, middlePost, newestPost });
 
-        // Act
         var result = await _wallService.GetWallAsync(userId);
 
-        // Assert
-        result.Should().NotBeNull();
         result.Should().HaveCount(3);
-        
-        // Verifiera kronologisk ordning (senaste först - descending)
-        result[0].CreatedAt.Should().BeAfter(result[1].CreatedAt);
-        result[1].CreatedAt.Should().BeAfter(result[2].CreatedAt);
-        
-        // Verifiera att första inlägget är det senaste
         result[0].Message.Should().Be("Nyaste posten");
-        // Verifiera att sista inlägget är det äldsta
+        result[1].Message.Should().Be("Mellersta posten");
         result[2].Message.Should().Be("Äldsta posten");
-    }
-
-    [Fact]
-    public async Task GetWallAsync_ExcludesPostsFromNonFollowedUsers()
-    {
-        // Arrange
-        var userId = Guid.NewGuid();
-        var followedUser1Id = Guid.NewGuid();
-        var nonFollowedUserId = Guid.NewGuid();
-
-        var follows = new List<Follow>
-        {
-            new Follow
-            {
-                Id = Guid.NewGuid(),
-                FollowerId = userId,
-                FollowingId = followedUser1Id,
-                CreatedAt = DateTime.UtcNow
-            }
-        };
-
-        var posts = new List<Post>
-        {
-            new Post
-            {
-                Id = Guid.NewGuid(),
-                SenderId = followedUser1Id,
-                RecipientId = followedUser1Id,
-                Message = "Post från följd användare",
-                CreatedAt = DateTime.UtcNow,
-                Sender = new User { Id = followedUser1Id, Username = "FollowedUser1" },
-                Recipient = new User { Id = followedUser1Id, Username = "FollowedUser1" }
-            },
-            new Post
-            {
-                Id = Guid.NewGuid(),
-                SenderId = nonFollowedUserId,
-                RecipientId = nonFollowedUserId,
-                Message = "Post från icke-följd användare",
-                CreatedAt = DateTime.UtcNow,
-                Sender = new User { Id = nonFollowedUserId, Username = "NonFollowedUser" },
-                Recipient = new User { Id = nonFollowedUserId, Username = "NonFollowedUser" }
-            }
-        };
-
-        _mockPostRepository.Setup(r => r.UserExistsAsync(userId)).ReturnsAsync(true);
-        _mockFollowRepository.Setup(r => r.GetFollowingAsync(userId)).ReturnsAsync(follows);
-        // Mock returnerar bara posts från följda användare
-        _mockPostRepository.Setup(r => r.GetPostsBySenderIdsAsync(It.Is<IEnumerable<Guid>>(ids => 
-            ids.Contains(followedUser1Id) && !ids.Contains(nonFollowedUserId))))
-            .ReturnsAsync(posts.Where(p => p.SenderId == followedUser1Id).ToList());
-
-        // Act
-        var result = await _wallService.GetWallAsync(userId);
-
-        // Assert
-        result.Should().NotBeNull();
-        result.Should().HaveCount(1);
-        result.Should().OnlyContain(p => p.SenderId == followedUser1Id);
-        result.Should().NotContain(p => p.SenderId == nonFollowedUserId);
     }
 
     [Fact]
     public async Task GetWallAsync_NonExistentUser_ThrowsArgumentException()
     {
-        // Arrange
         var userId = Guid.NewGuid();
         _mockPostRepository.Setup(r => r.UserExistsAsync(userId)).ReturnsAsync(false);
 
-        // Act & Assert
-        var exception = await Assert.ThrowsAsync<ArgumentException>(
-            async () => await _wallService.GetWallAsync(userId));
-        
+        var exception = await Assert.ThrowsAsync<ArgumentException>(() => _wallService.GetWallAsync(userId));
+
         exception.Message.Should().Contain("finns inte");
         _mockFollowRepository.Verify(r => r.GetFollowingAsync(It.IsAny<Guid>()), Times.Never);
-        _mockPostRepository.Verify(r => r.GetPostsBySenderIdsAsync(It.IsAny<IEnumerable<Guid>>()), Times.Never);
+        _mockPostRepository.Verify(r => r.GetAllPostsAsync(), Times.Never);
     }
 }
