@@ -266,6 +266,60 @@ public class PostServiceTests
         await Assert.ThrowsAsync<ValidationException>(() => _postService.CreatePostAsync(request));
         _mockRepository.Verify(r => r.CreateAsync(It.IsAny<Post>()), Times.Never);
     }
+
+    [Fact]
+    public async Task BookmarkPostAsync_WhenPostExists_ReturnsBookmarkedResponse()
+    {
+        var userId = Guid.NewGuid();
+        var postId = Guid.NewGuid();
+        var post = new Post
+        {
+            Id = postId,
+            SenderId = Guid.NewGuid(),
+            RecipientId = Guid.NewGuid(),
+            Message = "Spara detta",
+            CreatedAt = DateTime.UtcNow
+        };
+
+        _mockRepository.Setup(r => r.GetByIdAsync(postId)).ReturnsAsync(post);
+        _mockRepository.Setup(r => r.UserExistsAsync(userId)).ReturnsAsync(true);
+        _mockRepository.SetupSequence(r => r.IsBookmarkedByUserAsync(postId, userId))
+            .ReturnsAsync(false)
+            .ReturnsAsync(true);
+
+        var result = await _postService.BookmarkPostAsync(postId, userId);
+
+        result.IsBookmarkedByCurrentUser.Should().BeTrue();
+        _mockRepository.Verify(r => r.AddBookmarkAsync(It.Is<PostBookmark>(b => b.PostId == postId && b.UserId == userId)), Times.Once);
+    }
+
+    [Fact]
+    public async Task GetSavedPostsAsync_WhenUserExists_ReturnsSavedPosts()
+    {
+        var userId = Guid.NewGuid();
+        var postId = Guid.NewGuid();
+        var savedPosts = new List<Post>
+        {
+            new()
+            {
+                Id = postId,
+                SenderId = Guid.NewGuid(),
+                RecipientId = Guid.NewGuid(),
+                Message = "Sparat inlägg",
+                CreatedAt = DateTime.UtcNow
+            }
+        };
+
+        _mockRepository.Setup(r => r.UserExistsAsync(userId)).ReturnsAsync(true);
+        _mockRepository.Setup(r => r.GetBookmarkedPostsAsync(userId)).ReturnsAsync(savedPosts);
+        _mockRepository.Setup(r => r.IsBookmarkedByUserAsync(It.IsAny<Guid>(), userId)).ReturnsAsync(true);
+
+        var result = await _postService.GetSavedPostsAsync(userId);
+
+        result.Should().HaveCount(1);
+        result[0].IsBookmarkedByCurrentUser.Should().BeTrue();
+        result[0].Id.Should().Be(postId);
+    }
 }
 
 

@@ -10,6 +10,7 @@ public class PostResponse
     public DateTime CreatedAt { get; set; }
     public int LikeCount { get; set; }
     public bool IsLikedByCurrentUser { get; set; }
+    public bool IsBookmarkedByCurrentUser { get; set; }
     public List<PostCommentResponse> Comments { get; set; } = new();
 }
 

@@ -146,6 +146,15 @@
   color: var(--app-accent);
 }
 
+.post-action-bookmarked {
+  color: #6d28d9;
+}
+
+.post-action-bookmarked:hover:not(:disabled) {
+  background: rgba(109, 40, 217, 0.08);
+  color: #6d28d9;
+}
+
 .post-edit-container {
   margin-top: 12px;
 }

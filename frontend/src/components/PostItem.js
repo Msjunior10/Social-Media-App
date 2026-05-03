@@ -114,6 +114,26 @@ function PostItem({
     }
   };
 
+  const handleToggleBookmark = async () => {
+    try {
+      setIsSubmitting(true);
+      setActionError(null);
+      if (post.isBookmarkedByCurrentUser) {
+        await postsApi.removeBookmark(post.id);
+      } else {
+        await postsApi.bookmarkPost(post.id);
+      }
+
+      if (onPostChanged) {
+        await onPostChanged();
+      }
+    } catch (error) {
+      setActionError(getFriendlyError(error, 'Kunde inte uppdatera sparningen av inlägget.'));
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const handleAddComment = async () => {
     try {
       setIsSubmitting(true);
@@ -213,6 +233,14 @@ function PostItem({
               onClick={() => setShowComments((prev) => !prev)}
             >
               Svar ({post.comments?.length || 0})
+            </button>
+            <button
+              type="button"
+              className={`post-action-button ${post.isBookmarkedByCurrentUser ? 'post-action-bookmarked' : ''}`}
+              onClick={handleToggleBookmark}
+              disabled={isSubmitting}
+            >
+              {post.isBookmarkedByCurrentUser ? 'Sparad' : 'Spara'}
             </button>
           </div>
 

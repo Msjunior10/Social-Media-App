@@ -40,6 +40,7 @@ public class TimelineService : ITimelineService
                 CreatedAt = post.CreatedAt,
                 LikeCount = await _postRepository.GetLikeCountAsync(post.Id),
                 IsLikedByCurrentUser = await _postRepository.IsLikedByUserAsync(post.Id, currentUserId),
+                IsBookmarkedByCurrentUser = await _postRepository.IsBookmarkedByUserAsync(post.Id, currentUserId),
                 Comments = comments.Select(c => new PostCommentResponse
                 {
                     Id = c.Id,

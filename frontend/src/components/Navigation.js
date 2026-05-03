@@ -14,6 +14,7 @@ function Navigation() {
   const navigationItems = [
     { to: '/wall', label: 'Upptäck', icon: '⌂' },
     { to: '/timeline', label: 'Tidslinje', icon: '✦' },
+    { to: '/saved', label: 'Sparat', icon: '✧' },
     { to: '/', label: 'Nätverk', icon: '◎' },
     { to: '/notifications', label: 'Notiser', icon: '◔' },
     { to: '/messages', label: 'Meddelanden', icon: '✉' },

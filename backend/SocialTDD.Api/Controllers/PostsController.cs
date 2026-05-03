@@ -310,6 +310,70 @@ public class PostsController : ControllerBase
         }
     }
 
+    [HttpGet("saved")]
+    public async Task<ActionResult<List<PostResponse>>> GetSavedPosts()
+    {
+        try
+        {
+            var userId = User.GetUserId();
+            var result = await _postService.GetSavedPostsAsync(userId);
+            return Ok(result);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new ErrorResponse(ErrorCodes.INVALID_USER_ID, ex.Message));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Ett oväntat fel uppstod vid hämtning av sparade inlägg");
+            return StatusCode(500, new ErrorResponse(ErrorCodes.INTERNAL_SERVER_ERROR, "Ett oväntat fel uppstod. Försök igen senare."));
+        }
+    }
+
+    [HttpPost("{postId}/bookmark")]
+    public async Task<ActionResult<PostResponse>> BookmarkPost(Guid postId)
+    {
+        try
+        {
+            var userId = User.GetUserId();
+            var result = await _postService.BookmarkPostAsync(postId, userId);
+            return Ok(result);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new ErrorResponse(ErrorCodes.POST_NOT_FOUND, ex.Message));
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new ErrorResponse(ErrorCodes.INVALID_USER_ID, ex.Message));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Ett oväntat fel uppstod vid sparning av inlägg {PostId}", postId);
+            return StatusCode(500, new ErrorResponse(ErrorCodes.INTERNAL_SERVER_ERROR, "Ett oväntat fel uppstod. Försök igen senare."));
+        }
+    }
+
+    [HttpDelete("{postId}/bookmark")]
+    public async Task<ActionResult<PostResponse>> RemoveBookmark(Guid postId)
+    {
+        try
+        {
+            var userId = User.GetUserId();
+            var result = await _postService.RemoveBookmarkAsync(postId, userId);
+            return Ok(result);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new ErrorResponse(ErrorCodes.POST_NOT_FOUND, ex.Message));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Ett oväntat fel uppstod vid borttagning av sparat inlägg {PostId}", postId);
+            return StatusCode(500, new ErrorResponse(ErrorCodes.INTERNAL_SERVER_ERROR, "Ett oväntat fel uppstod. Försök igen senare."));
+        }
+    }
+
     private string? ValidateImage(IFormFile image)
     {
         if (image.Length <= 0)
