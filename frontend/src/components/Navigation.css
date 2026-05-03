@@ -139,6 +139,22 @@
   text-align: center;
 }
 
+.nav-link-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  margin-left: auto;
+  border-radius: 999px;
+  background: var(--app-gradient-strong);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1;
+}
+
 .nav-link:hover {
   background: rgba(15, 23, 42, 0.06);
   color: var(--app-accent-strong);
@@ -308,6 +324,10 @@
     padding: 10px 14px;
     gap: 10px;
     border-radius: 18px;
+  }
+
+  .nav-link-badge {
+    margin-left: auto;
   }
 
   .navigation-compose-button {

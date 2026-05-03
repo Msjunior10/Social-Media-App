@@ -11,6 +11,7 @@ import FollowingList from './components/FollowingList';
 import Timeline from './components/Timeline';
 import Wall from './components/Wall';
 import DirectMessages from './components/DirectMessages';
+import Notifications from './components/Notifications';
 import CreatePost from './components/CreatePost';
 import ProfilePosts from './components/ProfilePosts';
 import UserSearch from './components/UserSearch';
@@ -51,6 +52,14 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <WallPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/notifications"
+                element={
+                  <ProtectedRoute>
+                    <NotificationsPage />
                   </ProtectedRoute>
                 }
               />
@@ -340,6 +349,14 @@ function MessagesPage() {
   return (
     <AppShell title="Meddelanden" subtitle="Privata konversationer i realtid.">
       <DirectMessages userId={userId} />
+    </AppShell>
+  );
+}
+
+function NotificationsPage() {
+  return (
+    <AppShell title="Notifikationer" subtitle="All aktivitet som rör dig, samlad på ett ställe.">
+      <Notifications />
     </AppShell>
   );
 }

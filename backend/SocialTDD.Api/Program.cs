@@ -76,6 +76,7 @@ builder.Services.AddScoped<IPostRepository, PostRepository>();
 builder.Services.AddScoped<IDirectMessageRepository, DirectMessageRepository>();
 builder.Services.AddScoped<IFollowRepository, FollowRepository>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
 
 // Add Services
 builder.Services.AddScoped<IPostService, PostService>();
@@ -84,6 +85,7 @@ builder.Services.AddScoped<ITimelineService, TimelineService>();
 builder.Services.AddScoped<IFollowService, FollowService>();
 builder.Services.AddScoped<IWallService, WallService>();
 builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<INotificationService, NotificationService>();
 
 // Add FluentValidation with automatic validation
 builder.Services.AddFluentValidationAutoValidation();

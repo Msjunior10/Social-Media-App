@@ -40,10 +40,13 @@
   margin-top: 0;
   margin-bottom: 8px;
   color: var(--app-text);
-  font-size: 28px;
+  font-size: 24px;
   font-weight: 800;
   font-family: var(--app-font-display);
   letter-spacing: -0.03em;
+  line-height: 1.2;
+  word-break: normal;
+  overflow-wrap: normal;
 }
 
 .send-dm-subtitle {
@@ -193,7 +196,7 @@
   }
 
   .send-dm-title {
-    font-size: 24px;
+    font-size: 21px;
   }
 
   .send-dm-button {
@@ -209,6 +212,6 @@
   }
 
   .send-dm-title {
-    font-size: 22px;
+    font-size: 19px;
   }
 }

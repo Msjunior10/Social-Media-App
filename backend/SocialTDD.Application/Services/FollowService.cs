@@ -8,11 +8,13 @@ namespace SocialTDD.Application.Services;
 public class FollowService : IFollowService
 {
     private readonly IFollowRepository _followRepository;
+    private readonly INotificationService _notificationService;
     private readonly IValidator<CreateFollowRequest> _validator;
 
-    public FollowService(IFollowRepository followRepository, IValidator<CreateFollowRequest> validator)
+    public FollowService(IFollowRepository followRepository, IValidator<CreateFollowRequest> validator, INotificationService? notificationService = null)
     {
         _followRepository = followRepository ?? throw new ArgumentNullException(nameof(followRepository));
+        _notificationService = notificationService ?? new NullNotificationService();
         _validator = validator ?? throw new ArgumentNullException(nameof(validator));
     }
 
@@ -65,6 +67,8 @@ public class FollowService : IFollowService
         };
 
         var createdFollow = await _followRepository.CreateAsync(follow);
+
+        await _notificationService.CreateFollowNotificationAsync(request.FollowingId, request.FollowerId);
 
         return new FollowResponse
         {
