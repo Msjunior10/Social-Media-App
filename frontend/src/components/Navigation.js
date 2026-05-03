@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { notificationsApi } from '../services/notificationsApi';
 import './Navigation.css';
 
 function Navigation() {
@@ -8,11 +9,13 @@ function Navigation() {
   const navigate = useNavigate();
   const { username, logout } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   const navigationItems = [
     { to: '/wall', label: 'Upptäck', icon: '⌂' },
     { to: '/timeline', label: 'Tidslinje', icon: '✦' },
     { to: '/', label: 'Nätverk', icon: '◎' },
+    { to: '/notifications', label: 'Notiser', icon: '◔' },
     { to: '/messages', label: 'Meddelanden', icon: '✉' },
     { to: '/profile', label: 'Profil', icon: '◌' },
   ];
@@ -37,6 +40,35 @@ function Navigation() {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchUnreadCount = async () => {
+      try {
+        const response = await notificationsApi.getUnreadCount();
+        if (isMounted) {
+          setUnreadCount(response?.count ?? 0);
+        }
+      } catch {
+        if (isMounted) {
+          setUnreadCount(0);
+        }
+      }
+    };
+
+    fetchUnreadCount();
+
+    const intervalId = window.setInterval(fetchUnreadCount, 30000);
+    const handleNotificationsUpdated = () => fetchUnreadCount();
+    window.addEventListener('notifications-updated', handleNotificationsUpdated);
+
+    return () => {
+      isMounted = false;
+      window.clearInterval(intervalId);
+      window.removeEventListener('notifications-updated', handleNotificationsUpdated);
+    };
+  }, [location.pathname]);
 
   return (
     <div className="navigation-container">
@@ -77,6 +109,9 @@ function Navigation() {
               >
                 <span className="nav-link-icon" aria-hidden="true">{item.icon}</span>
                 <span className="nav-link-label">{item.label}</span>
+                {item.to === '/notifications' && unreadCount > 0 && (
+                  <span className="nav-link-badge">{unreadCount > 99 ? '99+' : unreadCount}</span>
+                )}
               </Link>
             );
           })}

@@ -19,6 +19,7 @@ public static class ErrorCodes
     public const string USER_NOT_FOUND = "USER_NOT_FOUND";
     public const string POST_NOT_FOUND = "POST_NOT_FOUND";
     public const string MESSAGE_NOT_FOUND = "MESSAGE_NOT_FOUND";
+    public const string NOTIFICATION_NOT_FOUND = "NOTIFICATION_NOT_FOUND";
     
     // Conflict errors (409)
     public const string ALREADY_FOLLOWING = "ALREADY_FOLLOWING";

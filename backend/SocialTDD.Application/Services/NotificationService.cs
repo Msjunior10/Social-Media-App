@@ -1,0 +1,145 @@
+using SocialTDD.Application.DTOs;
+using SocialTDD.Application.Interfaces;
+using SocialTDD.Domain.Entities;
+
+namespace SocialTDD.Application.Services;
+
+public class NotificationService : INotificationService
+{
+    private const string FollowType = "follow";
+    private const string PostLikeType = "post_like";
+    private const string PostCommentType = "post_comment";
+    private const string DirectMessageType = "direct_message";
+
+    private readonly INotificationRepository _notificationRepository;
+
+    public NotificationService(INotificationRepository notificationRepository)
+    {
+        _notificationRepository = notificationRepository;
+    }
+
+    public async Task<List<NotificationResponse>> GetNotificationsAsync(Guid userId)
+    {
+        var userExists = await _notificationRepository.UserExistsAsync(userId);
+        if (!userExists)
+        {
+            throw new ArgumentException($"Användare med ID {userId} finns inte.", nameof(userId));
+        }
+
+        var notifications = await _notificationRepository.GetByUserIdAsync(userId);
+        return notifications.Select(MapToResponse).ToList();
+    }
+
+    public async Task<int> GetUnreadCountAsync(Guid userId)
+    {
+        var userExists = await _notificationRepository.UserExistsAsync(userId);
+        if (!userExists)
+        {
+            throw new ArgumentException($"Användare med ID {userId} finns inte.", nameof(userId));
+        }
+
+        return await _notificationRepository.GetUnreadCountAsync(userId);
+    }
+
+    public async Task MarkAsReadAsync(Guid notificationId, Guid userId)
+    {
+        var notification = await _notificationRepository.GetByIdAsync(notificationId);
+        if (notification == null || notification.UserId != userId)
+        {
+            throw new KeyNotFoundException($"Notis med ID {notificationId} finns inte.");
+        }
+
+        await _notificationRepository.MarkAsReadAsync(notificationId, userId);
+    }
+
+    public async Task MarkAllAsReadAsync(Guid userId)
+    {
+        var userExists = await _notificationRepository.UserExistsAsync(userId);
+        if (!userExists)
+        {
+            throw new ArgumentException($"Användare med ID {userId} finns inte.", nameof(userId));
+        }
+
+        await _notificationRepository.MarkAllAsReadAsync(userId);
+    }
+
+    public Task CreateFollowNotificationAsync(Guid recipientUserId, Guid actorUserId)
+    {
+        return CreateNotificationAsync(recipientUserId, actorUserId, FollowType, null, null);
+    }
+
+    public Task CreatePostLikeNotificationAsync(Guid recipientUserId, Guid actorUserId, Guid postId)
+    {
+        return CreateNotificationAsync(recipientUserId, actorUserId, PostLikeType, postId, null);
+    }
+
+    public Task CreatePostCommentNotificationAsync(Guid recipientUserId, Guid actorUserId, Guid postId)
+    {
+        return CreateNotificationAsync(recipientUserId, actorUserId, PostCommentType, postId, null);
+    }
+
+    public Task CreateDirectMessageNotificationAsync(Guid recipientUserId, Guid actorUserId, Guid directMessageId)
+    {
+        return CreateNotificationAsync(recipientUserId, actorUserId, DirectMessageType, null, directMessageId);
+    }
+
+    private async Task CreateNotificationAsync(Guid recipientUserId, Guid actorUserId, string type, Guid? postId, Guid? directMessageId)
+    {
+        if (recipientUserId == actorUserId)
+        {
+            return;
+        }
+
+        var recipientExists = await _notificationRepository.UserExistsAsync(recipientUserId);
+        var actorExists = await _notificationRepository.UserExistsAsync(actorUserId);
+        if (!recipientExists || !actorExists)
+        {
+            return;
+        }
+
+        await _notificationRepository.CreateAsync(new Notification
+        {
+            Id = Guid.NewGuid(),
+            UserId = recipientUserId,
+            ActorId = actorUserId,
+            Type = type,
+            PostId = postId,
+            DirectMessageId = directMessageId,
+            IsRead = false,
+            CreatedAt = DateTime.UtcNow
+        });
+    }
+
+    private NotificationResponse MapToResponse(Notification notification)
+    {
+        var actorUsername = notification.Actor?.Username ?? string.Empty;
+
+        return new NotificationResponse
+        {
+            Id = notification.Id,
+            Type = notification.Type,
+            UserId = notification.UserId,
+            ActorId = notification.ActorId,
+            ActorUsername = actorUsername,
+            PostId = notification.PostId,
+            DirectMessageId = notification.DirectMessageId,
+            Message = BuildMessage(notification.Type, actorUsername),
+            IsRead = notification.IsRead,
+            CreatedAt = notification.CreatedAt
+        };
+    }
+
+    private static string BuildMessage(string type, string actorUsername)
+    {
+        var safeActor = string.IsNullOrWhiteSpace(actorUsername) ? "Någon" : actorUsername;
+
+        return type switch
+        {
+            FollowType => $"{safeActor} började följa dig.",
+            PostLikeType => $"{safeActor} gillade ditt inlägg.",
+            PostCommentType => $"{safeActor} kommenterade ditt inlägg.",
+            DirectMessageType => $"{safeActor} skickade ett direktmeddelande.",
+            _ => $"{safeActor} har ny aktivitet för dig."
+        };
+    }
+}

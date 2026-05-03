@@ -8,13 +8,16 @@ namespace SocialTDD.Application.Services;
 public class DirectMessageService : IDirectMessageService
 {
     private readonly IDirectMessageRepository _directMessageRepository;
+    private readonly INotificationService _notificationService;
     private readonly IValidator<CreateDirectMessageRequest> _validator;
 
     public DirectMessageService(
         IDirectMessageRepository directMessageRepository,
-        IValidator<CreateDirectMessageRequest> validator)
+        IValidator<CreateDirectMessageRequest> validator,
+        INotificationService? notificationService = null)
     {
         _directMessageRepository = directMessageRepository;
+        _notificationService = notificationService ?? new NullNotificationService();
         _validator = validator;
     }
 
@@ -59,6 +62,8 @@ public class DirectMessageService : IDirectMessageService
         };
 
         var createdMessage = await _directMessageRepository.CreateAsync(directMessage);
+
+        await _notificationService.CreateDirectMessageNotificationAsync(request.RecipientId, request.SenderId, createdMessage.Id);
 
         return new DirectMessageResponse
         {

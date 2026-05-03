@@ -8,6 +8,7 @@ namespace SocialTDD.Application.Services;
 public class PostService : IPostService
 {
     private readonly IPostRepository _postRepository;
+    private readonly INotificationService _notificationService;
     private readonly IValidator<CreatePostRequest> _createValidator;
     private readonly IValidator<UpdatePostRequest> _updateValidator;
     private readonly IValidator<CreatePostCommentRequest> _commentValidator;
@@ -16,9 +17,11 @@ public class PostService : IPostService
         IPostRepository postRepository,
         IValidator<CreatePostRequest> createValidator,
         IValidator<UpdatePostRequest> updateValidator,
-        IValidator<CreatePostCommentRequest> commentValidator)
+        IValidator<CreatePostCommentRequest> commentValidator,
+        INotificationService? notificationService = null)
     {
         _postRepository = postRepository;
+        _notificationService = notificationService ?? new NullNotificationService();
         _createValidator = createValidator;
         _updateValidator = updateValidator;
         _commentValidator = commentValidator;
@@ -122,6 +125,8 @@ public class PostService : IPostService
                 UserId = userId,
                 CreatedAt = DateTime.UtcNow
             });
+
+            await _notificationService.CreatePostLikeNotificationAsync(post.SenderId, userId, postId);
         }
 
         return await MapToPostResponseAsync(post, userId);
@@ -167,6 +172,8 @@ public class PostService : IPostService
             Message = request.Message.Trim(),
             CreatedAt = DateTime.UtcNow
         });
+
+        await _notificationService.CreatePostCommentNotificationAsync(post.SenderId, userId, postId);
 
         return new PostCommentResponse
         {
