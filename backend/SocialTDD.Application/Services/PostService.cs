@@ -144,6 +144,47 @@ public class PostService : IPostService
         return await MapToPostResponseAsync(post, userId);
     }
 
+    public async Task<PostResponse> BookmarkPostAsync(Guid postId, Guid userId)
+    {
+        var post = await _postRepository.GetByIdAsync(postId);
+        if (post == null)
+        {
+            throw new KeyNotFoundException($"Inlägg med ID {postId} finns inte.");
+        }
+
+        var userExists = await _postRepository.UserExistsAsync(userId);
+        if (!userExists)
+        {
+            throw new ArgumentException($"Användare med ID {userId} finns inte.", nameof(userId));
+        }
+
+        var isBookmarked = await _postRepository.IsBookmarkedByUserAsync(postId, userId);
+        if (!isBookmarked)
+        {
+            await _postRepository.AddBookmarkAsync(new PostBookmark
+            {
+                Id = Guid.NewGuid(),
+                PostId = postId,
+                UserId = userId,
+                CreatedAt = DateTime.UtcNow
+            });
+        }
+
+        return await MapToPostResponseAsync(post, userId);
+    }
+
+    public async Task<PostResponse> RemoveBookmarkAsync(Guid postId, Guid userId)
+    {
+        var post = await _postRepository.GetByIdAsync(postId);
+        if (post == null)
+        {
+            throw new KeyNotFoundException($"Inlägg med ID {postId} finns inte.");
+        }
+
+        await _postRepository.RemoveBookmarkAsync(postId, userId);
+        return await MapToPostResponseAsync(post, userId);
+    }
+
     public async Task<PostCommentResponse> AddCommentAsync(Guid postId, Guid userId, CreatePostCommentRequest request)
     {
         var validationResult = await _commentValidator.ValidateAsync(request);
@@ -217,8 +258,28 @@ public class PostService : IPostService
             RecipientId = p.RecipientId,
             Message = p.Message,
             ImageUrl = p.ImageUrl,
-            CreatedAt = p.CreatedAt
+            CreatedAt = p.CreatedAt,
+            IsBookmarkedByCurrentUser = false
         }).ToList();
+    }
+
+    public async Task<List<PostResponse>> GetSavedPostsAsync(Guid userId)
+    {
+        var userExists = await _postRepository.UserExistsAsync(userId);
+        if (!userExists)
+        {
+            throw new ArgumentException($"Användare med ID {userId} finns inte.", nameof(userId));
+        }
+
+        var posts = await _postRepository.GetBookmarkedPostsAsync(userId);
+        var postResponses = new List<PostResponse>();
+
+        foreach (var post in posts)
+        {
+            postResponses.Add(await MapToPostResponseAsync(post, userId));
+        }
+
+        return postResponses;
     }
 
     private async Task<PostResponse> MapToPostResponseAsync(Post post, Guid currentUserId)
@@ -235,6 +296,7 @@ public class PostService : IPostService
             CreatedAt = post.CreatedAt,
             LikeCount = await _postRepository.GetLikeCountAsync(post.Id),
             IsLikedByCurrentUser = await _postRepository.IsLikedByUserAsync(post.Id, currentUserId),
+            IsBookmarkedByCurrentUser = await _postRepository.IsBookmarkedByUserAsync(post.Id, currentUserId),
             Comments = comments.Select(c => new PostCommentResponse
             {
                 Id = c.Id,

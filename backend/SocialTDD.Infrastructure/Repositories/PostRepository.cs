@@ -106,6 +106,19 @@ public class PostRepository : IPostRepository
             .ToListAsync();
     }
 
+    public async Task<IEnumerable<Post>> GetBookmarkedPostsAsync(Guid userId)
+    {
+        return await _context.PostBookmarks
+            .Where(b => b.UserId == userId)
+            .OrderByDescending(b => b.CreatedAt)
+            .Include(b => b.Post)
+                .ThenInclude(p => p.Sender)
+            .Include(b => b.Post)
+                .ThenInclude(p => p.Recipient)
+            .Select(b => b.Post)
+            .ToListAsync();
+    }
+
     public async Task<int> GetLikeCountAsync(Guid postId)
     {
         return await _context.PostLikes.CountAsync(l => l.PostId == postId);
@@ -114,6 +127,11 @@ public class PostRepository : IPostRepository
     public async Task<bool> IsLikedByUserAsync(Guid postId, Guid userId)
     {
         return await _context.PostLikes.AnyAsync(l => l.PostId == postId && l.UserId == userId);
+    }
+
+    public async Task<bool> IsBookmarkedByUserAsync(Guid postId, Guid userId)
+    {
+        return await _context.PostBookmarks.AnyAsync(b => b.PostId == postId && b.UserId == userId);
     }
 
     public async Task AddLikeAsync(PostLike like)
@@ -131,6 +149,24 @@ public class PostRepository : IPostRepository
         }
 
         _context.PostLikes.Remove(like);
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task AddBookmarkAsync(PostBookmark bookmark)
+    {
+        _context.PostBookmarks.Add(bookmark);
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task RemoveBookmarkAsync(Guid postId, Guid userId)
+    {
+        var bookmark = await _context.PostBookmarks.FirstOrDefaultAsync(b => b.PostId == postId && b.UserId == userId);
+        if (bookmark == null)
+        {
+            return;
+        }
+
+        _context.PostBookmarks.Remove(bookmark);
         await _context.SaveChangesAsync();
     }
 

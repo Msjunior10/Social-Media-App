@@ -68,4 +68,23 @@ export const postsApi = {
     });
     return await handleApiResponse(response);
   },
+
+  async getSavedPosts() {
+    const response = await authenticatedFetch(`${API_BASE_URL}/posts/saved`);
+    return await handleApiResponse(response);
+  },
+
+  async bookmarkPost(postId) {
+    const response = await authenticatedFetch(`${API_BASE_URL}/posts/${postId}/bookmark`, {
+      method: 'POST',
+    });
+    return await handleApiResponse(response);
+  },
+
+  async removeBookmark(postId) {
+    const response = await authenticatedFetch(`${API_BASE_URL}/posts/${postId}/bookmark`, {
+      method: 'DELETE',
+    });
+    return await handleApiResponse(response);
+  },
 };

@@ -12,6 +12,7 @@ import Timeline from './components/Timeline';
 import Wall from './components/Wall';
 import DirectMessages from './components/DirectMessages';
 import Notifications from './components/Notifications';
+import SavedPosts from './components/SavedPosts';
 import CreatePost from './components/CreatePost';
 import ProfilePosts from './components/ProfilePosts';
 import UserSearch from './components/UserSearch';
@@ -60,6 +61,14 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <NotificationsPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/saved"
+                element={
+                  <ProtectedRoute>
+                    <SavedPostsPage />
                   </ProtectedRoute>
                 }
               />
@@ -237,6 +246,7 @@ function DefaultRightSidebar() {
         <div className="sidebar-link-list sidebar-link-list-spaced">
           <Link to="/profile" className="sidebar-link-item">Skapa eller hantera inlägg</Link>
           <Link to="/timeline" className="sidebar-link-item">Se vad ditt nätverk gör</Link>
+          <Link to="/saved" className="sidebar-link-item">Öppna sparade inlägg</Link>
           <Link to="/wall" className="sidebar-link-item">Hitta nya profiler och inlägg</Link>
         </div>
       </section>
@@ -246,6 +256,7 @@ function DefaultRightSidebar() {
         <div className="sidebar-link-list">
           <Link to="/wall" className="sidebar-link-item">Upptäck flödet</Link>
           <Link to="/timeline" className="sidebar-link-item">Se din tidslinje</Link>
+          <Link to="/saved" className="sidebar-link-item">Se sparat</Link>
           <Link to="/profile" className="sidebar-link-item">Öppna din profil</Link>
         </div>
       </section>
@@ -349,6 +360,16 @@ function MessagesPage() {
   return (
     <AppShell title="Meddelanden" subtitle="Privata konversationer i realtid.">
       <DirectMessages userId={userId} />
+    </AppShell>
+  );
+}
+
+function SavedPostsPage() {
+  const { userId } = useAuth();
+
+  return (
+    <AppShell title="Sparat" subtitle="Inlägg du vill återvända till, samlade i en egen vy.">
+      <SavedPosts userId={userId} showHeader={false} />
     </AppShell>
   );
 }

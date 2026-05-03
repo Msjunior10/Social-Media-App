@@ -12,6 +12,7 @@ public class ApplicationDbContext : DbContext
 
     public DbSet<Post> Posts { get; set; }
     public DbSet<PostLike> PostLikes { get; set; }
+    public DbSet<PostBookmark> PostBookmarks { get; set; }
     public DbSet<PostComment> PostComments { get; set; }
     public DbSet<User> Users { get; set; }
     public DbSet<DirectMessage> DirectMessages { get; set; }
@@ -48,6 +49,11 @@ public class ApplicationDbContext : DbContext
                 .WithOne(c => c.Post)
                 .HasForeignKey(c => c.PostId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasMany(e => e.Bookmarks)
+                .WithOne(b => b.Post)
+                .HasForeignKey(b => b.PostId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<PostLike>(entity =>
@@ -61,6 +67,20 @@ public class ApplicationDbContext : DbContext
                 .OnDelete(DeleteBehavior.Restrict);
 
             entity.HasIndex(e => new { e.PostId, e.UserId }).IsUnique();
+        });
+
+        modelBuilder.Entity<PostBookmark>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.CreatedAt).IsRequired();
+
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasIndex(e => new { e.PostId, e.UserId }).IsUnique();
+            entity.HasIndex(e => new { e.UserId, e.CreatedAt });
         });
 
         modelBuilder.Entity<PostComment>(entity =>
