@@ -1,8 +1,9 @@
 .followers-list {
-  background: white;
+  background: var(--app-card-gradient);
   border-radius: 18px;
   padding: 20px;
-  border: 1px solid #eff3f4;
+  border: 1px solid var(--app-border);
+  box-shadow: var(--app-shadow-soft);
 }
 
 .followers-list-header {
@@ -68,16 +69,16 @@
 }
 
 .error {
-  color: #b91c1c;
-  background-color: #fee2e2;
+  color: var(--app-danger);
+  background-color: var(--app-danger-soft);
   border-radius: 12px;
-  border: 1px solid #fecaca;
+  border: 1px solid var(--app-danger-border);
 }
 
 .empty-message {
   padding: 20px;
   text-align: center;
-  color: #94a3b8;
+  color: var(--app-muted);
   font-style: italic;
 }
 
@@ -89,7 +90,7 @@
 
 .follower-item {
   padding: 12px;
-  border-bottom: 1px solid #eff3f4;
+  border-bottom: 1px solid var(--app-border);
   transition: background-color 0.2s ease;
 }
 
@@ -106,7 +107,7 @@
 }
 
 .follower-item-clickable:hover {
-  background-color: var(--app-accent-soft);
+  background: var(--app-card-gradient-strong);
   border-left: 3px solid var(--app-accent);
 }
 

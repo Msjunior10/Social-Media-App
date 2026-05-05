@@ -1,13 +1,12 @@
 .wall {
-  background: var(--app-surface);
+  background: transparent;
 }
 
 .wall-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px 20px;
-  border-bottom: 1px solid var(--app-border);
+  padding: 18px 20px 10px;
 }
 
 .wall h2 {
@@ -18,7 +17,7 @@
 }
 
 .wall-refresh-button {
-  background: var(--app-surface);
+  background: var(--app-surface-elevated);
   border: 1px solid var(--app-border);
   border-radius: 999px;
   padding: 8px 12px;
@@ -55,7 +54,7 @@
 .loading-spinner {
   width: 32px;
   height: 32px;
-  border: 3px solid #f1f5f9;
+  border: 3px solid var(--app-surface-soft);
   border-top: 3px solid var(--app-accent);
   border-radius: 50%;
   animation: spin 1s linear infinite;
@@ -73,13 +72,13 @@
 .error-message {
   padding: 16px;
   background-color: var(--app-warning-soft);
-  border: 1px solid #f4d7a1;
+  border: 1px solid var(--app-warning-border);
   border-radius: 16px;
   margin: 16px 20px;
   display: flex;
   align-items: center;
   gap: 12px;
-  color: #8a5a16;
+  color: var(--app-warning);
 }
 
 .error-icon {
@@ -93,7 +92,7 @@
 }
 
 .error-retry-button {
-  background: rgba(183, 121, 31, 0.16);
+  background: color-mix(in srgb, var(--app-warning) 14%, transparent);
   border: none;
   border-radius: 999px;
   padding: 8px 14px;
@@ -105,7 +104,7 @@
 }
 
 .error-retry-button:hover {
-  background: rgba(183, 121, 31, 0.24);
+  background: color-mix(in srgb, var(--app-warning) 22%, transparent);
 }
 
 .empty-message {
@@ -122,25 +121,40 @@
 .empty-hint {
   font-size: 14px;
   font-style: italic;
-  color: #94a3b8;
+  color: var(--app-muted);
   margin-top: 8px;
 }
 
 .posts-container {
   display: flex;
   flex-direction: column;
-  gap: 0;
+  gap: 14px;
+  padding: 6px 16px 18px;
 }
 
 .post-card {
-  background: var(--app-surface);
-  border-bottom: 1px solid var(--app-border);
-  padding: 18px 20px;
-  transition: background-color 0.2s ease;
+  position: relative;
+  overflow: hidden;
+  background: var(--app-card-gradient);
+  border: 1px solid var(--app-border);
+  border-radius: 24px;
+  padding: 20px;
+  box-shadow: var(--app-shadow-soft);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.post-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(circle at top right, rgba(var(--app-accent-rgb), 0.08), transparent 32%);
 }
 
 .post-card:hover {
-  background: var(--app-surface-soft);
+  transform: translateY(-2px);
+  border-color: rgba(var(--app-accent-rgb), 0.18);
+  box-shadow: var(--app-shadow-medium);
 }
 
 .post-footer {
@@ -161,6 +175,11 @@
     padding-right: 16px;
   }
 
+  .posts-container {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
   .error-message {
     flex-direction: column;
     align-items: flex-start;
@@ -172,6 +191,11 @@
   .post-card {
     padding-left: 12px;
     padding-right: 12px;
+  }
+
+  .posts-container {
+    padding-left: 10px;
+    padding-right: 10px;
   }
 
   .wall h2 {

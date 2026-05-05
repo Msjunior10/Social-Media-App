@@ -22,29 +22,29 @@ function Register() {
     setValidationErrors({});
 
     if (!username.trim()) {
-      errors.username = 'Användarnamn är obligatoriskt.';
+      errors.username = 'Username is required.';
     } else if (username.trim().length < 3) {
-      errors.username = 'Användarnamn måste vara minst 3 tecken.';
+      errors.username = 'Username must be at least 3 characters.';
     }
 
     if (!email.trim()) {
-      errors.email = 'E-post är obligatorisk.';
+      errors.email = 'Email is required.';
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
-      errors.email = 'Ogiltig e-postadress.';
+      errors.email = 'Invalid email address.';
     }
 
     if (!password) {
-      errors.password = 'Lösenord är obligatoriskt.';
+      errors.password = 'Password is required.';
     } else if (password.length < 8) {
-      errors.password = 'Lösenord måste vara minst 8 tecken.';
+      errors.password = 'Password must be at least 8 characters.';
     } else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(password)) {
-      errors.password = 'Lösenord måste innehålla minst en stor bokstav, en liten bokstav och en siffra.';
+      errors.password = 'Password must contain at least one uppercase letter, one lowercase letter, and one number.';
     }
 
     if (!confirmPassword) {
-      errors.confirmPassword = 'Bekräfta lösenord är obligatoriskt.';
+      errors.confirmPassword = 'Password confirmation is required.';
     } else if (password !== confirmPassword) {
-      errors.confirmPassword = 'Lösenorden matchar inte.';
+      errors.confirmPassword = 'Passwords do not match.';
     }
 
     if (Object.keys(errors).length > 0) {
@@ -85,7 +85,7 @@ function Register() {
       if (err instanceof ApiError) {
         switch (err.errorCode) {
           case ErrorCodes.USER_ALREADY_EXISTS:
-            setError('Användarnamnet eller e-postadressen är redan registrerad.');
+            setError('The username or email address is already registered.');
             break;
           case ErrorCodes.VALIDATION_ERROR:
             // Hantera valideringsfel från backend
@@ -102,25 +102,25 @@ function Register() {
               });
               if (Object.keys(backendErrors).length > 0) {
                 setValidationErrors(backendErrors);
-                setError('Korrigera felen ovan.');
+                setError('Please fix the errors above.');
               } else {
-                setError('Valideringsfel. Kontrollera dina indata.');
+                setError('Validation error. Please check your input.');
               }
             } else {
-              setError('Valideringsfel. Kontrollera dina indata.');
+              setError('Validation error. Please check your input.');
             }
             break;
           case ErrorCodes.NETWORK_ERROR:
-            setError('Kunde inte ansluta till servern. Kontrollera din internetanslutning.');
+            setError('Could not connect to the server. Check your internet connection.');
             break;
           case ErrorCodes.TIMEOUT_ERROR:
-            setError('Begäran tog för lång tid. Försök igen.');
+            setError('The request took too long. Please try again.');
             break;
           default:
-            setError(err.message || 'Registrering misslyckades. Försök igen.');
+            setError(err.message || 'Registration failed. Please try again.');
         }
       } else {
-        setError(err.message || 'Registrering misslyckades. Försök igen.');
+        setError(err.message || 'Registration failed. Please try again.');
       }
     } finally {
       setLoading(false);
@@ -131,15 +131,15 @@ function Register() {
     <div className="register-container">
       <div className="register-card">
         <div className="register-badge">Create your Socially identity</div>
-        <h2 className="register-title">Registrera dig</h2>
+        <h2 className="register-title">Create account</h2>
         <p className="register-subtitle">
-          Skapa en profil med mer närvaro, dela snabbare och bygg ett nätverk i en mer
-          genomarbetad upplevelse.
+          Create a profile with more presence, share faster, and build a network in a more
+          polished experience.
         </p>
 
         <div className="register-highlights" aria-hidden="true">
-          <span className="register-highlight-pill">Snabb onboarding</span>
-          <span className="register-highlight-pill">Ren profilkänsla</span>
+          <span className="register-highlight-pill">Fast onboarding</span>
+          <span className="register-highlight-pill">Clean profile feel</span>
           <span className="register-highlight-pill">Modern social app</span>
         </div>
         
@@ -151,13 +151,13 @@ function Register() {
 
         <form onSubmit={handleSubmit} className="register-form">
           <div className="register-field">
-            <label htmlFor="username">Användarnamn</label>
+            <label htmlFor="username">Username</label>
             <input
               id="username"
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              placeholder="Minst 3 tecken"
+              placeholder="At least 3 characters"
               className={`register-input ${validationErrors.username ? 'input-error' : ''}`}
               disabled={loading}
               autoComplete="username"
@@ -168,13 +168,13 @@ function Register() {
           </div>
 
           <div className="register-field">
-            <label htmlFor="email">E-post</label>
+            <label htmlFor="email">Email</label>
             <input
               id="email"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="exempel@email.com"
+              placeholder="example@email.com"
               className={`register-input ${validationErrors.email ? 'input-error' : ''}`}
               disabled={loading}
               autoComplete="email"
@@ -185,13 +185,13 @@ function Register() {
           </div>
 
           <div className="register-field">
-            <label htmlFor="password">Lösenord</label>
+            <label htmlFor="password">Password</label>
             <input
               id="password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Minst 8 tecken, stor/liten bokstav och siffra"
+              placeholder="At least 8 characters, uppercase/lowercase, and a number"
               className={`register-input ${validationErrors.password ? 'input-error' : ''}`}
               disabled={loading}
               autoComplete="new-password"
@@ -202,13 +202,13 @@ function Register() {
           </div>
 
           <div className="register-field">
-            <label htmlFor="confirmPassword">Bekräfta lösenord</label>
+            <label htmlFor="confirmPassword">Confirm password</label>
             <input
               id="confirmPassword"
               type="password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              placeholder="Upprepa lösenordet"
+              placeholder="Repeat the password"
               className={`register-input ${validationErrors.confirmPassword ? 'input-error' : ''}`}
               disabled={loading}
               autoComplete="new-password"
@@ -223,15 +223,15 @@ function Register() {
             className="register-button"
             disabled={loading}
           >
-            {loading ? 'Registrerar...' : 'Registrera dig'}
+            {loading ? 'Creating account...' : 'Create account'}
           </button>
         </form>
 
         <div className="register-footer">
           <p>
-            Har du redan ett konto?{' '}
+            Already have an account?{' '}
             <Link to="/login" className="register-link">
-              Logga in här
+              Sign in here
             </Link>
           </p>
         </div>

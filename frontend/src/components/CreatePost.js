@@ -12,11 +12,11 @@ const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp
 const postSchema = yup.object().shape({
   message: yup
     .string()
-    .required('Meddelande är obligatoriskt.')
+    .required('Message is required.')
     .trim()
-    .min(MIN_MESSAGE_LENGTH, `Meddelande måste vara minst ${MIN_MESSAGE_LENGTH} tecken.`)
-    .max(MAX_MESSAGE_LENGTH, `Meddelande får inte vara längre än ${MAX_MESSAGE_LENGTH} tecken.`)
-    .test('not-empty', 'Meddelande får inte vara tomt eller bara innehålla mellanslag.', (value) => {
+    .min(MIN_MESSAGE_LENGTH, `Message must be at least ${MIN_MESSAGE_LENGTH} character.`)
+    .max(MAX_MESSAGE_LENGTH, `Message cannot be longer than ${MAX_MESSAGE_LENGTH} characters.`)
+    .test('not-empty', 'Message cannot be empty or contain only spaces.', (value) => {
       return value && value.trim().length >= MIN_MESSAGE_LENGTH;
     }),
 });
@@ -66,14 +66,14 @@ function CreatePost({ senderId, onPostCreated, compact = false }) {
 
     if (selectedImage) {
       if (!ALLOWED_IMAGE_TYPES.includes(selectedImage.type)) {
-        setValidationErrors({ image: 'Endast JPG, PNG, GIF och WEBP-bilder är tillåtna.' });
-        setError('Valideringsfel. Kontrollera dina indata.');
+        setValidationErrors({ image: 'Only JPG, PNG, GIF, and WEBP images are allowed.' });
+        setError('Validation error. Please check your input.');
         return false;
       }
 
       if (selectedImage.size > MAX_IMAGE_SIZE_BYTES) {
-        setValidationErrors({ image: 'Bilden får inte vara större än 5 MB.' });
-        setError('Valideringsfel. Kontrollera dina indata.');
+        setValidationErrors({ image: 'The image cannot be larger than 5 MB.' });
+        setError('Validation error. Please check your input.');
         return false;
       }
     }
@@ -88,9 +88,9 @@ function CreatePost({ senderId, onPostCreated, compact = false }) {
           errors[validationError.path] = validationError.message;
         });
         setValidationErrors(errors);
-        setError('Valideringsfel. Kontrollera dina indata.');
+        setError('Validation error. Please check your input.');
       } else {
-        setError(err.message || 'Valideringsfel.');
+        setError(err.message || 'Validation error.');
       }
       return false;
     }
@@ -126,28 +126,28 @@ function CreatePost({ senderId, onPostCreated, compact = false }) {
       if (err instanceof ApiError) {
         switch (err.errorCode) {
           case ErrorCodes.TOKEN_EXPIRED:
-            setError('Din session har gått ut. Logga in igen.');
+            setError('Your session has expired. Please sign in again.');
             break;
           case ErrorCodes.NETWORK_ERROR:
-            setError('Kunde inte ansluta till servern. Kontrollera din internetanslutning.');
+            setError('Could not connect to the server. Check your internet connection.');
             break;
           case ErrorCodes.TIMEOUT_ERROR:
-            setError('Begäran tog för lång tid. Försök igen.');
+            setError('The request took too long. Please try again.');
             break;
           case ErrorCodes.MESSAGE_TOO_LONG:
-            setError('Meddelandet är för långt.');
+            setError('The message is too long.');
             break;
           case ErrorCodes.MESSAGE_TOO_SHORT:
-            setError('Meddelandet är för kort.');
+            setError('The message is too short.');
             break;
           case ErrorCodes.VALIDATION_ERROR:
-            setError('Valideringsfel. Kontrollera dina indata.');
+            setError('Validation error. Please check your input.');
             break;
           default:
-            setError(err.message || 'Ett fel uppstod vid skapande av inlägg');
+            setError(err.message || 'An error occurred while creating the post');
         }
       } else {
-        setError(err.message || 'Ett fel uppstod vid skapande av inlägg');
+        setError(err.message || 'An error occurred while creating the post');
       }
     } finally {
       setLoading(false);
@@ -176,13 +176,13 @@ function CreatePost({ senderId, onPostCreated, compact = false }) {
 
     if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
       setSelectedImage(null);
-      setValidationErrors((prev) => ({ ...prev, image: 'Endast JPG, PNG, GIF och WEBP-bilder är tillåtna.' }));
+      setValidationErrors((prev) => ({ ...prev, image: 'Only JPG, PNG, GIF, and WEBP images are allowed.' }));
       return;
     }
 
     if (file.size > MAX_IMAGE_SIZE_BYTES) {
       setSelectedImage(null);
-      setValidationErrors((prev) => ({ ...prev, image: 'Bilden får inte vara större än 5 MB.' }));
+      setValidationErrors((prev) => ({ ...prev, image: 'The image cannot be larger than 5 MB.' }));
       return;
     }
 
@@ -196,7 +196,7 @@ function CreatePost({ senderId, onPostCreated, compact = false }) {
 
   return (
     <div className={`create-post-container ${compact ? 'create-post-container-compact' : ''}`}>
-      {!compact && <h2 className="create-post-title">Skapa nytt inlägg</h2>}
+      {!compact && <h2 className="create-post-title">Create a new post</h2>}
 
       {error && (
         <div className="create-post-error" role="alert">
@@ -206,17 +206,17 @@ function CreatePost({ senderId, onPostCreated, compact = false }) {
 
       {success && (
         <div className="create-post-success" role="alert">
-          Inlägget skapades framgångsrikt!
+          The post was created successfully!
         </div>
       )}
 
       <form onSubmit={handleSubmit} className="create-post-form" noValidate>
         <div className="create-post-field">
           <label htmlFor="message" className="create-post-label">
-            Skapa inlägg <span className="required-asterisk">*</span>
+            Create post <span className="required-asterisk">*</span>
           </label>
           <p className="create-post-helper-text">
-            Inlägget publiceras offentligt och syns för alla användare i appen.
+            The post will be published publicly and visible to all users in the app.
           </p>
           <textarea
             id="message"
@@ -224,7 +224,7 @@ function CreatePost({ senderId, onPostCreated, compact = false }) {
             value={message}
             onChange={handleMessageChange}
             onBlur={() => setTouched((prev) => ({ ...prev, message: true }))}
-            placeholder={compact ? 'Vad händer just nu?' : 'Skriv ditt inlägg här...'}
+            placeholder={compact ? 'What is happening right now?' : 'Write your post here...'}
             className={`create-post-textarea ${
               validationErrors.message && touched.message ? 'input-error' : ''
             }`}
@@ -234,7 +234,7 @@ function CreatePost({ senderId, onPostCreated, compact = false }) {
           />
           <div className="create-post-character-count">
             <span className={message.length > MAX_MESSAGE_LENGTH ? 'character-count-error' : ''}>
-              {message.length} / {MAX_MESSAGE_LENGTH} tecken
+              {message.length} / {MAX_MESSAGE_LENGTH} characters
             </span>
           </div>
           {validationErrors.message && touched.message && (
@@ -246,10 +246,10 @@ function CreatePost({ senderId, onPostCreated, compact = false }) {
 
         <div className="create-post-field">
           <label htmlFor="image" className="create-post-label">
-            Bild (valfri)
+            Image (optional)
           </label>
           <p className="create-post-helper-text">
-            Du kan ladda upp en JPG-, PNG-, GIF- eller WEBP-bild upp till 5 MB.
+            You can upload a JPG, PNG, GIF, or WEBP image up to 5 MB.
           </p>
           <input
             id="image"
@@ -264,12 +264,12 @@ function CreatePost({ senderId, onPostCreated, compact = false }) {
           {selectedImage && (
             <div className="create-post-image-preview">
               {imagePreviewUrl && (
-                <img src={imagePreviewUrl} alt="Förhandsvisning av valt inläggsfoto" className="create-post-preview-image" />
+                <img src={imagePreviewUrl} alt="Selected post preview" className="create-post-preview-image" />
               )}
               <div className="create-post-image-meta">
                 <span>{selectedImage.name}</span>
                 <button type="button" className="create-post-remove-image" onClick={handleRemoveImage} disabled={loading}>
-                  Ta bort bild
+                  Remove image
                 </button>
               </div>
             </div>
@@ -287,7 +287,7 @@ function CreatePost({ senderId, onPostCreated, compact = false }) {
           className="create-post-button"
           disabled={loading || !senderId || !message.trim()}
         >
-          {loading ? 'Publicerar...' : compact ? 'Publicera' : 'Skapa inlägg'}
+          {loading ? 'Publishing...' : compact ? 'Publish' : 'Create post'}
         </button>
       </form>
     </div>

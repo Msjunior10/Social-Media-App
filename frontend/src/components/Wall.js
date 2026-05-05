@@ -19,17 +19,18 @@ function Wall({ userId, refreshKey = 0, showHeader = true }) {
       setLoading(true);
       setError(null);
       const wallPosts = await wallApi.getWall();
-      // Sortera inlägg så att senaste kommer först (kronologisk ordning)
+      // Sort posts so the newest appears first (chronological order)
       const sortedPosts = wallPosts.sort((a, b) => {
         return new Date(b.createdAt) - new Date(a.createdAt);
       });
       setPosts(sortedPosts);
 
-      // Hämta användarnamn för alla unika användar-ID:n
+      // Fetch usernames for all unique user IDs
       const uniqueUserIds = new Set();
       sortedPosts.forEach(post => {
         if (post.senderId) uniqueUserIds.add(post.senderId);
         if (post.recipientId) uniqueUserIds.add(post.recipientId);
+        if (post.originalSenderId) uniqueUserIds.add(post.originalSenderId);
         (post.comments || []).forEach(comment => {
           if (comment.userId) uniqueUserIds.add(comment.userId);
         });
@@ -44,13 +45,13 @@ function Wall({ userId, refreshKey = 0, showHeader = true }) {
               usernameMap[id] = user.username;
             }
           } catch (err) {
-            console.error(`Kunde inte hämta användare ${id}:`, err);
+            console.error(`Could not fetch user ${id}:`, err);
           }
         })
       );
       setUsernames(usernameMap);
     } catch (err) {
-      setError(err.message || 'Kunde inte hämta vägg');
+      setError(err.message || 'Could not fetch wall');
     } finally {
       setLoading(false);
     }
@@ -64,11 +65,11 @@ function Wall({ userId, refreshKey = 0, showHeader = true }) {
 
   const formatDate = (dateString) => {
     const date = new Date(dateString);
-    const datePart = date.toLocaleDateString('sv-SE', {
+    const datePart = date.toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
     });
-    const timePart = date.toLocaleTimeString('sv-SE', {
+    const timePart = date.toLocaleTimeString('en-US', {
       hour: '2-digit',
       minute: '2-digit',
     });
@@ -81,11 +82,11 @@ function Wall({ userId, refreshKey = 0, showHeader = true }) {
     return (
       <div className="wall">
         <div className="wall-header">
-          {showHeader && <h2>Vägg</h2>}
+          {showHeader && <h2>Wall</h2>}
         </div>
         <div className="loading">
           <span className="loading-spinner"></span>
-          <span>Laddar vägg...</span>
+          <span>Loading wall...</span>
         </div>
       </div>
     );
@@ -95,13 +96,13 @@ function Wall({ userId, refreshKey = 0, showHeader = true }) {
     <div className="wall">
       {showHeader && (
         <div className="wall-header">
-          <h2>Vägg</h2>
+          <h2>Wall</h2>
           <button
             onClick={fetchWall}
             className="wall-refresh-button"
             disabled={loading}
-            title="Uppdatera vägg"
-            aria-label="Uppdatera vägg"
+            title="Refresh wall"
+            aria-label="Refresh wall"
           >
             <span className={loading ? 'refresh-icon spinning' : 'refresh-icon'}>⟳</span>
           </button>
@@ -113,15 +114,15 @@ function Wall({ userId, refreshKey = 0, showHeader = true }) {
           <span className="error-icon">⚠️</span>
           <span className="error-text">{error}</span>
           <button onClick={fetchWall} className="error-retry-button">
-            Försök igen
+            Try again
           </button>
         </div>
       )}
 
       {posts.length === 0 && !loading && !error ? (
         <div className="empty-message">
-          <p>Inga offentliga inlägg att visa ännu.</p>
-          <p className="empty-hint">Skapa ett inlägg för att fylla flödet.</p>
+          <p>No public posts to show yet.</p>
+          <p className="empty-hint">Create a post to fill the feed.</p>
         </div>
       ) : (
         <div className="posts-container">

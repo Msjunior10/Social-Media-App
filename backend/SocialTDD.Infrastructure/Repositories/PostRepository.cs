@@ -30,10 +30,17 @@ public class PostRepository : IPostRepository
 
     public async Task<bool> DeleteAsync(Guid id)
     {
-        var post = await _context.Posts.FindAsync(id);
+        var post = await _context.Posts
+            .Include(p => p.Reposts)
+            .FirstOrDefaultAsync(p => p.Id == id);
         if (post == null)
         {
             return false;
+        }
+
+        if (post.Reposts.Any())
+        {
+            _context.Posts.RemoveRange(post.Reposts);
         }
 
         _context.Posts.Remove(post);
@@ -46,6 +53,8 @@ public class PostRepository : IPostRepository
         return await _context.Posts
             .Include(p => p.Sender)
             .Include(p => p.Recipient)
+            .Include(p => p.OriginalPost)
+                .ThenInclude(p => p!.Sender)
             .OrderByDescending(p => p.CreatedAt)
             .ToListAsync();
     }
@@ -55,6 +64,8 @@ public class PostRepository : IPostRepository
         return await _context.Posts
             .Include(p => p.Sender)
             .Include(p => p.Recipient)
+            .Include(p => p.OriginalPost)
+                .ThenInclude(p => p!.Sender)
             .FirstOrDefaultAsync(p => p.Id == id);
     }
 
@@ -63,6 +74,8 @@ public class PostRepository : IPostRepository
         return await _context.Posts
             .Include(p => p.Sender)
             .Include(p => p.Recipient)
+            .Include(p => p.OriginalPost)
+                .ThenInclude(p => p!.Sender)
             .Where(p => p.RecipientId == recipientId)
             .OrderByDescending(p => p.CreatedAt)
             .ToListAsync();
@@ -75,6 +88,8 @@ public class PostRepository : IPostRepository
         return await _context.Posts
             .Include(p => p.Sender)
             .Include(p => p.Recipient)
+            .Include(p => p.OriginalPost)
+                .ThenInclude(p => p!.Sender)
             .Where(p => p.RecipientId == userId)
             .ToListAsync();
     }
@@ -85,6 +100,8 @@ public class PostRepository : IPostRepository
         return await _context.Posts
             .Include(p => p.Sender)
             .Include(p => p.Recipient)
+            .Include(p => p.OriginalPost)
+                .ThenInclude(p => p!.Sender)
             .Where(p => (p.SenderId == userId1 && p.RecipientId == userId2) ||
                        (p.SenderId == userId2 && p.RecipientId == userId1))
             .OrderBy(p => p.CreatedAt)
@@ -102,6 +119,8 @@ public class PostRepository : IPostRepository
         return await _context.Posts
             .Include(p => p.Sender)
             .Include(p => p.Recipient)
+            .Include(p => p.OriginalPost)
+                .ThenInclude(p => p!.Sender)
             .Where(p => senderIdsList.Contains(p.SenderId))
             .ToListAsync();
     }
@@ -115,6 +134,9 @@ public class PostRepository : IPostRepository
                 .ThenInclude(p => p.Sender)
             .Include(b => b.Post)
                 .ThenInclude(p => p.Recipient)
+            .Include(b => b.Post)
+                .ThenInclude(p => p.OriginalPost)
+                    .ThenInclude(p => p!.Sender)
             .Select(b => b.Post)
             .ToListAsync();
     }
@@ -122,6 +144,11 @@ public class PostRepository : IPostRepository
     public async Task<int> GetLikeCountAsync(Guid postId)
     {
         return await _context.PostLikes.CountAsync(l => l.PostId == postId);
+    }
+
+    public async Task<int> GetRepostCountAsync(Guid postId)
+    {
+        return await _context.Posts.CountAsync(p => p.OriginalPostId == postId && p.Message == string.Empty);
     }
 
     public async Task<bool> IsLikedByUserAsync(Guid postId, Guid userId)
@@ -132,6 +159,21 @@ public class PostRepository : IPostRepository
     public async Task<bool> IsBookmarkedByUserAsync(Guid postId, Guid userId)
     {
         return await _context.PostBookmarks.AnyAsync(b => b.PostId == postId && b.UserId == userId);
+    }
+
+    public async Task<bool> IsRepostedByUserAsync(Guid postId, Guid userId)
+    {
+        return await _context.Posts.AnyAsync(p => p.OriginalPostId == postId && p.SenderId == userId && p.Message == string.Empty);
+    }
+
+    public async Task<Post?> GetRepostByUserAsync(Guid postId, Guid userId)
+    {
+        return await _context.Posts
+            .Include(p => p.Sender)
+            .Include(p => p.Recipient)
+            .Include(p => p.OriginalPost)
+                .ThenInclude(p => p!.Sender)
+            .FirstOrDefaultAsync(p => p.OriginalPostId == postId && p.SenderId == userId && p.Message == string.Empty);
     }
 
     public async Task AddLikeAsync(PostLike like)
@@ -178,11 +220,36 @@ public class PostRepository : IPostRepository
             .ToListAsync();
     }
 
+    public async Task<PostComment?> GetCommentByIdAsync(Guid commentId)
+    {
+        return await _context.PostComments.FirstOrDefaultAsync(c => c.Id == commentId);
+    }
+
     public async Task<PostComment> AddCommentAsync(PostComment comment)
     {
         _context.PostComments.Add(comment);
         await _context.SaveChangesAsync();
         return comment;
+    }
+
+    public async Task<PostComment> UpdateCommentAsync(PostComment comment)
+    {
+        _context.PostComments.Update(comment);
+        await _context.SaveChangesAsync();
+        return comment;
+    }
+
+    public async Task<bool> DeleteCommentAsync(Guid commentId)
+    {
+        var comment = await _context.PostComments.FirstOrDefaultAsync(c => c.Id == commentId);
+        if (comment == null)
+        {
+            return false;
+        }
+
+        _context.PostComments.Remove(comment);
+        await _context.SaveChangesAsync();
+        return true;
     }
 
     public async Task<bool> UserExistsAsync(Guid userId)

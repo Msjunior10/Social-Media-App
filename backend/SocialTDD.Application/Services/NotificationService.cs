@@ -9,13 +9,18 @@ public class NotificationService : INotificationService
     private const string FollowType = "follow";
     private const string PostLikeType = "post_like";
     private const string PostCommentType = "post_comment";
+    private const string PostRepostType = "post_repost";
     private const string DirectMessageType = "direct_message";
 
     private readonly INotificationRepository _notificationRepository;
+    private readonly INotificationRealtimePublisher _realtimePublisher;
 
-    public NotificationService(INotificationRepository notificationRepository)
+    public NotificationService(
+        INotificationRepository notificationRepository,
+        INotificationRealtimePublisher? realtimePublisher = null)
     {
         _notificationRepository = notificationRepository;
+        _realtimePublisher = realtimePublisher ?? new NullNotificationRealtimePublisher();
     }
 
     public async Task<List<NotificationResponse>> GetNotificationsAsync(Guid userId)
@@ -50,6 +55,8 @@ public class NotificationService : INotificationService
         }
 
         await _notificationRepository.MarkAsReadAsync(notificationId, userId);
+        var unreadCount = await _notificationRepository.GetUnreadCountAsync(userId);
+        await _realtimePublisher.PublishNotificationReadAsync(userId, notificationId, unreadCount);
     }
 
     public async Task MarkAllAsReadAsync(Guid userId)
@@ -61,6 +68,7 @@ public class NotificationService : INotificationService
         }
 
         await _notificationRepository.MarkAllAsReadAsync(userId);
+        await _realtimePublisher.PublishNotificationsReadAllAsync(userId, 0);
     }
 
     public Task CreateFollowNotificationAsync(Guid recipientUserId, Guid actorUserId)
@@ -76,6 +84,11 @@ public class NotificationService : INotificationService
     public Task CreatePostCommentNotificationAsync(Guid recipientUserId, Guid actorUserId, Guid postId)
     {
         return CreateNotificationAsync(recipientUserId, actorUserId, PostCommentType, postId, null);
+    }
+
+    public Task CreatePostRepostNotificationAsync(Guid recipientUserId, Guid actorUserId, Guid postId)
+    {
+        return CreateNotificationAsync(recipientUserId, actorUserId, PostRepostType, postId, null);
     }
 
     public Task CreateDirectMessageNotificationAsync(Guid recipientUserId, Guid actorUserId, Guid directMessageId)
@@ -97,7 +110,7 @@ public class NotificationService : INotificationService
             return;
         }
 
-        await _notificationRepository.CreateAsync(new Notification
+        var notification = new Notification
         {
             Id = Guid.NewGuid(),
             UserId = recipientUserId,
@@ -107,7 +120,15 @@ public class NotificationService : INotificationService
             DirectMessageId = directMessageId,
             IsRead = false,
             CreatedAt = DateTime.UtcNow
-        });
+        };
+
+        await _notificationRepository.CreateAsync(notification);
+
+        var createdNotification = await _notificationRepository.GetByIdAsync(notification.Id) ?? notification;
+        var notificationResponse = MapToResponse(createdNotification);
+        var unreadCount = await _notificationRepository.GetUnreadCountAsync(recipientUserId);
+
+        await _realtimePublisher.PublishNotificationReceivedAsync(recipientUserId, notificationResponse, unreadCount);
     }
 
     private NotificationResponse MapToResponse(Notification notification)
@@ -138,6 +159,7 @@ public class NotificationService : INotificationService
             FollowType => $"{safeActor} började följa dig.",
             PostLikeType => $"{safeActor} gillade ditt inlägg.",
             PostCommentType => $"{safeActor} kommenterade ditt inlägg.",
+            PostRepostType => $"{safeActor} återpublicerade ditt inlägg.",
             DirectMessageType => $"{safeActor} skickade ett direktmeddelande.",
             _ => $"{safeActor} har ny aktivitet för dig."
         };

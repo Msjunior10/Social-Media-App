@@ -144,6 +144,66 @@ public class PostService : IPostService
         return await MapToPostResponseAsync(post, userId);
     }
 
+    public async Task<PostResponse> RepostAsync(Guid postId, Guid userId)
+    {
+        var post = await _postRepository.GetByIdAsync(postId);
+        if (post == null)
+        {
+            throw new KeyNotFoundException($"Inlägg med ID {postId} finns inte.");
+        }
+
+        var userExists = await _postRepository.UserExistsAsync(userId);
+        if (!userExists)
+        {
+            throw new ArgumentException($"Användare med ID {userId} finns inte.", nameof(userId));
+        }
+
+        var isPureRepost = post.OriginalPostId.HasValue && string.IsNullOrWhiteSpace(post.Message);
+        var targetPost = isPureRepost ? (post.OriginalPost ?? post) : post;
+        if (targetPost.SenderId == userId)
+        {
+            throw new ArgumentException("Du kan inte återpublicera ditt eget inlägg.", nameof(userId));
+        }
+
+        var existingRepost = await _postRepository.GetRepostByUserAsync(targetPost.Id, userId);
+        if (existingRepost == null)
+        {
+            await _postRepository.CreateAsync(new Post
+            {
+                Id = Guid.NewGuid(),
+                SenderId = userId,
+                RecipientId = userId,
+                OriginalPostId = targetPost.Id,
+                Message = string.Empty,
+                ImageUrl = null,
+                CreatedAt = DateTime.UtcNow
+            });
+
+            await _notificationService.CreatePostRepostNotificationAsync(targetPost.SenderId, userId, targetPost.Id);
+        }
+
+        return await MapToPostResponseAsync(targetPost, userId);
+    }
+
+    public async Task<PostResponse> RemoveRepostAsync(Guid postId, Guid userId)
+    {
+        var post = await _postRepository.GetByIdAsync(postId);
+        if (post == null)
+        {
+            throw new KeyNotFoundException($"Inlägg med ID {postId} finns inte.");
+        }
+
+        var isPureRepost = post.OriginalPostId.HasValue && string.IsNullOrWhiteSpace(post.Message);
+        var targetPost = isPureRepost ? (post.OriginalPost ?? post) : post;
+        var repost = await _postRepository.GetRepostByUserAsync(targetPost.Id, userId);
+        if (repost != null)
+        {
+            await _postRepository.DeleteAsync(repost.Id);
+        }
+
+        return await MapToPostResponseAsync(targetPost, userId);
+    }
+
     public async Task<PostResponse> BookmarkPostAsync(Guid postId, Guid userId)
     {
         var post = await _postRepository.GetByIdAsync(postId);
@@ -226,6 +286,66 @@ public class PostService : IPostService
         };
     }
 
+    public async Task<PostCommentResponse> UpdateCommentAsync(Guid postId, Guid commentId, Guid userId, CreatePostCommentRequest request)
+    {
+        var validationResult = await _commentValidator.ValidateAsync(request);
+        if (!validationResult.IsValid)
+        {
+            throw new ValidationException(validationResult.Errors);
+        }
+
+        var post = await _postRepository.GetByIdAsync(postId);
+        if (post == null)
+        {
+            throw new KeyNotFoundException($"Inlägg med ID {postId} finns inte.");
+        }
+
+        var comment = await _postRepository.GetCommentByIdAsync(commentId);
+        if (comment == null || comment.PostId != postId)
+        {
+            throw new KeyNotFoundException($"Kommentar med ID {commentId} finns inte.");
+        }
+
+        if (comment.UserId != userId)
+        {
+            throw new UnauthorizedAccessException("Du kan bara ändra dina egna kommentarer.");
+        }
+
+        comment.Message = request.Message.Trim();
+        var updatedComment = await _postRepository.UpdateCommentAsync(comment);
+
+        return new PostCommentResponse
+        {
+            Id = updatedComment.Id,
+            PostId = updatedComment.PostId,
+            UserId = updatedComment.UserId,
+            Message = updatedComment.Message,
+            CreatedAt = updatedComment.CreatedAt
+        };
+    }
+
+    public async Task DeleteCommentAsync(Guid postId, Guid commentId, Guid userId)
+    {
+        var post = await _postRepository.GetByIdAsync(postId);
+        if (post == null)
+        {
+            throw new KeyNotFoundException($"Inlägg med ID {postId} finns inte.");
+        }
+
+        var comment = await _postRepository.GetCommentByIdAsync(commentId);
+        if (comment == null || comment.PostId != postId)
+        {
+            throw new KeyNotFoundException($"Kommentar med ID {commentId} finns inte.");
+        }
+
+        if (comment.UserId != userId)
+        {
+            throw new UnauthorizedAccessException("Du kan bara ta bort dina egna kommentarer.");
+        }
+
+        await _postRepository.DeleteCommentAsync(commentId);
+    }
+
     public async Task<List<PostResponse>> GetConversationAsync(Guid userId1, Guid userId2)
     {
         // Validera att båda användare existerar
@@ -259,6 +379,10 @@ public class PostService : IPostService
             Message = p.Message,
             ImageUrl = p.ImageUrl,
             CreatedAt = p.CreatedAt,
+            TargetPostId = p.OriginalPostId.HasValue && string.IsNullOrWhiteSpace(p.Message)
+                ? p.OriginalPostId.Value
+                : p.Id,
+            IsRepost = p.OriginalPostId.HasValue && string.IsNullOrWhiteSpace(p.Message),
             IsBookmarkedByCurrentUser = false
         }).ToList();
     }
@@ -284,7 +408,9 @@ public class PostService : IPostService
 
     private async Task<PostResponse> MapToPostResponseAsync(Post post, Guid currentUserId)
     {
-        var comments = await _postRepository.GetCommentsByPostIdAsync(post.Id);
+        var isPureRepost = post.OriginalPostId.HasValue && string.IsNullOrWhiteSpace(post.Message);
+        var targetPost = isPureRepost ? (post.OriginalPost ?? post) : post;
+        var comments = await _postRepository.GetCommentsByPostIdAsync(targetPost.Id);
 
         return new PostResponse
         {
@@ -294,13 +420,22 @@ public class PostService : IPostService
             Message = post.Message,
             ImageUrl = post.ImageUrl,
             CreatedAt = post.CreatedAt,
-            LikeCount = await _postRepository.GetLikeCountAsync(post.Id),
-            IsLikedByCurrentUser = await _postRepository.IsLikedByUserAsync(post.Id, currentUserId),
-            IsBookmarkedByCurrentUser = await _postRepository.IsBookmarkedByUserAsync(post.Id, currentUserId),
+            TargetPostId = targetPost.Id,
+            LikeCount = await _postRepository.GetLikeCountAsync(targetPost.Id),
+            RepostCount = await _postRepository.GetRepostCountAsync(targetPost.Id),
+            IsLikedByCurrentUser = await _postRepository.IsLikedByUserAsync(targetPost.Id, currentUserId),
+            IsBookmarkedByCurrentUser = await _postRepository.IsBookmarkedByUserAsync(targetPost.Id, currentUserId),
+            IsRepostedByCurrentUser = await _postRepository.IsRepostedByUserAsync(targetPost.Id, currentUserId),
+            IsRepost = isPureRepost,
+            OriginalPostId = post.OriginalPostId,
+            OriginalSenderId = post.OriginalPost?.SenderId,
+            OriginalMessage = post.OriginalPost?.Message,
+            OriginalImageUrl = post.OriginalPost?.ImageUrl,
+            OriginalCreatedAt = post.OriginalPost?.CreatedAt,
             Comments = comments.Select(c => new PostCommentResponse
             {
                 Id = c.Id,
-                PostId = c.PostId,
+                PostId = targetPost.Id,
                 UserId = c.UserId,
                 Message = c.Message,
                 CreatedAt = c.CreatedAt

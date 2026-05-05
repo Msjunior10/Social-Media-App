@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { userApi } from '../services/userApi';
 import './UserSearch.css';
 
-function UserSearch({ onUserSelect, placeholder = 'Sök efter användare...', excludeUserId = null }) {
+function UserSearch({ onUserSelect, placeholder = 'Search for users...', excludeUserId = null }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [users, setUsers] = useState([]);
   const [selectedUser, setSelectedUser] = useState(null);
@@ -13,7 +13,7 @@ function UserSearch({ onUserSelect, placeholder = 'Sök efter användare...', ex
   const dropdownRef = useRef(null);
   const inputRef = useRef(null);
 
-  // Stäng dropdown när man klickar utanför
+  // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (
@@ -32,7 +32,7 @@ function UserSearch({ onUserSelect, placeholder = 'Sök efter användare...', ex
     };
   }, []);
 
-  // Sök efter användare med debounce
+  // Search users with debounce
   useEffect(() => {
     if (searchTimeoutRef.current) {
       clearTimeout(searchTimeoutRef.current);
@@ -50,14 +50,14 @@ function UserSearch({ onUserSelect, placeholder = 'Sök efter användare...', ex
     searchTimeoutRef.current = setTimeout(async () => {
       try {
         const results = await userApi.searchUsers(searchTerm.trim());
-        // Filtrera bort excludeUserId om den är satt
+        // Filter out excludeUserId if set
         const filteredResults = excludeUserId
           ? results.filter(user => user.id !== excludeUserId)
           : results;
         setUsers(filteredResults);
         setShowDropdown(true);
       } catch (err) {
-        setError('Kunde inte söka efter användare');
+        setError('Could not search for users');
         setUsers([]);
         setShowDropdown(false);
       } finally {
@@ -134,13 +134,13 @@ function UserSearch({ onUserSelect, placeholder = 'Sök efter användare...', ex
             type="button"
             onClick={handleClear}
             className="user-search-clear"
-            aria-label="Rensa val"
+            aria-label="Clear selection"
           >
             ×
           </button>
         )}
         {loading && (
-          <span className="user-search-loading">Söker...</span>
+          <span className="user-search-loading">Searching...</span>
         )}
       </div>
 
@@ -154,7 +154,7 @@ function UserSearch({ onUserSelect, placeholder = 'Sök efter användare...', ex
         <div ref={dropdownRef} className="user-search-dropdown">
           {users.length === 0 ? (
             <div className="user-search-no-results">
-              {loading ? 'Söker...' : 'Inga användare hittades'}
+              {loading ? 'Searching...' : 'No users found'}
             </div>
           ) : (
             <ul className="user-search-list">

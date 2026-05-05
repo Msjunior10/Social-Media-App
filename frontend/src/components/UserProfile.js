@@ -29,10 +29,10 @@ function UserProfile({ userId, username, isEditable = false }) {
 
   const formatDateTime = (dateValue) => {
     if (!dateValue) {
-      return 'Okänd';
+      return 'Unknown';
     }
 
-    return new Date(dateValue).toLocaleString('sv-SE', {
+    return new Date(dateValue).toLocaleString('en-US', {
       dateStyle: 'medium',
       timeStyle: 'short',
     });
@@ -52,7 +52,7 @@ function UserProfile({ userId, username, isEditable = false }) {
         } else if (username) {
           userData = await userApi.getUserByUsername(username);
         } else {
-          setError('Inget användar-ID eller användarnamn angivet');
+          setError('No user ID or username was provided');
           return;
         }
 
@@ -62,7 +62,7 @@ function UserProfile({ userId, username, isEditable = false }) {
           profileImageUrl: userData.profileImageUrl || '',
         });
       } catch (err) {
-        setError(err.message || 'Kunde inte hämta användarprofil');
+        setError(err.message || 'Could not fetch user profile');
       } finally {
         setLoading(false);
       }
@@ -74,7 +74,7 @@ function UserProfile({ userId, username, isEditable = false }) {
   }, [userId, username]);
 
   if (loading) {
-    return <div className="user-profile-loading">Laddar profil...</div>;
+    return <div className="user-profile-loading">Loading profile...</div>;
   }
 
   if (error && !user) {
@@ -82,7 +82,7 @@ function UserProfile({ userId, username, isEditable = false }) {
   }
 
   if (!user) {
-    return <div className="user-profile-error">Användare hittades inte</div>;
+    return <div className="user-profile-error">User not found</div>;
   }
 
   const handleChange = (e) => {
@@ -122,9 +122,9 @@ function UserProfile({ userId, username, isEditable = false }) {
         profileImageUrl: updatedUser.profileImageUrl || '',
       });
       setIsEditing(false);
-      setSuccessMessage('Profilen uppdaterades.');
+      setSuccessMessage('Profile updated.');
     } catch (err) {
-      setError(err.message || 'Kunde inte uppdatera profilen');
+      setError(err.message || 'Could not update the profile');
     } finally {
       setSaving(false);
     }
@@ -137,7 +137,7 @@ function UserProfile({ userId, username, isEditable = false }) {
           {user.profileImageUrl ? (
             <img
               src={user.profileImageUrl}
-              alt={`Profilbild för ${user.username}`}
+              alt={`${user.username} avatar`}
               className="user-profile-avatar-image"
             />
           ) : (
@@ -151,7 +151,7 @@ function UserProfile({ userId, username, isEditable = false }) {
           <h3 className="user-profile-username">{user.username}</h3>
           <p className="user-profile-email">{user.email}</p>
           <p className="user-profile-last-active">
-            Senast aktiv: {formatDateTime(user.lastActiveAt)}
+            Last active: {formatDateTime(user.lastActiveAt)}
           </p>
         </div>
 
@@ -164,7 +164,7 @@ function UserProfile({ userId, username, isEditable = false }) {
               setSuccessMessage('');
             }}
           >
-            Redigera profil
+            Edit profile
           </button>
         )}
       </div>
@@ -183,31 +183,31 @@ function UserProfile({ userId, username, isEditable = false }) {
 
       <div className="user-profile-details">
         <div className="user-profile-detail">
-          <span className="user-profile-label">E-post:</span>
+          <span className="user-profile-label">Email:</span>
           <span className="user-profile-value">{user.email}</span>
         </div>
         <div className="user-profile-detail">
-          <span className="user-profile-label">Medlem sedan:</span>
+          <span className="user-profile-label">Member since:</span>
           <span className="user-profile-value">
-            {new Date(user.createdAt).toLocaleDateString('sv-SE')}
+            {new Date(user.createdAt).toLocaleDateString('en-US')}
           </span>
         </div>
         <div className="user-profile-detail user-profile-detail-column">
           <span className="user-profile-label">Bio:</span>
           <span className="user-profile-value user-profile-bio">
-            {user.bio || 'Ingen bio ännu.'}
+            {user.bio || 'No bio yet.'}
           </span>
         </div>
         {user.profileImageUrl && (
           <div className="user-profile-detail user-profile-detail-column">
-            <span className="user-profile-label">Profilbild:</span>
+            <span className="user-profile-label">Profile image:</span>
             <a
               className="user-profile-image-link"
               href={user.profileImageUrl}
               target="_blank"
               rel="noreferrer"
             >
-              Visa bild
+              View image
             </a>
           </div>
         )}
@@ -216,14 +216,14 @@ function UserProfile({ userId, username, isEditable = false }) {
       {isEditable && isEditing && (
         <form className="user-profile-form" onSubmit={handleSubmit}>
           <div className="user-profile-form-field">
-            <label htmlFor="profileImageUrl">Profilbild (URL)</label>
+            <label htmlFor="profileImageUrl">Profile image (URL)</label>
             <input
               id="profileImageUrl"
               name="profileImageUrl"
               type="url"
               value={formData.profileImageUrl}
               onChange={handleChange}
-              placeholder="https://example.com/min-bild.jpg"
+              placeholder="https://example.com/my-image.jpg"
             />
           </div>
 
@@ -236,10 +236,10 @@ function UserProfile({ userId, username, isEditable = false }) {
               maxLength="500"
               value={formData.bio}
               onChange={handleChange}
-              placeholder="Berätta lite om dig själv..."
+              placeholder="Tell us a little about yourself..."
             />
             <div className="user-profile-character-count">
-              {formData.bio.length}/500 tecken
+              {formData.bio.length}/500 characters
             </div>
           </div>
 
@@ -250,14 +250,14 @@ function UserProfile({ userId, username, isEditable = false }) {
               onClick={handleCancel}
               disabled={saving}
             >
-              Avbryt
+              Cancel
             </button>
             <button
               type="submit"
               className="user-profile-primary-button"
               disabled={saving}
             >
-              {saving ? 'Sparar...' : 'Spara ändringar'}
+              {saving ? 'Saving...' : 'Save changes'}
             </button>
           </div>
         </form>

@@ -26,6 +26,7 @@ function SavedPosts({ userId, showHeader = true }) {
       (savedPosts || []).forEach((post) => {
         if (post.senderId) uniqueUserIds.add(post.senderId);
         if (post.recipientId) uniqueUserIds.add(post.recipientId);
+        if (post.originalSenderId) uniqueUserIds.add(post.originalSenderId);
         (post.comments || []).forEach((comment) => {
           if (comment.userId) uniqueUserIds.add(comment.userId);
         });
@@ -50,19 +51,19 @@ function SavedPosts({ userId, showHeader = true }) {
       if (err instanceof ApiError) {
         switch (err.errorCode) {
           case ErrorCodes.TOKEN_EXPIRED:
-            setError('Din session har gått ut. Logga in igen.');
+            setError('Your session has expired. Please sign in again.');
             break;
           case ErrorCodes.NETWORK_ERROR:
-            setError('Kunde inte ansluta till servern. Kontrollera din internetanslutning.');
+            setError('Could not connect to the server. Check your internet connection.');
             break;
           case ErrorCodes.TIMEOUT_ERROR:
-            setError('Begäran tog för lång tid. Försök igen.');
+            setError('The request took too long. Please try again.');
             break;
           default:
-            setError(err.message || 'Kunde inte hämta sparade inlägg.');
+            setError(err.message || 'Could not fetch saved posts.');
         }
       } else {
-        setError(err.message || 'Kunde inte hämta sparade inlägg.');
+        setError(err.message || 'Could not fetch saved posts.');
       }
     } finally {
       setLoading(false);
@@ -75,11 +76,11 @@ function SavedPosts({ userId, showHeader = true }) {
 
   const formatDate = (dateString) => {
     const date = new Date(dateString);
-    const datePart = date.toLocaleDateString('sv-SE', {
+    const datePart = date.toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
     });
-    const timePart = date.toLocaleTimeString('sv-SE', {
+    const timePart = date.toLocaleTimeString('en-US', {
       hour: '2-digit',
       minute: '2-digit',
     });
@@ -93,12 +94,12 @@ function SavedPosts({ userId, showHeader = true }) {
       <div className="timeline">
         {showHeader && (
           <div className="timeline-header">
-            <h3>Sparade inlägg</h3>
+            <h3>Saved posts</h3>
           </div>
         )}
         <div className="loading">
           <span className="loading-spinner"></span>
-          <span>Laddar sparade inlägg...</span>
+          <span>Loading saved posts...</span>
         </div>
       </div>
     );
@@ -108,13 +109,13 @@ function SavedPosts({ userId, showHeader = true }) {
     <div className="timeline">
       {showHeader && (
         <div className="timeline-header">
-          <h3>Sparade inlägg</h3>
+          <h3>Saved posts</h3>
           <button
             onClick={fetchSavedPosts}
             className="timeline-refresh-button"
             disabled={loading}
-            title="Uppdatera sparade inlägg"
-            aria-label="Uppdatera sparade inlägg"
+            title="Refresh saved posts"
+            aria-label="Refresh saved posts"
           >
             <span className={loading ? 'refresh-icon spinning' : 'refresh-icon'}>⟳</span>
           </button>
@@ -126,15 +127,15 @@ function SavedPosts({ userId, showHeader = true }) {
           <span className="error-icon">⚠️</span>
           <span className="error-text">{error}</span>
           <button onClick={fetchSavedPosts} className="error-retry-button">
-            Försök igen
+            Try again
           </button>
         </div>
       )}
 
       {posts.length === 0 && !loading && !error ? (
         <div className="empty-message">
-          <p>Du har inte sparat några inlägg ännu.</p>
-          <p className="empty-hint">Tryck på Spara i ett inlägg för att samla sådant du vill läsa igen.</p>
+          <p>You have not saved any posts yet.</p>
+          <p className="empty-hint">Press Save on a post to keep things you want to read again.</p>
         </div>
       ) : (
         <div className="timeline-posts">

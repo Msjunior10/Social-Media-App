@@ -1,4 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { notificationsRealtime } from '../services/notificationsRealtime';
+import { AUTH_EXPIRED_EVENT, clearStoredAuth } from '../utils/apiClient';
 
 const AuthContext = createContext(null);
 
@@ -39,19 +41,43 @@ export const AuthProvider = ({ children }) => {
     }
   }, [username]);
 
+  useEffect(() => {
+    if (token) {
+      notificationsRealtime.connect();
+    }
+  }, [token]);
+
+  useEffect(() => {
+    const handleAuthExpired = () => {
+      notificationsRealtime.disconnect();
+      setToken(null);
+      setUserId(null);
+      setUsername(null);
+    };
+
+    window.addEventListener(AUTH_EXPIRED_EVENT, handleAuthExpired);
+
+    return () => {
+      window.removeEventListener(AUTH_EXPIRED_EVENT, handleAuthExpired);
+    };
+  }, []);
+
   const login = (authData) => {
+    localStorage.setItem('token', authData.token);
+    localStorage.setItem('userId', authData.userId);
+    localStorage.setItem('username', authData.username);
     setToken(authData.token);
     setUserId(authData.userId);
     setUsername(authData.username);
+    notificationsRealtime.connect();
   };
 
   const logout = () => {
+    notificationsRealtime.disconnect();
     setToken(null);
     setUserId(null);
     setUsername(null);
-    localStorage.removeItem('token');
-    localStorage.removeItem('userId');
-    localStorage.removeItem('username');
+    clearStoredAuth();
   };
 
   const isAuthenticated = !!token;

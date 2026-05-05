@@ -61,9 +61,38 @@ export const postsApi = {
     return await handleApiResponse(response);
   },
 
+  async repostPost(postId) {
+    const response = await authenticatedFetch(`${API_BASE_URL}/posts/${postId}/repost`, {
+      method: 'POST',
+    });
+    return await handleApiResponse(response);
+  },
+
+  async removeRepost(postId) {
+    const response = await authenticatedFetch(`${API_BASE_URL}/posts/${postId}/repost`, {
+      method: 'DELETE',
+    });
+    return await handleApiResponse(response);
+  },
+
   async addComment(postId, message) {
     const response = await authenticatedFetch(`${API_BASE_URL}/posts/${postId}/comments`, {
       method: 'POST',
+      body: JSON.stringify({ message }),
+    });
+    return await handleApiResponse(response);
+  },
+
+  async deleteComment(postId, commentId) {
+    const response = await authenticatedFetch(`${API_BASE_URL}/posts/${postId}/comments/${commentId}`, {
+      method: 'DELETE',
+    });
+    return await handleApiResponse(response);
+  },
+
+  async updateComment(postId, commentId, message) {
+    const response = await authenticatedFetch(`${API_BASE_URL}/posts/${postId}/comments/${commentId}`, {
+      method: 'PUT',
       body: JSON.stringify({ message }),
     });
     return await handleApiResponse(response);

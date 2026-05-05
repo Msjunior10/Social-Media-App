@@ -19,13 +19,13 @@ function DirectMessagesList({ userId }) {
       setLoading(true);
       setError(null);
       const receivedMessages = await dmApi.getReceivedMessages();
-      // Sortera meddelanden så att nyaste kommer först
+      // Sort messages so the newest appears first
       const sortedMessages = receivedMessages.sort((a, b) => {
         return new Date(b.createdAt) - new Date(a.createdAt);
       });
       setMessages(sortedMessages);
 
-      // Hämta användarnamn för alla unika avsändare
+      // Fetch usernames for all unique senders
       const uniqueSenderIds = new Set();
       sortedMessages.forEach(msg => {
         if (msg.senderId) uniqueSenderIds.add(msg.senderId);
@@ -40,13 +40,13 @@ function DirectMessagesList({ userId }) {
               usernameMap[id] = user.username;
             }
           } catch (err) {
-            console.error(`Kunde inte hämta användare ${id}:`, err);
+            console.error(`Could not fetch user ${id}:`, err);
           }
         })
       );
       setUsernames(usernameMap);
     } catch (err) {
-      setError(err.message || 'Kunde inte hämta meddelanden');
+      setError(err.message || 'Could not fetch messages');
     } finally {
       setLoading(false);
     }
@@ -63,14 +63,14 @@ function DirectMessagesList({ userId }) {
       setMarkingAsRead(messageId);
       await dmApi.markAsRead(messageId);
       
-      // Uppdatera lokal state
+      // Update local state
       setMessages((prevMessages) =>
         prevMessages.map((msg) =>
           msg.id === messageId ? { ...msg, isRead: true } : msg
         )
       );
     } catch (err) {
-      setError(err.message || 'Kunde inte markera meddelande som läst');
+      setError(err.message || 'Could not mark message as read');
     } finally {
       setMarkingAsRead(null);
     }
@@ -85,15 +85,15 @@ function DirectMessagesList({ userId }) {
     const diffInDays = Math.floor(diffInMs / 86400000);
 
     if (diffInMinutes < 1) {
-      return 'Just nu';
+      return 'Just now';
     } else if (diffInMinutes < 60) {
-      return `${diffInMinutes} ${diffInMinutes === 1 ? 'minut' : 'minuter'} sedan`;
+      return `${diffInMinutes} ${diffInMinutes === 1 ? 'minute' : 'minutes'} ago`;
     } else if (diffInHours < 24) {
-      return `${diffInHours} ${diffInHours === 1 ? 'timme' : 'timmar'} sedan`;
+      return `${diffInHours} ${diffInHours === 1 ? 'hour' : 'hours'} ago`;
     } else if (diffInDays < 7) {
-      return `${diffInDays} ${diffInDays === 1 ? 'dag' : 'dagar'} sedan`;
+      return `${diffInDays} ${diffInDays === 1 ? 'day' : 'days'} ago`;
     } else {
-      return date.toLocaleDateString('sv-SE', {
+      return date.toLocaleDateString('en-US', {
         year: 'numeric',
         month: 'long',
         day: 'numeric',
@@ -108,10 +108,10 @@ function DirectMessagesList({ userId }) {
       <div className="dm-list-container">
         <div className="dm-list-heading-block">
           <span className="dm-list-badge">Inbox</span>
-          <h2 className="dm-list-title">Mottagna meddelanden</h2>
-          <p className="dm-list-subtitle">Se senaste meddelanden, markera dem som lästa och håll koll på din privata inkorg.</p>
+          <h2 className="dm-list-title">Received messages</h2>
+          <p className="dm-list-subtitle">See the latest messages, mark them as read, and keep track of your private inbox.</p>
         </div>
-        <div className="dm-list-loading">Laddar meddelanden...</div>
+        <div className="dm-list-loading">Loading messages...</div>
       </div>
     );
   }
@@ -121,15 +121,15 @@ function DirectMessagesList({ userId }) {
       <div className="dm-list-header">
         <div className="dm-list-heading-block">
           <span className="dm-list-badge">Inbox</span>
-          <h2 className="dm-list-title">Mottagna meddelanden</h2>
-          <p className="dm-list-subtitle">Ett tydligare meddelandeflöde som passar resten av Socially.</p>
+          <h2 className="dm-list-title">Received messages</h2>
+          <p className="dm-list-subtitle">A clearer message flow that fits the rest of Socially.</p>
         </div>
         <button
           onClick={fetchMessages}
           className="dm-list-refresh-button"
           disabled={loading}
-          title="Uppdatera"
-          aria-label="Uppdatera meddelanden"
+          title="Refresh"
+          aria-label="Refresh messages"
         >
           <span className={loading ? 'refresh-icon spinning' : 'refresh-icon'}>⟳</span>
         </button>
@@ -142,15 +142,15 @@ function DirectMessagesList({ userId }) {
             onClick={fetchMessages}
             className="dm-list-retry-button"
           >
-            Försök igen
+            Try again
           </button>
         </div>
       )}
 
       {messages.length === 0 && !loading && !error && (
         <div className="dm-list-empty">
-          <strong>Inga meddelanden ännu.</strong>
-          <span> När någon skriver till dig dyker allt upp här i din inbox.</span>
+          <strong>No messages yet.</strong>
+          <span> When someone writes to you, everything will appear here in your inbox.</span>
         </div>
       )}
 
@@ -163,7 +163,7 @@ function DirectMessagesList({ userId }) {
             >
               <div className="dm-message-header">
                 <div className="dm-message-sender">
-                  <span className="dm-message-sender-label">Från</span>
+                  <span className="dm-message-sender-label">From</span>
                   <span className="dm-message-sender-name">{usernames[message.senderId] || message.senderId}</span>
                 </div>
                 <div className="dm-message-date">
@@ -177,11 +177,11 @@ function DirectMessagesList({ userId }) {
                   className="dm-message-mark-read"
                   disabled={markingAsRead === message.id}
                 >
-                  {markingAsRead === message.id ? 'Markerar...' : 'Markera som läst'}
+                  {markingAsRead === message.id ? 'Marking...' : 'Mark as read'}
                 </button>
               )}
               {message.isRead && (
-                <div className="dm-message-read-indicator">✓ Läst</div>
+                <div className="dm-message-read-indicator">✓ Read</div>
               )}
             </div>
           ))}

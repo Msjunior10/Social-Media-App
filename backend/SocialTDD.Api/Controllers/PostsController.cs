@@ -273,6 +273,50 @@ public class PostsController : ControllerBase
         }
     }
 
+    [HttpPost("{postId}/repost")]
+    public async Task<ActionResult<PostResponse>> Repost(Guid postId)
+    {
+        try
+        {
+            var userId = User.GetUserId();
+            var result = await _postService.RepostAsync(postId, userId);
+            return Ok(result);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new ErrorResponse(ErrorCodes.POST_NOT_FOUND, ex.Message));
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new ErrorResponse(ErrorCodes.VALIDATION_ERROR, ex.Message));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Ett oväntat fel uppstod vid återpublicering av inlägg {PostId}", postId);
+            return StatusCode(500, new ErrorResponse(ErrorCodes.INTERNAL_SERVER_ERROR, "Ett oväntat fel uppstod. Försök igen senare."));
+        }
+    }
+
+    [HttpDelete("{postId}/repost")]
+    public async Task<ActionResult<PostResponse>> RemoveRepost(Guid postId)
+    {
+        try
+        {
+            var userId = User.GetUserId();
+            var result = await _postService.RemoveRepostAsync(postId, userId);
+            return Ok(result);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new ErrorResponse(ErrorCodes.POST_NOT_FOUND, ex.Message));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Ett oväntat fel uppstod vid borttagning av återpublicering {PostId}", postId);
+            return StatusCode(500, new ErrorResponse(ErrorCodes.INTERNAL_SERVER_ERROR, "Ett oväntat fel uppstod. Försök igen senare."));
+        }
+    }
+
     [HttpPost("{postId}/comments")]
     public async Task<ActionResult<PostCommentResponse>> AddComment(Guid postId, [FromBody] CreatePostCommentRequest request)
     {
@@ -306,6 +350,67 @@ public class PostsController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Ett oväntat fel uppstod vid kommentering av inlägg {PostId}", postId);
+            return StatusCode(500, new ErrorResponse(ErrorCodes.INTERNAL_SERVER_ERROR, "Ett oväntat fel uppstod. Försök igen senare."));
+        }
+    }
+
+    [HttpPut("{postId}/comments/{commentId}")]
+    public async Task<ActionResult<PostCommentResponse>> UpdateComment(Guid postId, Guid commentId, [FromBody] CreatePostCommentRequest request)
+    {
+        try
+        {
+            if (request == null)
+            {
+                return BadRequest(new ErrorResponse(ErrorCodes.VALIDATION_ERROR, "Request body saknas."));
+            }
+
+            var userId = User.GetUserId();
+            var result = await _postService.UpdateCommentAsync(postId, commentId, userId, request);
+            return Ok(result);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(403, new ErrorResponse(ErrorCodes.FORBIDDEN, ex.Message));
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new ErrorResponse(ErrorCodes.POST_NOT_FOUND, ex.Message));
+        }
+        catch (FluentValidation.ValidationException ex)
+        {
+            var details = new Dictionary<string, object>
+            {
+                { "errors", ex.Errors.Select(e => new { property = e.PropertyName, message = e.ErrorMessage }) }
+            };
+            return BadRequest(new ErrorResponse(ErrorCodes.VALIDATION_ERROR, ex.Message, details));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Ett oväntat fel uppstod vid uppdatering av kommentar {CommentId} på inlägg {PostId}", commentId, postId);
+            return StatusCode(500, new ErrorResponse(ErrorCodes.INTERNAL_SERVER_ERROR, "Ett oväntat fel uppstod. Försök igen senare."));
+        }
+    }
+
+    [HttpDelete("{postId}/comments/{commentId}")]
+    public async Task<IActionResult> DeleteComment(Guid postId, Guid commentId)
+    {
+        try
+        {
+            var userId = User.GetUserId();
+            await _postService.DeleteCommentAsync(postId, commentId, userId);
+            return NoContent();
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(403, new ErrorResponse(ErrorCodes.FORBIDDEN, ex.Message));
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new ErrorResponse(ErrorCodes.POST_NOT_FOUND, ex.Message));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Ett oväntat fel uppstod vid borttagning av kommentar {CommentId} från inlägg {PostId}", commentId, postId);
             return StatusCode(500, new ErrorResponse(ErrorCodes.INTERNAL_SERVER_ERROR, "Ett oväntat fel uppstod. Försök igen senare."));
         }
     }

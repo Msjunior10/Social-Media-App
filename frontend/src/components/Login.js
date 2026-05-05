@@ -18,7 +18,7 @@ function Login() {
     setError(null);
 
     if (!username.trim() || !password.trim()) {
-      setError('Användarnamn och lösenord är obligatoriska.');
+      setError('Username and password are required.');
       return;
     }
 
@@ -39,22 +39,22 @@ function Login() {
       if (err instanceof ApiError) {
         switch (err.errorCode) {
           case ErrorCodes.INVALID_CREDENTIALS:
-            setError('Fel användarnamn eller lösenord.');
+            setError('Incorrect username or password.');
             break;
           case ErrorCodes.VALIDATION_ERROR:
-            setError('Valideringsfel. Kontrollera dina indata.');
+            setError('Validation error. Please check your input.');
             break;
           case ErrorCodes.NETWORK_ERROR:
-            setError('Kunde inte ansluta till servern. Kontrollera din internetanslutning.');
+            setError('Could not connect to the server. Check your internet connection.');
             break;
           case ErrorCodes.TIMEOUT_ERROR:
-            setError('Begäran tog för lång tid. Försök igen.');
+            setError('The request took too long. Please try again.');
             break;
           default:
-            setError(err.message || 'Inloggning misslyckades. Kontrollera dina uppgifter.');
+            setError(err.message || 'Login failed. Please check your details.');
         }
       } else {
-        setError(err.message || 'Inloggning misslyckades. Kontrollera dina uppgifter.');
+        setError(err.message || 'Login failed. Please check your details.');
       }
     } finally {
       setLoading(false);
@@ -65,16 +65,16 @@ function Login() {
     <div className="login-container">
       <div className="login-card">
         <div className="login-badge">Socially Access</div>
-        <h2 className="login-title">Logga in</h2>
+        <h2 className="login-title">Sign in</h2>
         <p className="login-subtitle">
-          Välkommen tillbaka till ett mer kuraterat socialt flöde med fokus på identitet,
-          tempo och känsla.
+          Welcome back to a more curated social feed with a stronger sense of identity,
+          rhythm, and presence.
         </p>
 
         <div className="login-highlights" aria-hidden="true">
           <span className="login-highlight-pill">Premium feed</span>
-          <span className="login-highlight-pill">Direkta inlägg</span>
-          <span className="login-highlight-pill">Tydlig profil</span>
+          <span className="login-highlight-pill">Direct posting</span>
+          <span className="login-highlight-pill">Clear profile</span>
         </div>
         
         {error && (
@@ -85,13 +85,13 @@ function Login() {
 
         <form onSubmit={handleSubmit} className="login-form">
           <div className="login-field">
-            <label htmlFor="username">Användarnamn</label>
+            <label htmlFor="username">Username</label>
             <input
               id="username"
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              placeholder="Ange ditt användarnamn"
+              placeholder="Enter your username"
               className="login-input"
               disabled={loading}
               autoComplete="username"
@@ -99,13 +99,13 @@ function Login() {
           </div>
 
           <div className="login-field">
-            <label htmlFor="password">Lösenord</label>
+            <label htmlFor="password">Password</label>
             <input
               id="password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Ange ditt lösenord"
+              placeholder="Enter your password"
               className="login-input"
               disabled={loading}
               autoComplete="current-password"
@@ -117,15 +117,15 @@ function Login() {
             className="login-button"
             disabled={loading || !username.trim() || !password.trim()}
           >
-            {loading ? 'Loggar in...' : 'Logga in'}
+            {loading ? 'Signing in...' : 'Sign in'}
           </button>
         </form>
 
         <div className="login-footer">
           <p>
-            Har du inget konto?{' '}
+            Don&apos;t have an account?{' '}
             <Link to="/register" className="login-link">
-              Registrera dig här
+              Create one here
             </Link>
           </p>
         </div>

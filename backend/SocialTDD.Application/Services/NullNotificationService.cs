@@ -26,6 +26,9 @@ internal sealed class NullNotificationService : INotificationService
     public Task CreatePostCommentNotificationAsync(Guid recipientUserId, Guid actorUserId, Guid postId)
         => Task.CompletedTask;
 
+    public Task CreatePostRepostNotificationAsync(Guid recipientUserId, Guid actorUserId, Guid postId)
+        => Task.CompletedTask;
+
     public Task CreateDirectMessageNotificationAsync(Guid recipientUserId, Guid actorUserId, Guid directMessageId)
         => Task.CompletedTask;
 }

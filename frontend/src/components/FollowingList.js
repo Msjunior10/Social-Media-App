@@ -18,7 +18,7 @@ function FollowingList({ userId, onFollowingClick }) {
       const data = await followApi.getFollowing(userId);
       setFollowing(data);
 
-      // Hämta användarnamn för alla följda användare
+      // Fetch usernames for all followed users
       const usernameMap = {};
       await Promise.all(
         data.map(async (follow) => {
@@ -28,7 +28,7 @@ function FollowingList({ userId, onFollowingClick }) {
               usernameMap[follow.followingId] = user.username;
             }
           } catch (err) {
-            console.error(`Kunde inte hämta användare ${follow.followingId}:`, err);
+            console.error(`Could not fetch user ${follow.followingId}:`, err);
           }
         })
       );
@@ -47,8 +47,8 @@ function FollowingList({ userId, onFollowingClick }) {
   if (loading) {
     return (
       <div className="following-list">
-        <h3>Följer</h3>
-        <div className="loading">Laddar följda användare...</div>
+        <h3>Following</h3>
+        <div className="loading">Loading followed users...</div>
       </div>
     );
   }
@@ -56,8 +56,8 @@ function FollowingList({ userId, onFollowingClick }) {
   if (error) {
     return (
       <div className="following-list">
-        <h3>Följer</h3>
-        <div className="error">Fel: {error}</div>
+        <h3>Following</h3>
+        <div className="error">Error: {error}</div>
       </div>
     );
   }
@@ -65,19 +65,19 @@ function FollowingList({ userId, onFollowingClick }) {
   return (
     <div className="following-list">
       <div className="following-list-header">
-        <h3>Följer ({following.length})</h3>
+        <h3>Following ({following.length})</h3>
         <button
           onClick={fetchFollowing}
           className="refresh-button"
           disabled={loading}
-          title="Uppdatera"
-          aria-label="Uppdatera följda användare"
+          title="Refresh"
+          aria-label="Refresh followed users"
         >
           <span className={loading ? 'refresh-icon spinning' : 'refresh-icon'}>⟳</span>
         </button>
       </div>
       {following.length === 0 ? (
-        <div className="empty-message">Följer inga användare ännu</div>
+        <div className="empty-message">Not following any users yet</div>
       ) : (
         <ul className="following-list-items">
           {following.map((follow) => {
@@ -103,11 +103,11 @@ function FollowingList({ userId, onFollowingClick }) {
                     {usernames[follow.followingId] || follow.followingId}
                   </span>
                   <span className="following-date">
-                    Följer sedan: {new Date(follow.createdAt).toLocaleDateString('sv-SE')}
+                    Following since: {new Date(follow.createdAt).toLocaleDateString('en-US')}
                   </span>
                 </div>
                 {onFollowingClick && (
-                  <span className="following-action-hint">Klicka för att öppna profil</span>
+                  <span className="following-action-hint">Click to open profile</span>
                 )}
               </li>
             );

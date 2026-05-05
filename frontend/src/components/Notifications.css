@@ -55,8 +55,8 @@
   padding: 14px 16px;
   border-radius: 14px;
   background: var(--app-danger-soft);
-  color: #991b1b;
-  border: 1px solid #fecaca;
+  color: var(--app-danger);
+  border: 1px solid var(--app-danger-border);
 }
 
 .notifications-empty {
@@ -66,10 +66,10 @@
   align-items: center;
   text-align: center;
   padding: 48px 20px;
-  border: 1px dashed rgba(61, 78, 216, 0.2);
+  border: 1px dashed rgba(var(--app-accent-rgb), 0.24);
   border-radius: 20px;
   color: var(--app-muted);
-  background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(245,247,251,0.96));
+  background: var(--app-card-gradient);
 }
 
 .notifications-loading {
@@ -89,7 +89,7 @@
   text-align: left;
   border: 1px solid var(--app-border);
   border-radius: 18px;
-  background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(245,247,251,0.96));
+  background: var(--app-card-gradient);
   padding: 16px;
   cursor: pointer;
   transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
@@ -102,7 +102,7 @@
 
 .notifications-item.unread {
   border-left: 4px solid var(--app-accent);
-  background: linear-gradient(135deg, rgba(61, 78, 216, 0.06), rgba(255,255,255,0.98));
+  background: var(--app-card-gradient-strong);
 }
 
 .notifications-item-top {
