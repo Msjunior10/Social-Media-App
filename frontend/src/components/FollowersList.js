@@ -18,7 +18,7 @@ function FollowersList({ userId, onFollowerClick }) {
       const data = await followApi.getFollowers(userId);
       setFollowers(data);
 
-      // Hämta användarnamn för alla följare
+      // Fetch usernames for all followers
       const usernameMap = {};
       await Promise.all(
         data.map(async (follow) => {
@@ -28,7 +28,7 @@ function FollowersList({ userId, onFollowerClick }) {
               usernameMap[follow.followerId] = user.username;
             }
           } catch (err) {
-            console.error(`Kunde inte hämta användare ${follow.followerId}:`, err);
+            console.error(`Could not fetch user ${follow.followerId}:`, err);
           }
         })
       );
@@ -47,8 +47,8 @@ function FollowersList({ userId, onFollowerClick }) {
   if (loading) {
     return (
       <div className="followers-list">
-        <h3>Följare</h3>
-        <div className="loading">Laddar följare...</div>
+        <h3>Followers</h3>
+        <div className="loading">Loading followers...</div>
       </div>
     );
   }
@@ -56,8 +56,8 @@ function FollowersList({ userId, onFollowerClick }) {
   if (error) {
     return (
       <div className="followers-list">
-        <h3>Följare</h3>
-        <div className="error">Fel: {error}</div>
+        <h3>Followers</h3>
+        <div className="error">Error: {error}</div>
       </div>
     );
   }
@@ -75,19 +75,19 @@ function FollowersList({ userId, onFollowerClick }) {
   return (
     <div className="followers-list">
       <div className="followers-list-header">
-        <h3>Följare ({followers.length})</h3>
+        <h3>Followers ({followers.length})</h3>
         <button
           onClick={fetchFollowers}
           className="refresh-button"
           disabled={loading}
-          title="Uppdatera"
-          aria-label="Uppdatera följare"
+          title="Refresh"
+          aria-label="Refresh followers"
         >
           <span className={loading ? 'refresh-icon spinning' : 'refresh-icon'}>⟳</span>
         </button>
       </div>
       {followers.length === 0 ? (
-        <div className="empty-message">Inga följare ännu</div>
+        <div className="empty-message">No followers yet</div>
       ) : (
         <ul className="followers-list-items">
           {followers.map((follow) => (
@@ -102,11 +102,11 @@ function FollowersList({ userId, onFollowerClick }) {
                   {usernames[follow.followerId] || follow.followerId}
                 </span>
                 <span className="follower-date">
-                  Följer sedan: {new Date(follow.createdAt).toLocaleDateString('sv-SE')}
+                  Following since: {new Date(follow.createdAt).toLocaleDateString('en-US')}
                 </span>
               </div>
               {onFollowerClick && (
-                <span className="follower-action-hint">Klicka för att öppna profil</span>
+                <span className="follower-action-hint">Click to open profile</span>
               )}
             </li>
           ))}

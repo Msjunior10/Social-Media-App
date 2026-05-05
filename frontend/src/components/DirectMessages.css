@@ -8,15 +8,24 @@
 .direct-messages-intro {
   position: relative;
   overflow: hidden;
-  padding: 24px 24px 22px;
-  border-radius: 24px;
-  border: 1px solid var(--app-border);
+  padding: 26px 26px 24px;
+  border-radius: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
   background:
-    radial-gradient(circle at top right, rgba(109, 91, 208, 0.16), transparent 30%),
+    radial-gradient(circle at top right, rgba(255, 255, 255, 0.18), transparent 24%),
+    radial-gradient(circle at bottom left, rgba(34, 211, 238, 0.12), transparent 28%),
     var(--app-gradient-strong);
-  box-shadow: var(--app-shadow-medium);
+  box-shadow: var(--app-shadow-medium), 0 24px 54px rgba(var(--app-accent-rgb), 0.16);
   color: #fff;
   animation: appSlideUp 0.45s ease both;
+}
+
+.direct-messages-intro::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.14), transparent 36%, rgba(255, 255, 255, 0.06) 100%);
 }
 
 .direct-messages-intro::after {
@@ -27,7 +36,7 @@
   width: 150px;
   height: 150px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(61, 78, 216, 0.18), transparent 68%);
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.16), transparent 68%);
 }
 
 .direct-messages-intro-badge {
@@ -36,12 +45,14 @@
   padding: 7px 12px;
   border-radius: 999px;
   margin-bottom: 14px;
-  background: rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.12);
   color: rgba(255, 255, 255, 0.92);
   font-size: 12px;
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(10px);
 }
 
 .direct-messages-intro-title {
@@ -55,7 +66,7 @@
 .direct-messages-intro-text {
   max-width: 760px;
   margin: 0;
-  color: rgba(255, 255, 255, 0.84);
+  color: rgba(255, 255, 255, 0.86);
   line-height: 1.7;
 }
 

@@ -18,8 +18,46 @@ public class WallServiceTests
         _mockPostRepository = new Mock<IPostRepository>();
         _mockPostRepository.Setup(r => r.GetCommentsByPostIdAsync(It.IsAny<Guid>())).ReturnsAsync(new List<PostComment>());
         _mockPostRepository.Setup(r => r.GetLikeCountAsync(It.IsAny<Guid>())).ReturnsAsync(0);
+        _mockPostRepository.Setup(r => r.GetRepostCountAsync(It.IsAny<Guid>())).ReturnsAsync(0);
         _mockPostRepository.Setup(r => r.IsLikedByUserAsync(It.IsAny<Guid>(), It.IsAny<Guid>())).ReturnsAsync(false);
+        _mockPostRepository.Setup(r => r.IsBookmarkedByUserAsync(It.IsAny<Guid>(), It.IsAny<Guid>())).ReturnsAsync(false);
+        _mockPostRepository.Setup(r => r.IsRepostedByUserAsync(It.IsAny<Guid>(), It.IsAny<Guid>())).ReturnsAsync(false);
         _wallService = new WallService(_mockFollowRepository.Object, _mockPostRepository.Object);
+    }
+
+    [Fact]
+    public async Task GetWallAsync_LegacyQuotedPost_IsReturnedAsRegularPost()
+    {
+        var userId = Guid.NewGuid();
+        var originalId = Guid.NewGuid();
+        var quotedId = Guid.NewGuid();
+
+        var quotedPost = new Post
+        {
+            Id = quotedId,
+            SenderId = userId,
+            RecipientId = userId,
+            OriginalPostId = originalId,
+            Message = "Mitt gamla citat",
+            CreatedAt = DateTime.UtcNow,
+            OriginalPost = new Post
+            {
+                Id = originalId,
+                SenderId = Guid.NewGuid(),
+                RecipientId = Guid.NewGuid(),
+                Message = "Originalpost"
+            }
+        };
+
+        _mockPostRepository.Setup(r => r.UserExistsAsync(userId)).ReturnsAsync(true);
+        _mockPostRepository.Setup(r => r.GetAllPostsAsync()).ReturnsAsync(new List<Post> { quotedPost });
+
+        var result = await _wallService.GetWallAsync(userId, userId);
+
+        result.Should().HaveCount(1);
+        result[0].IsRepost.Should().BeFalse();
+        result[0].Message.Should().Be("Mitt gamla citat");
+        result[0].TargetPostId.Should().Be(quotedId);
     }
 
     [Fact]

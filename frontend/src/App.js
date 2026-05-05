@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, useParams, Link } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate, useParams, Link } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import Navigation from './components/Navigation';
 import Login from './components/Login';
@@ -8,7 +8,6 @@ import ProtectedRoute from './components/ProtectedRoute';
 import FollowUser from './components/FollowUser';
 import FollowersList from './components/FollowersList';
 import FollowingList from './components/FollowingList';
-import Timeline from './components/Timeline';
 import Wall from './components/Wall';
 import DirectMessages from './components/DirectMessages';
 import Notifications from './components/Notifications';
@@ -17,6 +16,8 @@ import CreatePost from './components/CreatePost';
 import ProfilePosts from './components/ProfilePosts';
 import UserSearch from './components/UserSearch';
 import UserProfile from './components/UserProfile';
+import NotificationToasts from './components/NotificationToasts';
+import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 import { userApi } from './services/userApi';
 import { postsApi } from './services/postsApi';
 import { followApi } from './services/followApi';
@@ -24,93 +25,121 @@ import './App.css';
 
 function App() {
   return (
-    <AuthProvider>
-      <Router>
-        <div className="App">
-          <main className="App-main">
-            <Routes>
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
-              
-              <Route
-                path="/"
-                element={
-                  <ProtectedRoute>
-                    <FollowPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/timeline"
-                element={
-                  <ProtectedRoute>
-                    <TimelinePage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/wall"
-                element={
-                  <ProtectedRoute>
-                    <WallPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/notifications"
-                element={
-                  <ProtectedRoute>
-                    <NotificationsPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/saved"
-                element={
-                  <ProtectedRoute>
-                    <SavedPostsPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/messages"
-                element={
-                  <ProtectedRoute>
-                    <MessagesPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/create-post"
-                element={
-                  <ProtectedRoute>
-                    <CreatePostPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/profile"
-                element={
-                  <ProtectedRoute>
-                    <ProfilePage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/users/:userId"
-                element={
-                  <ProtectedRoute>
-                    <PublicProfilePage />
-                  </ProtectedRoute>
-                }
-              />
-              
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-          </main>
-        </div>
-      </Router>
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <Router>
+          <AppContent />
+        </Router>
+      </AuthProvider>
+    </ThemeProvider>
+  );
+}
+
+function AppContent() {
+  return (
+    <div className="App">
+      <ThemeToggleButton />
+      <NotificationToasts />
+      <main className="App-main">
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          
+          <Route
+            path="/"
+            element={
+              <ProtectedRoute>
+                <FollowPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/timeline"
+            element={
+              <ProtectedRoute>
+                <Navigate to="/wall" replace />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/wall"
+            element={
+              <ProtectedRoute>
+                <WallPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/notifications"
+            element={
+              <ProtectedRoute>
+                <NotificationsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/saved"
+            element={
+              <ProtectedRoute>
+                <SavedPostsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/messages"
+            element={
+              <ProtectedRoute>
+                <MessagesPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/create-post"
+            element={
+              <ProtectedRoute>
+                <CreatePostPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute>
+                <ProfilePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/users/:userId"
+            element={
+              <ProtectedRoute>
+                <PublicProfilePage />
+              </ProtectedRoute>
+            }
+          />
+          
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </main>
+    </div>
+  );
+}
+
+function ThemeToggleButton() {
+  const { theme, toggleTheme } = useTheme();
+  const isDarkMode = theme === 'dark';
+
+  return (
+    <button
+      type="button"
+      className="app-theme-toggle"
+      onClick={toggleTheme}
+      aria-label={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+      title={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+    >
+      <span className="app-theme-toggle-icon" aria-hidden="true">{isDarkMode ? '☀' : '☾'}</span>
+      <span className="app-theme-toggle-text">{isDarkMode ? 'Light mode' : 'Dark mode'}</span>
+    </button>
   );
 }
 
@@ -208,10 +237,10 @@ function DefaultRightSidebar() {
 
   const formatLastActive = (dateValue) => {
     if (!dateValue) {
-      return 'Ingen aktivitet ännu';
+      return 'No activity yet';
     }
 
-    return new Date(dateValue).toLocaleString('sv-SE', {
+    return new Date(dateValue).toLocaleString('en-US', {
       dateStyle: 'medium',
       timeStyle: 'short',
     });
@@ -219,69 +248,69 @@ function DefaultRightSidebar() {
 
   const getFocusMessage = () => {
     if (activityLoading) {
-      return 'Vi laddar din överblick och dina nästa steg just nu.';
+      return 'We are loading your overview and next best steps right now.';
     }
 
     if (activity.postsCount === 0) {
-      return 'Du har ännu inte publicerat något. Börja med att skapa ditt första inlägg från profilen.';
+      return 'You have not published anything yet. Start by creating your first post from your profile.';
     }
 
     if (activity.followingCount === 0) {
-      return 'Du har börjat publicera. Följ fler användare för att göra tidslinjen mer levande.';
+      return 'You have started posting. Follow more people to make your feed feel more alive.';
     }
 
     if (activity.followersCount === 0) {
-      return 'Du är igång. Fortsätt publicera och interagera för att börja bygga din publik.';
+      return 'You are up and running. Keep posting and interacting to start building your audience.';
     }
 
-    return 'Du har bra aktivitet just nu. Fortsätt med nya inlägg, svar och upptäck fler profiler.';
+    return 'Your activity looks strong right now. Keep posting, replying, and discovering new profiles.';
   };
 
   return (
     <div className="sidebar-stack">
       <section className="sidebar-card">
-        <span className="sidebar-card-label">Fokus idag</span>
-        <h3>Hej {username}</h3>
+        <span className="sidebar-card-label">Today&apos;s focus</span>
+        <h3>Hi {username}</h3>
         <p>{getFocusMessage()}</p>
         <div className="sidebar-link-list sidebar-link-list-spaced">
-          <Link to="/profile" className="sidebar-link-item">Skapa eller hantera inlägg</Link>
-          <Link to="/timeline" className="sidebar-link-item">Se vad ditt nätverk gör</Link>
-          <Link to="/saved" className="sidebar-link-item">Öppna sparade inlägg</Link>
-          <Link to="/wall" className="sidebar-link-item">Hitta nya profiler och inlägg</Link>
+          <Link to="/profile" className="sidebar-link-item">Create or manage posts</Link>
+          <Link to="/saved" className="sidebar-link-item">Open saved posts</Link>
+          <Link to="/wall" className="sidebar-link-item">Find new profiles and posts</Link>
+          <Link to="/messages" className="sidebar-link-item">Open your messages</Link>
         </div>
       </section>
 
       <section className="sidebar-card">
-        <span className="sidebar-card-label">Snabbåtkomst</span>
+        <span className="sidebar-card-label">Quick access</span>
         <div className="sidebar-link-list">
-          <Link to="/wall" className="sidebar-link-item">Upptäck flödet</Link>
-          <Link to="/timeline" className="sidebar-link-item">Se din tidslinje</Link>
-          <Link to="/saved" className="sidebar-link-item">Se sparat</Link>
-          <Link to="/profile" className="sidebar-link-item">Öppna din profil</Link>
+          <Link to="/wall" className="sidebar-link-item">Explore the feed</Link>
+          <Link to="/saved" className="sidebar-link-item">View saved posts</Link>
+          <Link to="/notifications" className="sidebar-link-item">Open notifications</Link>
+          <Link to="/profile" className="sidebar-link-item">Open your profile</Link>
         </div>
       </section>
 
       <section className="sidebar-card">
-        <span className="sidebar-card-label">Din aktivitet</span>
-        <h3>{username}s överblick</h3>
+        <span className="sidebar-card-label">Your activity</span>
+        <h3>{username}&apos;s overview</h3>
         <div className="sidebar-stats-grid">
           <div className="sidebar-stat-item">
             <span className="sidebar-stat-value">{activityLoading ? '…' : activity.postsCount}</span>
-            <span className="sidebar-stat-label">Inlägg</span>
+            <span className="sidebar-stat-label">Posts</span>
           </div>
           <div className="sidebar-stat-item">
             <span className="sidebar-stat-value">{activityLoading ? '…' : activity.followersCount}</span>
-            <span className="sidebar-stat-label">Följare</span>
+            <span className="sidebar-stat-label">Followers</span>
           </div>
           <div className="sidebar-stat-item">
             <span className="sidebar-stat-value">{activityLoading ? '…' : activity.followingCount}</span>
-            <span className="sidebar-stat-label">Följer</span>
+            <span className="sidebar-stat-label">Following</span>
           </div>
         </div>
         <p className="sidebar-activity-text">
-          Senast aktiv: <strong>{activityLoading ? 'Laddar…' : formatLastActive(activity.lastActiveAt)}</strong>
+          Last active: <strong>{activityLoading ? 'Loading…' : formatLastActive(activity.lastActiveAt)}</strong>
         </p>
-        <p className="sidebar-activity-tip">Publicera från din profil för att hålla ditt flöde levande.</p>
+        <p className="sidebar-activity-tip">Publish from your profile to keep your feed active.</p>
       </section>
     </div>
   );
@@ -299,14 +328,14 @@ function FollowPage() {
   };
 
   return (
-    <AppShell title="Utforska" subtitle="Sök användare och bygg upp ditt nätverk.">
+    <AppShell title="Explore" subtitle="Search for people and grow your network.">
       <div className="content-panel">
         <div className="user-input-section">
           <div className="input-group">
-            <label htmlFor="targetUserId">Sök användare att följa</label>
+            <label htmlFor="targetUserId">Search for people to follow</label>
             <UserSearch
               onUserSelect={handleUserSelect}
-              placeholder="Sök efter användare..."
+              placeholder="Search for people..."
               excludeUserId={userId}
             />
           </div>
@@ -329,27 +358,11 @@ function FollowPage() {
   );
 }
 
-function TimelinePage() {
-  const { userId } = useAuth();
-  const [refreshKey, setRefreshKey] = useState(0);
-
-  return (
-    <AppShell title="Tidslinje" subtitle="Det senaste från dig och ditt nätverk.">
-      <CreatePost
-        senderId={userId}
-        compact
-        onPostCreated={() => setRefreshKey((value) => value + 1)}
-      />
-      <Timeline userId={userId} refreshKey={refreshKey} showHeader={false} />
-    </AppShell>
-  );
-}
-
 function WallPage() {
   const { userId } = useAuth();
 
   return (
-    <AppShell title="Upptäck" subtitle="Offentliga inlägg i ett snabbare flöde utan composer i fokus.">
+    <AppShell title="Discover" subtitle="Public posts in a faster feed with less focus on the composer.">
       <Wall userId={userId} showHeader={false} />
     </AppShell>
   );
@@ -358,7 +371,7 @@ function WallPage() {
 function MessagesPage() {
   const { userId } = useAuth();
   return (
-    <AppShell title="Meddelanden" subtitle="Privata konversationer i realtid.">
+    <AppShell title="Messages" subtitle="Private conversations in real time.">
       <DirectMessages userId={userId} />
     </AppShell>
   );
@@ -368,7 +381,7 @@ function SavedPostsPage() {
   const { userId } = useAuth();
 
   return (
-    <AppShell title="Sparat" subtitle="Inlägg du vill återvända till, samlade i en egen vy.">
+    <AppShell title="Saved" subtitle="Posts you want to revisit, gathered in one place.">
       <SavedPosts userId={userId} showHeader={false} />
     </AppShell>
   );
@@ -376,7 +389,7 @@ function SavedPostsPage() {
 
 function NotificationsPage() {
   return (
-    <AppShell title="Notifikationer" subtitle="All aktivitet som rör dig, samlad på ett ställe.">
+    <AppShell title="Notifications" subtitle="All activity around you, collected in one place.">
       <Notifications />
     </AppShell>
   );
@@ -388,10 +401,16 @@ function CreatePostPage() {
 
 function ProfilePage() {
   const { userId, username } = useAuth();
+  const location = useLocation();
   const [refreshKey, setRefreshKey] = useState(0);
+  const searchParams = new URLSearchParams(location.search);
+  const highlightedPostId = searchParams.get('postId');
+  const openCommentsPostId = searchParams.get('openComments') === '1'
+    ? searchParams.get('postId')
+    : null;
 
   return (
-    <AppShell title="Min profil" subtitle="Hantera din identitet och skapa dina inlägg här.">
+    <AppShell title="My profile" subtitle="Manage your identity and create your posts here.">
       <div className="profile-page-container">
         <UserProfile userId={userId} isEditable />
         <CreatePost
@@ -399,7 +418,15 @@ function ProfilePage() {
           compact
           onPostCreated={() => setRefreshKey((value) => value + 1)}
         />
-        <ProfilePosts userId={userId} username={username} isOwnProfile currentUserId={userId} refreshKey={refreshKey} />
+        <ProfilePosts
+          userId={userId}
+          username={username}
+          isOwnProfile
+          currentUserId={userId}
+          refreshKey={refreshKey}
+          highlightedPostId={highlightedPostId}
+          openCommentsPostId={openCommentsPostId}
+        />
       </div>
     </AppShell>
   );
@@ -408,6 +435,12 @@ function ProfilePage() {
 function PublicProfilePage() {
   const { userId: currentUserId } = useAuth();
   const { userId: profileUserId } = useParams();
+  const location = useLocation();
+  const searchParams = new URLSearchParams(location.search);
+  const highlightedPostId = searchParams.get('postId');
+  const openCommentsPostId = searchParams.get('openComments') === '1'
+    ? searchParams.get('postId')
+    : null;
 
   if (!profileUserId) {
     return <Navigate to="/" replace />;
@@ -416,7 +449,7 @@ function PublicProfilePage() {
   const isOwnProfile = currentUserId === profileUserId;
 
   return (
-    <AppShell title="Profil" subtitle="Se användarens offentliga närvaro.">
+    <AppShell title="Profile" subtitle="View the user&apos;s public presence.">
       <div className="profile-page-container">
         <UserProfile userId={profileUserId} isEditable={false} />
         {!isOwnProfile && (
@@ -424,7 +457,13 @@ function PublicProfilePage() {
             <FollowUser followerId={currentUserId} followingId={profileUserId} />
           </div>
         )}
-        <ProfilePosts userId={profileUserId} isOwnProfile={false} currentUserId={currentUserId} />
+        <ProfilePosts
+          userId={profileUserId}
+          isOwnProfile={false}
+          currentUserId={currentUserId}
+          highlightedPostId={highlightedPostId}
+          openCommentsPostId={openCommentsPostId}
+        />
       </div>
     </AppShell>
   );

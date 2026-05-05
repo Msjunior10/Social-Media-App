@@ -7,7 +7,7 @@ function DirectMessages({ userId }) {
   const [refreshKey, setRefreshKey] = useState(0);
 
   const handleMessageSent = () => {
-    // Uppdatera nyckel för att trigga omrendering av DirectMessagesList
+    // Update key to trigger rerender of DirectMessagesList
     setRefreshKey(prev => prev + 1);
   };
 
@@ -15,10 +15,10 @@ function DirectMessages({ userId }) {
     <div className="direct-messages-container">
       <section className="direct-messages-intro">
         <span className="direct-messages-intro-badge">Inbox</span>
-        <h2 className="direct-messages-intro-title">Privata konversationer med samma känsla som resten av appen</h2>
+        <h2 className="direct-messages-intro-title">Private conversations with the same feel as the rest of the app</h2>
         <p className="direct-messages-intro-text">
-          Skriv direkt, håll koll på inkommande meddelanden och hantera din inbox i ett mer
-          kuraterat flöde.
+          Write directly, keep track of incoming messages, and manage your inbox in a more
+          curated flow.
         </p>
       </section>
 

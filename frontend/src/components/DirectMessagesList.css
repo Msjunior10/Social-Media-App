@@ -3,11 +3,15 @@
   overflow: hidden;
   margin: 0;
   padding: 24px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(246, 248, 252, 0.96));
+  background: var(--app-card-gradient);
   border: 1px solid var(--app-border);
   border-radius: 24px;
   box-shadow: var(--app-shadow-soft);
   animation: appSlideUp 0.45s ease both;
+}
+
+:root[data-theme='dark'] .dm-list-container {
+  border-color: rgba(198, 171, 255, 0.12);
 }
 
 .dm-list-container::before {
@@ -38,7 +42,7 @@
   width: fit-content;
   padding: 7px 12px;
   border-radius: 999px;
-  background: linear-gradient(135deg, rgba(49, 88, 242, 0.1), rgba(124, 58, 237, 0.12));
+  background: linear-gradient(135deg, rgba(var(--app-accent-rgb), 0.16), rgba(243, 74, 160, 0.12));
   color: var(--app-accent-strong);
   font-size: 12px;
   font-weight: 800;
@@ -80,6 +84,7 @@
 .dm-list-refresh-button:hover:not(:disabled) {
   background: var(--app-accent-soft);
   border-color: var(--app-accent);
+  box-shadow: 0 12px 24px rgba(var(--app-accent-rgb), 0.14);
 }
 
 .dm-list-refresh-button:disabled {
@@ -115,7 +120,7 @@
   content: '';
   width: 32px;
   height: 32px;
-  border: 3px solid #f1f5f9;
+  border: 3px solid var(--app-surface-soft);
   border-top: 3px solid var(--app-accent);
   border-radius: 50%;
   animation: spin 1s linear infinite;
@@ -124,8 +129,8 @@
 .dm-list-error {
   padding: 12px;
   background-color: var(--app-danger-soft);
-  color: #7f1d1d;
-  border: 1px solid #fecaca;
+  color: var(--app-danger);
+  border: 1px solid var(--app-danger-border);
   border-radius: 14px;
   margin-bottom: 20px;
   font-size: 14px;
@@ -155,8 +160,8 @@
   color: var(--app-muted);
   font-size: 16px;
   border-radius: 18px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(246, 248, 252, 0.92));
-  border: 1px dashed rgba(124, 58, 237, 0.2);
+  background: var(--app-card-gradient);
+  border: 1px dashed rgba(var(--app-accent-rgb), 0.22);
 }
 
 .dm-list-empty strong {
@@ -171,7 +176,7 @@
 
 .dm-message {
   padding: 18px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.94));
+  background: var(--app-card-gradient);
   border-radius: 18px;
   border: 1px solid var(--app-border);
   transition: box-shadow 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
@@ -185,11 +190,11 @@
 
 .dm-message-unread {
   border-left: 4px solid var(--app-accent);
-  background: linear-gradient(135deg, rgba(49, 88, 242, 0.06), rgba(255, 255, 255, 0.98));
+  background: var(--app-card-gradient-strong);
 }
 
 .dm-message-read {
-  border-left: 4px solid #94a3b8;
+  border-left: 4px solid color-mix(in srgb, var(--app-muted) 85%, transparent);
   opacity: 0.9;
 }
 
@@ -245,12 +250,12 @@
   font-weight: 700;
   cursor: pointer;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
-  box-shadow: 0 12px 24px rgba(37, 99, 235, 0.18);
+  box-shadow: 0 12px 24px rgba(var(--app-accent-rgb), 0.2);
 }
 
 .dm-message-mark-read:hover:not(:disabled) {
   transform: translateY(-1px);
-  box-shadow: 0 14px 28px rgba(37, 99, 235, 0.24);
+  box-shadow: 0 14px 28px rgba(var(--app-accent-rgb), 0.26);
 }
 
 .dm-message-mark-read:disabled {

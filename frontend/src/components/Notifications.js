@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { notificationsApi } from '../services/notificationsApi';
+import { notificationsRealtime } from '../services/notificationsRealtime';
 import { ApiError, ErrorCodes } from '../utils/ApiError';
 import './Notifications.css';
 
@@ -15,17 +16,17 @@ function Notifications() {
     if (err instanceof ApiError) {
       switch (err.errorCode) {
         case ErrorCodes.TOKEN_EXPIRED:
-          return 'Din session har gått ut. Logga in igen.';
+          return 'Your session has expired. Please sign in again.';
         case ErrorCodes.NETWORK_ERROR:
-          return 'Kunde inte ansluta till servern.';
+          return 'Could not connect to the server.';
         case ErrorCodes.TIMEOUT_ERROR:
-          return 'Begäran tog för lång tid. Försök igen.';
+          return 'The request took too long. Please try again.';
         default:
-          return err.message || 'Kunde inte hämta notiser.';
+          return err.message || 'Could not fetch notifications.';
       }
     }
 
-    return err?.message || 'Kunde inte hämta notiser.';
+    return err?.message || 'Could not fetch notifications.';
   };
 
   const notifyUpdated = () => {
@@ -49,11 +50,70 @@ function Notifications() {
     fetchNotifications();
   }, [fetchNotifications]);
 
+  useEffect(() => {
+    const unsubscribe = notificationsRealtime.subscribe((event) => {
+      switch (event.type) {
+        case 'notification-received':
+          if (!event.notification) {
+            return;
+          }
+
+          setNotifications((prev) => {
+            const exists = prev.some((item) => item.id === event.notification.id);
+            if (exists) {
+              return prev;
+            }
+
+            return [event.notification, ...prev];
+          });
+          break;
+        case 'notification-read':
+          if (!event.notificationId) {
+            return;
+          }
+
+          setNotifications((prev) => prev.map((item) => (
+            item.id === event.notificationId
+              ? { ...item, isRead: true }
+              : item
+          )));
+          break;
+        case 'notifications-read-all':
+          setNotifications((prev) => prev.map((item) => ({ ...item, isRead: true })));
+          break;
+        case 'reconnected':
+          fetchNotifications();
+          break;
+        default:
+          break;
+      }
+    });
+
+    return () => unsubscribe();
+  }, [fetchNotifications]);
+
   const formatDate = (dateValue) => {
-    return new Date(dateValue).toLocaleString('sv-SE', {
+    return new Date(dateValue).toLocaleString('en-US', {
       dateStyle: 'medium',
       timeStyle: 'short',
     });
+  };
+
+  const getPostNotificationTarget = (notification) => {
+    if (!notification.postId) {
+      return '/profile';
+    }
+
+    const searchParams = new URLSearchParams({
+      postId: notification.postId,
+      notificationType: notification.type,
+    });
+
+    if (notification.type === 'post_comment') {
+      searchParams.set('openComments', '1');
+    }
+
+    return `/profile?${searchParams.toString()}`;
   };
 
   const getNotificationTarget = (notification) => {
@@ -64,9 +124,27 @@ function Notifications() {
         return `/users/${notification.actorId}`;
       case 'post_like':
       case 'post_comment':
-        return '/profile';
+      case 'post_repost':
+        return getPostNotificationTarget(notification);
       default:
-        return '/timeline';
+        return '/notifications';
+    }
+  };
+
+  const formatNotificationType = (type) => {
+    switch (type) {
+      case 'follow':
+        return 'follow';
+      case 'post_like':
+        return 'like';
+      case 'post_comment':
+        return 'comment';
+      case 'post_repost':
+        return 'repost';
+      case 'direct_message':
+        return 'message';
+      default:
+        return type.replaceAll('_', ' ');
     }
   };
 
@@ -78,7 +156,7 @@ function Notifications() {
         setNotifications((prev) => prev.map((item) => item.id === notification.id ? { ...item, isRead: true } : item));
       }
     } catch {
-      // Navigera ändå även om markering misslyckas
+      // Navigate anyway even if marking as read fails
     }
 
     navigate(getNotificationTarget(notification));
@@ -103,7 +181,7 @@ function Notifications() {
   if (loading) {
     return (
       <div className="notifications-panel">
-        <div className="notifications-loading">Laddar notiser...</div>
+        <div className="notifications-loading">Loading notifications...</div>
       </div>
     );
   }
@@ -112,8 +190,8 @@ function Notifications() {
     <div className="notifications-panel">
       <div className="notifications-header">
         <div>
-          <h2 className="notifications-title">Notifikationer</h2>
-          <p className="notifications-subtitle">Likes, kommentarer, följare och direktmeddelanden samlat på ett ställe.</p>
+          <h2 className="notifications-title">Notifications</h2>
+          <p className="notifications-subtitle">Likes, comments, reposts, followers, and direct messages collected in one place.</p>
         </div>
         <button
           type="button"
@@ -121,7 +199,7 @@ function Notifications() {
           onClick={handleMarkAllAsRead}
           disabled={isMarkingAll || unreadCount === 0}
         >
-          {isMarkingAll ? 'Markerar...' : 'Markera alla som lästa'}
+          {isMarkingAll ? 'Marking...' : 'Mark all as read'}
         </button>
       </div>
 
@@ -129,8 +207,8 @@ function Notifications() {
 
       {notifications.length === 0 ? (
         <div className="notifications-empty">
-          <strong>Inga notiser ännu.</strong>
-          <span>När någon interagerar med dig dyker det upp här.</span>
+          <strong>No notifications yet.</strong>
+          <span>When someone interacts with you, it will appear here.</span>
         </div>
       ) : (
         <div className="notifications-list">
@@ -142,11 +220,11 @@ function Notifications() {
               onClick={() => handleOpenNotification(notification)}
             >
               <div className="notifications-item-top">
-                <span className="notifications-item-type">{notification.type.replace('_', ' ')}</span>
+                <span className="notifications-item-type">{formatNotificationType(notification.type)}</span>
                 <span className="notifications-item-date">{formatDate(notification.createdAt)}</span>
               </div>
               <div className="notifications-item-message">{notification.message}</div>
-              {!notification.isRead && <span className="notifications-unread-pill">Ny</span>}
+              {!notification.isRead && <span className="notifications-unread-pill">New</span>}
             </button>
           ))}
         </div>

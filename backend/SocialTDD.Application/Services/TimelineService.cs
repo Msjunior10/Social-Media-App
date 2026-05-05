@@ -29,7 +29,9 @@ public class TimelineService : ITimelineService
 
         foreach (var post in posts.OrderByDescending(p => p.CreatedAt))
         {
-            var comments = await _postRepository.GetCommentsByPostIdAsync(post.Id);
+            var isPureRepost = post.OriginalPostId.HasValue && string.IsNullOrWhiteSpace(post.Message);
+            var targetPost = isPureRepost ? (post.OriginalPost ?? post) : post;
+            var comments = await _postRepository.GetCommentsByPostIdAsync(targetPost.Id);
             postResponses.Add(new PostResponse
             {
                 Id = post.Id,
@@ -38,13 +40,22 @@ public class TimelineService : ITimelineService
                 Message = post.Message,
                 ImageUrl = post.ImageUrl,
                 CreatedAt = post.CreatedAt,
-                LikeCount = await _postRepository.GetLikeCountAsync(post.Id),
-                IsLikedByCurrentUser = await _postRepository.IsLikedByUserAsync(post.Id, currentUserId),
-                IsBookmarkedByCurrentUser = await _postRepository.IsBookmarkedByUserAsync(post.Id, currentUserId),
+                TargetPostId = targetPost.Id,
+                LikeCount = await _postRepository.GetLikeCountAsync(targetPost.Id),
+                RepostCount = await _postRepository.GetRepostCountAsync(targetPost.Id),
+                IsLikedByCurrentUser = await _postRepository.IsLikedByUserAsync(targetPost.Id, currentUserId),
+                IsBookmarkedByCurrentUser = await _postRepository.IsBookmarkedByUserAsync(targetPost.Id, currentUserId),
+                IsRepostedByCurrentUser = await _postRepository.IsRepostedByUserAsync(targetPost.Id, currentUserId),
+                IsRepost = isPureRepost,
+                OriginalPostId = post.OriginalPostId,
+                OriginalSenderId = post.OriginalPost?.SenderId,
+                OriginalMessage = post.OriginalPost?.Message,
+                OriginalImageUrl = post.OriginalPost?.ImageUrl,
+                OriginalCreatedAt = post.OriginalPost?.CreatedAt,
                 Comments = comments.Select(c => new PostCommentResponse
                 {
                     Id = c.Id,
-                    PostId = c.PostId,
+                    PostId = targetPost.Id,
                     UserId = c.UserId,
                     Message = c.Message,
                     CreatedAt = c.CreatedAt

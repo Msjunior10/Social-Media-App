@@ -5,7 +5,15 @@ import { ApiError, ErrorCodes } from '../utils/ApiError';
 import PostItem from './PostItem';
 import './Timeline.css';
 
-function ProfilePosts({ userId, username, isOwnProfile = false, currentUserId = null, refreshKey = 0 }) {
+function ProfilePosts({
+  userId,
+  username,
+  isOwnProfile = false,
+  currentUserId = null,
+  refreshKey = 0,
+  highlightedPostId = null,
+  openCommentsPostId = null,
+}) {
   const [posts, setPosts] = useState([]);
   const [usernames, setUsernames] = useState({});
   const [loading, setLoading] = useState(true);
@@ -28,6 +36,7 @@ function ProfilePosts({ userId, username, isOwnProfile = false, currentUserId = 
       sortedPosts.forEach((post) => {
         if (post.senderId) uniqueUserIds.add(post.senderId);
         if (post.recipientId) uniqueUserIds.add(post.recipientId);
+        if (post.originalSenderId) uniqueUserIds.add(post.originalSenderId);
         (post.comments || []).forEach((comment) => {
           if (comment.userId) uniqueUserIds.add(comment.userId);
         });
@@ -51,22 +60,22 @@ function ProfilePosts({ userId, username, isOwnProfile = false, currentUserId = 
       if (err instanceof ApiError) {
         switch (err.errorCode) {
           case ErrorCodes.TOKEN_EXPIRED:
-            setError('Din session har gått ut. Logga in igen.');
+            setError('Your session has expired. Please sign in again.');
             break;
           case ErrorCodes.NETWORK_ERROR:
-            setError('Kunde inte ansluta till servern. Kontrollera din internetanslutning.');
+            setError('Could not connect to the server. Check your internet connection.');
             break;
           case ErrorCodes.TIMEOUT_ERROR:
-            setError('Begäran tog för lång tid. Försök igen.');
+            setError('The request took too long. Please try again.');
             break;
           case ErrorCodes.INVALID_USER_ID:
-            setError('Ogiltig användare.');
+            setError('Invalid user.');
             break;
           default:
-            setError(err.message || 'Kunde inte hämta användarens inlägg');
+            setError(err.message || 'Could not fetch the user\'s posts');
         }
       } else {
-        setError(err.message || 'Kunde inte hämta användarens inlägg');
+        setError(err.message || 'Could not fetch the user\'s posts');
       }
     } finally {
       setLoading(false);
@@ -79,13 +88,37 @@ function ProfilePosts({ userId, username, isOwnProfile = false, currentUserId = 
     }
   }, [userId, fetchPosts, refreshKey]);
 
+  useEffect(() => {
+    if (!highlightedPostId || posts.length === 0) {
+      return;
+    }
+
+    const hasMatchingPost = posts.some((post) => {
+      const postMatchId = post.targetPostId || post.originalPostId || post.id;
+      return postMatchId === highlightedPostId;
+    });
+
+    if (!hasMatchingPost) {
+      return;
+    }
+
+    const animationFrameId = window.requestAnimationFrame(() => {
+      const highlightedElement = document.getElementById(`post-${highlightedPostId}`);
+      if (highlightedElement) {
+        highlightedElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    });
+
+    return () => window.cancelAnimationFrame(animationFrameId);
+  }, [posts, highlightedPostId]);
+
   const formatDate = (dateString) => {
     const date = new Date(dateString);
-    const datePart = date.toLocaleDateString('sv-SE', {
+    const datePart = date.toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
     });
-    const timePart = date.toLocaleTimeString('sv-SE', {
+    const timePart = date.toLocaleTimeString('en-US', {
       hour: '2-digit',
       minute: '2-digit',
     });
@@ -95,8 +128,8 @@ function ProfilePosts({ userId, username, isOwnProfile = false, currentUserId = 
   const isPublicPost = (post) => !post.recipientId || post.recipientId === post.senderId;
 
   const title = isOwnProfile
-    ? 'Mina inlägg'
-    : `${username || 'Användarens'} inlägg`;
+    ? 'My posts'
+    : `${username || 'User'} posts`;
 
   if (loading && posts.length === 0) {
     return (
@@ -106,7 +139,7 @@ function ProfilePosts({ userId, username, isOwnProfile = false, currentUserId = 
         </div>
         <div className="loading">
           <span className="loading-spinner"></span>
-          <span>Laddar inlägg...</span>
+          <span>Loading posts...</span>
         </div>
       </div>
     );
@@ -120,8 +153,8 @@ function ProfilePosts({ userId, username, isOwnProfile = false, currentUserId = 
           onClick={fetchPosts}
           className="timeline-refresh-button"
           disabled={loading}
-          title="Uppdatera inlägg"
-          aria-label="Uppdatera inlägg"
+          title="Refresh posts"
+          aria-label="Refresh posts"
         >
           <span className={loading ? 'refresh-icon spinning' : 'refresh-icon'}>⟳</span>
         </button>
@@ -132,33 +165,42 @@ function ProfilePosts({ userId, username, isOwnProfile = false, currentUserId = 
           <span className="error-icon">⚠️</span>
           <span className="error-text">{error}</span>
           <button onClick={fetchPosts} className="error-retry-button">
-            Försök igen
+            Try again
           </button>
         </div>
       )}
 
       {posts.length === 0 && !loading && !error ? (
         <div className="empty-message">
-          <p>Inga inlägg att visa ännu.</p>
+          <p>No posts to show yet.</p>
           <p className="empty-hint">
             {isOwnProfile
-              ? 'När du skapar ett offentligt inlägg från din profil visas det här.'
-              : 'Den här användaren har inte skapat några offentliga inlägg ännu.'}
+              ? 'When you create a public post from your profile, it will appear here.'
+              : 'This user has not created any public posts yet.'}
           </p>
         </div>
       ) : (
         <div className="timeline-posts">
           {posts.map((post) => (
-            <PostItem
-              key={post.id}
-              post={post}
-              usernames={usernames}
-              currentUserId={currentUserId}
-              formatDate={formatDate}
-              isPublicPost={isPublicPost}
-              onPostChanged={fetchPosts}
-              containerClassName="post-item"
-            />
+            (() => {
+              const postMatchId = post.targetPostId || post.originalPostId || post.id;
+
+              return (
+                <PostItem
+                  key={post.id}
+                  post={post}
+                  usernames={usernames}
+                  currentUserId={currentUserId}
+                  formatDate={formatDate}
+                  isPublicPost={isPublicPost}
+                  onPostChanged={fetchPosts}
+                  containerClassName="post-item"
+                  postDomId={`post-${postMatchId}`}
+                  isHighlighted={highlightedPostId === postMatchId}
+                  shouldOpenComments={openCommentsPostId === postMatchId}
+                />
+              );
+            })()
           ))}
         </div>
       )}

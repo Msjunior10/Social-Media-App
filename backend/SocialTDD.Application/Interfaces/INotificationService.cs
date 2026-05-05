@@ -11,5 +11,6 @@ public interface INotificationService
     Task CreateFollowNotificationAsync(Guid recipientUserId, Guid actorUserId);
     Task CreatePostLikeNotificationAsync(Guid recipientUserId, Guid actorUserId, Guid postId);
     Task CreatePostCommentNotificationAsync(Guid recipientUserId, Guid actorUserId, Guid postId);
+    Task CreatePostRepostNotificationAsync(Guid recipientUserId, Guid actorUserId, Guid postId);
     Task CreateDirectMessageNotificationAsync(Guid recipientUserId, Guid actorUserId, Guid directMessageId);
 }

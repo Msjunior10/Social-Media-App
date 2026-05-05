@@ -9,7 +9,7 @@ function FollowUser({ followerId, followingId, onFollowChange }) {
   const [error, setError] = useState(null);
   const [checkingStatus, setCheckingStatus] = useState(true);
 
-  // Kontrollera om användaren redan följs
+  // Check if the user is already being followed
   useEffect(() => {
     const checkFollowStatus = async () => {
       try {
@@ -23,19 +23,19 @@ function FollowUser({ followerId, followingId, onFollowChange }) {
         if (err instanceof ApiError) {
           switch (err.errorCode) {
             case ErrorCodes.TOKEN_EXPIRED:
-              setError('Din session har gått ut. Logga in igen.');
+              setError('Your session has expired. Please sign in again.');
               break;
             case ErrorCodes.NETWORK_ERROR:
-              setError('Kunde inte ansluta till servern.');
+              setError('Could not connect to the server.');
               break;
             case ErrorCodes.TIMEOUT_ERROR:
-              setError('Begäran tog för lång tid.');
+              setError('The request took too long.');
               break;
             default:
-              setError(err.message || 'Kunde inte kontrollera följstatus');
+              setError(err.message || 'Could not check follow status');
           }
         } else {
-          setError(err.message || 'Kunde inte kontrollera följstatus');
+          setError(err.message || 'Could not check follow status');
         }
       } finally {
         setCheckingStatus(false);
@@ -52,9 +52,9 @@ function FollowUser({ followerId, followingId, onFollowChange }) {
       setLoading(true);
       setError(null);
       
-      // Validera att followingId finns och är giltigt
+      // Validate that followingId exists and is valid
       if (!followingId) {
-        setError('Ogiltigt användar-ID.');
+        setError('Invalid user ID.');
         setLoading(false);
         return;
       }
@@ -68,33 +68,33 @@ function FollowUser({ followerId, followingId, onFollowChange }) {
       if (err instanceof ApiError) {
         switch (err.errorCode) {
           case ErrorCodes.TOKEN_EXPIRED:
-            setError('Din session har gått ut. Logga in igen.');
+            setError('Your session has expired. Please sign in again.');
             break;
           case ErrorCodes.NETWORK_ERROR:
-            setError('Kunde inte ansluta till servern.');
+            setError('Could not connect to the server.');
             break;
           case ErrorCodes.TIMEOUT_ERROR:
-            setError('Begäran tog för lång tid.');
+            setError('The request took too long.');
             break;
           case ErrorCodes.ALREADY_FOLLOWING:
-            // Om användaren redan följer, uppdatera ändå statusen och trigga refresh
+            // If the user is already following, still update status and trigger refresh
             setIsFollowing(true);
             if (onFollowChange) {
               onFollowChange(true);
             }
-            setError('Du följer redan denna användare.');
+            setError('You are already following this user.');
             break;
           case ErrorCodes.INVALID_USER_ID:
-            setError('Ogiltigt användar-ID.');
+            setError('Invalid user ID.');
             break;
           case ErrorCodes.INTERNAL_SERVER_ERROR:
-            setError('Ett serverfel uppstod. Försök igen senare.');
+            setError('A server error occurred. Please try again later.');
             break;
           default:
-            setError(err.message || 'Kunde inte följa användare');
+            setError(err.message || 'Could not follow user');
         }
       } else {
-        setError(err.message || 'Kunde inte följa användare');
+        setError(err.message || 'Could not follow user');
       }
     } finally {
       setLoading(false);
@@ -114,35 +114,35 @@ function FollowUser({ followerId, followingId, onFollowChange }) {
       if (err instanceof ApiError) {
         switch (err.errorCode) {
           case ErrorCodes.TOKEN_EXPIRED:
-            setError('Din session har gått ut. Logga in igen.');
+            setError('Your session has expired. Please sign in again.');
             break;
           case ErrorCodes.NETWORK_ERROR:
-            setError('Kunde inte ansluta till servern.');
+            setError('Could not connect to the server.');
             break;
           case ErrorCodes.TIMEOUT_ERROR:
-            setError('Begäran tog för lång tid.');
+            setError('The request took too long.');
             break;
           case ErrorCodes.USER_NOT_FOUND:
-            setError('Användaren kunde inte hittas.');
+            setError('The user could not be found.');
             break;
           default:
-            setError(err.message || 'Kunde inte avfölja användare');
+            setError(err.message || 'Could not unfollow user');
         }
       } else {
-        setError(err.message || 'Kunde inte avfölja användare');
+        setError(err.message || 'Could not unfollow user');
       }
     } finally {
       setLoading(false);
     }
   };
 
-  // Validera att både followerId och followingId finns
+  // Validate that both followerId and followingId exist
   if (!followerId || !followingId) {
-    return <div className="follow-user-error">Ogiltiga användar-ID:n</div>;
+    return <div className="follow-user-error">Invalid user IDs</div>;
   }
 
   if (checkingStatus) {
-    return <div className="follow-user-loading">Kontrollerar status...</div>;
+    return <div className="follow-user-loading">Checking status...</div>;
   }
 
   return (
@@ -154,7 +154,7 @@ function FollowUser({ followerId, followingId, onFollowChange }) {
           disabled={loading}
           className="follow-user-button unfollow-button"
         >
-          {loading ? 'Avföljer...' : 'Avfölj'}
+          {loading ? 'Unfollowing...' : 'Unfollow'}
         </button>
       ) : (
         <button
@@ -162,7 +162,7 @@ function FollowUser({ followerId, followingId, onFollowChange }) {
           disabled={loading}
           className="follow-user-button follow-button"
         >
-          {loading ? 'Följer...' : 'Följ'}
+          {loading ? 'Following...' : 'Follow'}
         </button>
       )}
     </div>

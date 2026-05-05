@@ -3,11 +3,15 @@
   overflow: hidden;
   margin: 0;
   padding: 24px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(246, 248, 252, 0.96));
+  background: var(--app-card-gradient);
   border: 1px solid var(--app-border);
   border-radius: 24px;
   box-shadow: var(--app-shadow-soft);
   animation: appSlideUp 0.45s ease both;
+}
+
+:root[data-theme='dark'] .send-dm-container {
+  border-color: rgba(198, 171, 255, 0.12);
 }
 
 .send-dm-container::before {
@@ -28,7 +32,7 @@
   padding: 7px 12px;
   border-radius: 999px;
   margin-bottom: 14px;
-  background: linear-gradient(135deg, rgba(49, 88, 242, 0.1), rgba(124, 58, 237, 0.12));
+  background: linear-gradient(135deg, rgba(var(--app-accent-rgb), 0.16), rgba(243, 74, 160, 0.12));
   color: var(--app-accent-strong);
   font-size: 12px;
   font-weight: 800;
@@ -137,8 +141,8 @@
 .selected-user-info {
   margin-top: 8px;
   padding: 10px 12px;
-  background: linear-gradient(135deg, rgba(49, 88, 242, 0.08), rgba(124, 58, 237, 0.08));
-  border: 1px solid rgba(49, 88, 242, 0.14);
+  background: linear-gradient(135deg, rgba(var(--app-accent-rgb), 0.12), rgba(243, 74, 160, 0.08));
+  border: 1px solid rgba(var(--app-accent-rgb), 0.16);
   border-radius: 14px;
   font-size: 14px;
   color: var(--app-accent-strong);
@@ -156,12 +160,12 @@
   cursor: pointer;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
   align-self: flex-start;
-  box-shadow: 0 16px 28px rgba(37, 99, 235, 0.22);
+  box-shadow: 0 16px 28px rgba(var(--app-accent-rgb), 0.24);
 }
 
 .send-dm-button:hover:not(:disabled) {
   transform: translateY(-1px);
-  box-shadow: 0 20px 34px rgba(37, 99, 235, 0.28);
+  box-shadow: 0 20px 34px rgba(var(--app-accent-rgb), 0.3);
 }
 
 .send-dm-button:disabled {
@@ -173,8 +177,8 @@
 .send-dm-error {
   padding: 12px;
   background-color: var(--app-danger-soft);
-  color: #7f1d1d;
-  border: 1px solid #fecaca;
+  color: var(--app-danger);
+  border: 1px solid var(--app-danger-border);
   border-radius: 14px;
   margin-bottom: 20px;
   font-size: 14px;
@@ -184,7 +188,7 @@
   padding: 12px;
   background-color: var(--app-success-soft);
   color: var(--app-success);
-  border: 1px solid #bbf7d0;
+  border: 1px solid color-mix(in srgb, var(--app-success) 24%, transparent);
   border-radius: 14px;
   margin-bottom: 20px;
   font-size: 14px;

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { notificationsApi } from '../services/notificationsApi';
+import { notificationsRealtime } from '../services/notificationsRealtime';
 import './Navigation.css';
 
 function Navigation() {
@@ -10,15 +11,15 @@ function Navigation() {
   const { username, logout } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [isNotificationBadgePulsing, setIsNotificationBadgePulsing] = useState(false);
 
   const navigationItems = [
-    { to: '/wall', label: 'Upptäck', icon: '⌂' },
-    { to: '/timeline', label: 'Tidslinje', icon: '✦' },
-    { to: '/saved', label: 'Sparat', icon: '✧' },
-    { to: '/', label: 'Nätverk', icon: '◎' },
-    { to: '/notifications', label: 'Notiser', icon: '◔' },
-    { to: '/messages', label: 'Meddelanden', icon: '✉' },
-    { to: '/profile', label: 'Profil', icon: '◌' },
+    { to: '/wall', label: 'Discover', icon: '⌂' },
+    { to: '/saved', label: 'Saved', icon: '✧' },
+    { to: '/', label: 'Network', icon: '◎' },
+    { to: '/notifications', label: 'Alerts', icon: '◔' },
+    { to: '/messages', label: 'Messages', icon: '✉' },
+    { to: '/profile', label: 'Profile', icon: '◌' },
   ];
 
   const handleLogout = () => {
@@ -44,6 +45,33 @@ function Navigation() {
 
   useEffect(() => {
     let isMounted = true;
+    let pulseTimeoutId = null;
+
+    const triggerBadgePulse = () => {
+      if (!isMounted) {
+        return;
+      }
+
+      setIsNotificationBadgePulsing(false);
+
+      window.setTimeout(() => {
+        if (!isMounted) {
+          return;
+        }
+
+        setIsNotificationBadgePulsing(true);
+
+        if (pulseTimeoutId) {
+          window.clearTimeout(pulseTimeoutId);
+        }
+
+        pulseTimeoutId = window.setTimeout(() => {
+          if (isMounted) {
+            setIsNotificationBadgePulsing(false);
+          }
+        }, 1600);
+      }, 20);
+    };
 
     const fetchUnreadCount = async () => {
       try {
@@ -61,12 +89,40 @@ function Navigation() {
     fetchUnreadCount();
 
     const intervalId = window.setInterval(fetchUnreadCount, 30000);
+    const unsubscribe = notificationsRealtime.subscribe((event) => {
+      if (!isMounted) {
+        return;
+      }
+
+      switch (event.type) {
+        case 'notification-received':
+          setUnreadCount(event.unreadCount ?? 0);
+          if (location.pathname !== '/notifications') {
+            triggerBadgePulse();
+          }
+          break;
+        case 'notification-read':
+        case 'notifications-read-all':
+          setUnreadCount(event.unreadCount ?? 0);
+          break;
+        case 'reconnected':
+          fetchUnreadCount();
+          break;
+        default:
+          break;
+      }
+    });
+
     const handleNotificationsUpdated = () => fetchUnreadCount();
     window.addEventListener('notifications-updated', handleNotificationsUpdated);
 
     return () => {
       isMounted = false;
       window.clearInterval(intervalId);
+      if (pulseTimeoutId) {
+        window.clearTimeout(pulseTimeoutId);
+      }
+      unsubscribe();
       window.removeEventListener('notifications-updated', handleNotificationsUpdated);
     };
   }, [location.pathname]);
@@ -85,7 +141,7 @@ function Navigation() {
         <button
           type="button"
           className={`navigation-menu-toggle ${isMobileMenuOpen ? 'open' : ''}`}
-          aria-label={isMobileMenuOpen ? 'Stäng meny' : 'Öppna meny'}
+          aria-label={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
           aria-expanded={isMobileMenuOpen}
           onClick={() => setIsMobileMenuOpen((value) => !value)}
         >
@@ -111,7 +167,7 @@ function Navigation() {
                 <span className="nav-link-icon" aria-hidden="true">{item.icon}</span>
                 <span className="nav-link-label">{item.label}</span>
                 {item.to === '/notifications' && unreadCount > 0 && (
-                  <span className="nav-link-badge">{unreadCount > 99 ? '99+' : unreadCount}</span>
+                  <span className={`nav-link-badge ${isNotificationBadgePulsing ? 'nav-link-badge-pulse' : ''}`.trim()}>{unreadCount > 99 ? '99+' : unreadCount}</span>
                 )}
               </Link>
             );
@@ -119,7 +175,7 @@ function Navigation() {
         </nav>
 
         <button type="button" className="navigation-compose-button" onClick={() => navigate('/profile')}>
-          Skapa i profil
+          Create from profile
         </button>
 
         <div className="navigation-user">
@@ -129,7 +185,7 @@ function Navigation() {
             <span className="navigation-handle">@{(username || 'user').toLowerCase()}</span>
           </div>
           <button onClick={handleLogout} className="logout-button">
-            Logga ut
+            Log out
           </button>
         </div>
       </div>

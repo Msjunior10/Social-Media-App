@@ -1,6 +1,46 @@
 import { ApiError, ErrorCodes } from './ApiError';
 
 const API_TIMEOUT = 10000; // 10 sekunder
+export const AUTH_EXPIRED_EVENT = 'socially:auth-expired';
+
+export const clearStoredAuth = () => {
+  localStorage.removeItem('token');
+  localStorage.removeItem('userId');
+  localStorage.removeItem('username');
+};
+
+export const isTokenExpired = (token) => {
+  if (!token) {
+    return true;
+  }
+
+  try {
+    const [, payloadBase64] = token.split('.');
+    if (!payloadBase64) {
+      return true;
+    }
+
+    const normalizedPayload = payloadBase64.replace(/-/g, '+').replace(/_/g, '/');
+    const paddingLength = (4 - (normalizedPayload.length % 4)) % 4;
+    const paddedPayload = normalizedPayload.padEnd(normalizedPayload.length + paddingLength, '=');
+    const payloadJson = atob(paddedPayload);
+    const payload = JSON.parse(payloadJson);
+
+    if (!payload.exp) {
+      return false;
+    }
+
+    return payload.exp * 1000 <= Date.now();
+  } catch {
+    return true;
+  }
+};
+
+const notifyAuthExpired = () => {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event(AUTH_EXPIRED_EVENT));
+  }
+};
 
 // Utility function för att hämta token från localStorage
 const getAuthToken = () => {
@@ -11,7 +51,7 @@ const createTimeoutPromise = (timeoutMs) => {
   return new Promise((_, reject) => {
     setTimeout(() => reject(new ApiError(
       ErrorCodes.TIMEOUT_ERROR,
-      'Begäran tog för lång tid. Kontrollera din internetanslutning.',
+      'The request took too long. Check your internet connection.',
       null
     )), timeoutMs);
   });
@@ -48,10 +88,11 @@ export const authenticatedFetch = async (url, options = {}) => {
 
     // Hantera 401 Unauthorized
     if (response.status === 401) {
-      localStorage.removeItem('token');
+      clearStoredAuth();
+      notifyAuthExpired();
       throw new ApiError(
         ErrorCodes.TOKEN_EXPIRED,
-        'Din session har gått ut. Logga in igen.',
+        'Your session has expired. Please sign in again.',
         401
       );
     }
@@ -67,7 +108,7 @@ export const authenticatedFetch = async (url, options = {}) => {
     if (error.name === 'TypeError' || error.message.includes('fetch')) {
       throw new ApiError(
         ErrorCodes.NETWORK_ERROR,
-        'Kunde inte ansluta till servern. Kontrollera din internetanslutning.',
+        'Could not connect to the server. Check your internet connection.',
         null
       );
     }
@@ -86,14 +127,14 @@ export const handleApiResponse = async (response) => {
       // Om vi inte kan parsa JSON, använd status text
       throw new ApiError(
         ErrorCodes.INTERNAL_SERVER_ERROR,
-        `Serverfel: ${response.statusText}`,
+        `Server error: ${response.statusText}`,
         response.status
       );
     }
 
     // Standardiserad felstruktur från backend
     const errorCode = errorData.errorCode || ErrorCodes.INTERNAL_SERVER_ERROR;
-    const message = errorData.message || errorData.error || 'Ett fel uppstod';
+    const message = errorData.message || errorData.error || 'An error occurred';
     
     throw new ApiError(errorCode, message, response.status, errorData.details);
   }

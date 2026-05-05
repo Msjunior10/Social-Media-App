@@ -40,6 +40,11 @@ public class ApplicationDbContext : DbContext
                 .HasForeignKey(e => e.RecipientId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            entity.HasOne(e => e.OriginalPost)
+                .WithMany(p => p.Reposts)
+                .HasForeignKey(e => e.OriginalPostId)
+                .OnDelete(DeleteBehavior.Restrict);
+
             entity.HasMany(e => e.Likes)
                 .WithOne(l => l.Post)
                 .HasForeignKey(l => l.PostId)
@@ -54,6 +59,8 @@ public class ApplicationDbContext : DbContext
                 .WithOne(b => b.Post)
                 .HasForeignKey(b => b.PostId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(e => e.OriginalPostId);
         });
 
         modelBuilder.Entity<PostLike>(entity =>
