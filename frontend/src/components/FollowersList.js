@@ -3,11 +3,24 @@ import { followApi } from '../services/followApi';
 import { userApi } from '../services/userApi';
 import './FollowersList.css';
 
-function FollowersList({ userId, onFollowerClick }) {
+function FollowersList({ userId, onFollowerClick, refreshKey = 0 }) {
   const [followers, setFollowers] = useState([]);
   const [usernames, setUsernames] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  const getInitials = (name) => {
+    if (!name) {
+      return '?';
+    }
+
+    return name
+      .split(' ')
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part[0]?.toUpperCase())
+      .join('');
+  };
 
   const fetchFollowers = useCallback(async () => {
     if (!userId) return;
@@ -42,7 +55,7 @@ function FollowersList({ userId, onFollowerClick }) {
 
   useEffect(() => {
     fetchFollowers();
-  }, [fetchFollowers]);
+  }, [fetchFollowers, refreshKey]);
 
   if (loading) {
     return (
@@ -75,7 +88,10 @@ function FollowersList({ userId, onFollowerClick }) {
   return (
     <div className="followers-list">
       <div className="followers-list-header">
-        <h3>Followers ({followers.length})</h3>
+        <div>
+          <span className="followers-list-kicker">Audience</span>
+          <h3>Followers ({followers.length})</h3>
+        </div>
         <button
           onClick={fetchFollowers}
           className="refresh-button"
@@ -97,16 +113,21 @@ function FollowersList({ userId, onFollowerClick }) {
               onClick={() => onFollowerClick && handleFollowerClick(follow.followerId)}
               style={{ cursor: onFollowerClick ? 'pointer' : 'default' }}
             >
-              <div className="follower-info">
-                <span className="follower-id">
-                  {usernames[follow.followerId] || follow.followerId}
-                </span>
-                <span className="follower-date">
-                  Following since: {new Date(follow.createdAt).toLocaleDateString('en-US')}
-                </span>
+              <div className="follower-main">
+                <div className="follower-avatar" aria-hidden="true">
+                  {getInitials(usernames[follow.followerId] || follow.followerId)}
+                </div>
+                <div className="follower-info">
+                  <span className="follower-id">
+                    {usernames[follow.followerId] || follow.followerId}
+                  </span>
+                  <span className="follower-date">
+                    Following since {new Date(follow.createdAt).toLocaleDateString('en-US')}
+                  </span>
+                </div>
               </div>
               {onFollowerClick && (
-                <span className="follower-action-hint">Click to open profile</span>
+                <span className="follower-action-hint">Open profile</span>
               )}
             </li>
           ))}

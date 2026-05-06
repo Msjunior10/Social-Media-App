@@ -114,6 +114,54 @@ public class DirectMessagesController : ControllerBase
         }
     }
 
+    [HttpGet]
+    public async Task<ActionResult<List<DirectMessageResponse>>> GetInboxMessages()
+    {
+        try
+        {
+            var userId = User.GetUserId();
+            var result = await _directMessageService.GetInboxAsync(userId);
+            return Ok(result);
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogWarning("Ogiltigt argument vid hämtning av DM-inkorg: {Message}", ex.Message);
+            return BadRequest(new ErrorResponse(ErrorCodes.INVALID_USER_ID, ex.Message));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Ett oväntat fel uppstod vid hämtning av DM-inkorg");
+            return StatusCode(500, new ErrorResponse(
+                ErrorCodes.INTERNAL_SERVER_ERROR,
+                "Ett oväntat fel uppstod. Försök igen senare."
+            ));
+        }
+    }
+
+    [HttpGet("conversation/{otherUserId:guid}")]
+    public async Task<ActionResult<List<DirectMessageResponse>>> GetConversation(Guid otherUserId)
+    {
+        try
+        {
+            var userId = User.GetUserId();
+            var result = await _directMessageService.GetConversationAsync(userId, otherUserId);
+            return Ok(result);
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogWarning("Ogiltigt argument vid hämtning av DM-konversation: {Message}", ex.Message);
+            return BadRequest(new ErrorResponse(ErrorCodes.INVALID_USER_ID, ex.Message));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Ett oväntat fel uppstod vid hämtning av DM-konversation");
+            return StatusCode(500, new ErrorResponse(
+                ErrorCodes.INTERNAL_SERVER_ERROR,
+                "Ett oväntat fel uppstod. Försök igen senare."
+            ));
+        }
+    }
+
     [HttpPut("{messageId}/read")]
     public async Task<IActionResult> MarkAsRead(Guid messageId)
     {

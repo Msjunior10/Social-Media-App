@@ -8,6 +8,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import FollowUser from './components/FollowUser';
 import FollowersList from './components/FollowersList';
 import FollowingList from './components/FollowingList';
+import NetworkSuggestions from './components/NetworkSuggestions';
 import Wall from './components/Wall';
 import DirectMessages from './components/DirectMessages';
 import Notifications from './components/Notifications';
@@ -94,6 +95,14 @@ function AppContent() {
             }
           />
           <Route
+            path="/messages/:userId"
+            element={
+              <ProtectedRoute>
+                <MessagesPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/create-post"
             element={
               <ProtectedRoute>
@@ -143,9 +152,11 @@ function ThemeToggleButton() {
   );
 }
 
-function AppShell({ title, subtitle, children, rightSidebar }) {
+function AppShell({ title, subtitle, children, rightSidebar, hideRightSidebar = false, shellClassName = '' }) {
+  const shellClasses = ['app-shell', shellClassName].filter(Boolean).join(' ');
+
   return (
-    <div className="app-shell">
+    <div className={shellClasses}>
       <aside className="app-shell-sidebar">
         <Navigation />
       </aside>
@@ -162,9 +173,11 @@ function AppShell({ title, subtitle, children, rightSidebar }) {
         </div>
       </section>
 
-      <aside className="app-shell-right">
-        {rightSidebar || <DefaultRightSidebar />}
-      </aside>
+      {!hideRightSidebar && (
+        <aside className="app-shell-right">
+          {rightSidebar || <DefaultRightSidebar />}
+        </aside>
+      )}
     </div>
   );
 }
@@ -320,6 +333,7 @@ function DefaultRightSidebar() {
 function FollowPage() {
   const { userId } = useAuth();
   const navigate = useNavigate();
+  const [networkRefreshKey, setNetworkRefreshKey] = useState(0);
 
   const handleUserSelect = (user) => {
     if (user?.id) {
@@ -328,7 +342,7 @@ function FollowPage() {
   };
 
   return (
-    <AppShell title="Explore" subtitle="Search for people and grow your network.">
+    <AppShell title="Network" subtitle="Search for people, discover profiles, and grow your network.">
       <div className="content-panel">
         <div className="user-input-section">
           <div className="input-group">
@@ -341,14 +355,22 @@ function FollowPage() {
           </div>
         </div>
 
+        <NetworkSuggestions
+          userId={userId}
+          refreshKey={networkRefreshKey}
+          onFollowChange={() => setNetworkRefreshKey((value) => value + 1)}
+        />
+
         <div className="lists-section">
           <div className="lists-container">
             <FollowersList 
               userId={userId}
+              refreshKey={networkRefreshKey}
               onFollowerClick={handleUserSelect}
             />
             <FollowingList 
               userId={userId}
+              refreshKey={networkRefreshKey}
               onFollowingClick={handleUserSelect}
             />
           </div>
@@ -371,7 +393,12 @@ function WallPage() {
 function MessagesPage() {
   const { userId } = useAuth();
   return (
-    <AppShell title="Messages" subtitle="Private conversations in real time.">
+    <AppShell
+      title="Messages"
+      subtitle="Private conversations in a dedicated space."
+      hideRightSidebar
+      shellClassName="app-shell-messages"
+    >
       <DirectMessages userId={userId} />
     </AppShell>
   );
@@ -412,7 +439,7 @@ function ProfilePage() {
   return (
     <AppShell title="My profile" subtitle="Manage your identity and create your posts here.">
       <div className="profile-page-container">
-        <UserProfile userId={userId} isEditable />
+        <UserProfile userId={userId} isEditable refreshKey={refreshKey} />
         <CreatePost
           senderId={userId}
           compact
@@ -436,6 +463,7 @@ function PublicProfilePage() {
   const { userId: currentUserId } = useAuth();
   const { userId: profileUserId } = useParams();
   const location = useLocation();
+  const [refreshKey, setRefreshKey] = useState(0);
   const searchParams = new URLSearchParams(location.search);
   const highlightedPostId = searchParams.get('postId');
   const openCommentsPostId = searchParams.get('openComments') === '1'
@@ -451,10 +479,14 @@ function PublicProfilePage() {
   return (
     <AppShell title="Profile" subtitle="View the user&apos;s public presence.">
       <div className="profile-page-container">
-        <UserProfile userId={profileUserId} isEditable={false} />
+        <UserProfile userId={profileUserId} isEditable={false} refreshKey={refreshKey} />
         {!isOwnProfile && (
           <div className="public-profile-actions">
-            <FollowUser followerId={currentUserId} followingId={profileUserId} />
+            <FollowUser
+              followerId={currentUserId}
+              followingId={profileUserId}
+              onFollowChange={() => setRefreshKey((value) => value + 1)}
+            />
           </div>
         )}
         <ProfilePosts

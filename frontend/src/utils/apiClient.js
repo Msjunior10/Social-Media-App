@@ -1,7 +1,7 @@
 import { ApiError, ErrorCodes } from './ApiError';
 
 const API_TIMEOUT = 10000; // 10 sekunder
-export const AUTH_EXPIRED_EVENT = 'socially:auth-expired';
+export const AUTH_EXPIRED_EVENT = 'postra:auth-expired';
 
 export const clearStoredAuth = () => {
   localStorage.removeItem('token');

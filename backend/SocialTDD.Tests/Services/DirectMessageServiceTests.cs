@@ -235,6 +235,117 @@ public class DirectMessageServiceTests
     }
 
     [Fact]
+    public async Task GetInboxAsync_ValidUser_ReturnsSentAndReceivedMessagesSortedNewestFirst()
+    {
+        // Arrange
+        var userId = Guid.NewGuid();
+        var otherUserId = Guid.NewGuid();
+        var now = DateTime.UtcNow;
+
+        var receivedMessages = new List<DirectMessage>
+        {
+            new DirectMessage
+            {
+                Id = Guid.NewGuid(),
+                SenderId = otherUserId,
+                RecipientId = userId,
+                Message = "Received first",
+                CreatedAt = now.AddMinutes(-10),
+                IsRead = false
+            }
+        };
+
+        var sentMessages = new List<DirectMessage>
+        {
+            new DirectMessage
+            {
+                Id = Guid.NewGuid(),
+                SenderId = userId,
+                RecipientId = otherUserId,
+                Message = "Sent latest",
+                CreatedAt = now.AddMinutes(-2),
+                IsRead = true
+            }
+        };
+
+        _mockRepository.Setup(r => r.UserExistsAsync(userId)).ReturnsAsync(true);
+        _mockRepository.Setup(r => r.GetByRecipientIdAsync(userId)).ReturnsAsync(receivedMessages);
+        _mockRepository.Setup(r => r.GetBySenderIdAsync(userId)).ReturnsAsync(sentMessages);
+
+        // Act
+        var result = await _directMessageService.GetInboxAsync(userId);
+
+        // Assert
+        result.Should().HaveCount(2);
+        result[0].Message.Should().Be("Sent latest");
+        result[1].Message.Should().Be("Received first");
+        _mockRepository.Verify(r => r.GetByRecipientIdAsync(userId), Times.Once);
+        _mockRepository.Verify(r => r.GetBySenderIdAsync(userId), Times.Once);
+    }
+
+    [Fact]
+    public async Task GetConversationAsync_ValidUsers_ReturnsMessagesInChronologicalOrder()
+    {
+        // Arrange
+        var userId = Guid.NewGuid();
+        var otherUserId = Guid.NewGuid();
+        var now = DateTime.UtcNow;
+
+        var messages = new List<DirectMessage>
+        {
+            new DirectMessage
+            {
+                Id = Guid.NewGuid(),
+                SenderId = userId,
+                RecipientId = otherUserId,
+                Message = "Hej",
+                CreatedAt = now.AddMinutes(-5),
+                IsRead = true
+            },
+            new DirectMessage
+            {
+                Id = Guid.NewGuid(),
+                SenderId = otherUserId,
+                RecipientId = userId,
+                Message = "Hej tillbaka",
+                CreatedAt = now.AddMinutes(-1),
+                IsRead = false
+            }
+        };
+
+        _mockRepository.Setup(r => r.UserExistsAsync(userId)).ReturnsAsync(true);
+        _mockRepository.Setup(r => r.UserExistsAsync(otherUserId)).ReturnsAsync(true);
+        _mockRepository.Setup(r => r.GetConversationAsync(userId, otherUserId)).ReturnsAsync(messages);
+
+        // Act
+        var result = await _directMessageService.GetConversationAsync(userId, otherUserId);
+
+        // Assert
+        result.Should().HaveCount(2);
+        result[0].Message.Should().Be("Hej");
+        result[1].Message.Should().Be("Hej tillbaka");
+        _mockRepository.Verify(r => r.GetConversationAsync(userId, otherUserId), Times.Once);
+    }
+
+    [Fact]
+    public async Task GetConversationAsync_InvalidOtherUser_ThrowsArgumentException()
+    {
+        // Arrange
+        var userId = Guid.NewGuid();
+        var otherUserId = Guid.NewGuid();
+
+        _mockRepository.Setup(r => r.UserExistsAsync(userId)).ReturnsAsync(true);
+        _mockRepository.Setup(r => r.UserExistsAsync(otherUserId)).ReturnsAsync(false);
+
+        // Act
+        var exception = await Assert.ThrowsAsync<ArgumentException>(() => _directMessageService.GetConversationAsync(userId, otherUserId));
+
+        // Assert
+        exception.Message.Should().Contain("finns inte");
+        _mockRepository.Verify(r => r.GetConversationAsync(It.IsAny<Guid>(), It.IsAny<Guid>()), Times.Never);
+    }
+
+    [Fact]
     public async Task MarkAsReadAsync_ValidMessage_MarksAsRead()
     {
         // Arrange

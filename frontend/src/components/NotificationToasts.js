@@ -23,7 +23,7 @@ function NotificationToasts() {
     const target = getNotificationTarget(notification);
 
     return currentPath === '/notifications'
-      || (notification.type === 'direct_message' && currentPath === '/messages')
+      || (notification.type === 'direct_message' && currentPath.startsWith('/messages'))
       || (notification.type === 'follow' && target === currentPath);
   }, [currentPath]);
 
@@ -206,7 +206,7 @@ function getNotificationIcon(type) {
 function getNotificationTarget(notification) {
   switch (notification.type) {
     case 'direct_message':
-      return '/messages';
+      return notification.actorId ? `/messages/${notification.actorId}` : '/messages';
     case 'follow':
       return `/users/${notification.actorId}`;
     case 'post_like':

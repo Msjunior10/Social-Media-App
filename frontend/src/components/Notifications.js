@@ -11,6 +11,7 @@ function Notifications() {
   const [loading, setLoading] = useState(true);
   const [isMarkingAll, setIsMarkingAll] = useState(false);
   const [error, setError] = useState(null);
+  const [activeFilter, setActiveFilter] = useState('all');
 
   const getFriendlyError = (err) => {
     if (err instanceof ApiError) {
@@ -119,7 +120,7 @@ function Notifications() {
   const getNotificationTarget = (notification) => {
     switch (notification.type) {
       case 'direct_message':
-        return '/messages';
+        return notification.actorId ? `/messages/${notification.actorId}` : '/messages';
       case 'follow':
         return `/users/${notification.actorId}`;
       case 'post_like':
@@ -145,6 +146,23 @@ function Notifications() {
         return 'message';
       default:
         return type.replaceAll('_', ' ');
+    }
+  };
+
+  const getNotificationIcon = (type) => {
+    switch (type) {
+      case 'follow':
+        return '↗';
+      case 'post_like':
+        return '♥';
+      case 'post_comment':
+        return '💬';
+      case 'post_repost':
+        return '⟳';
+      case 'direct_message':
+        return '✉';
+      default:
+        return '•';
     }
   };
 
@@ -177,6 +195,29 @@ function Notifications() {
   };
 
   const unreadCount = notifications.filter((item) => !item.isRead).length;
+  const latestNotificationAt = notifications[0]?.createdAt;
+  const filterItems = [
+    { id: 'all', label: 'All' },
+    { id: 'unread', label: 'Unread' },
+    { id: 'posts', label: 'Posts' },
+    { id: 'follows', label: 'Follows' },
+    { id: 'messages', label: 'Messages' },
+  ];
+
+  const filteredNotifications = notifications.filter((notification) => {
+    switch (activeFilter) {
+      case 'unread':
+        return !notification.isRead;
+      case 'posts':
+        return ['post_like', 'post_comment', 'post_repost'].includes(notification.type);
+      case 'follows':
+        return notification.type === 'follow';
+      case 'messages':
+        return notification.type === 'direct_message';
+      default:
+        return true;
+    }
+  });
 
   if (loading) {
     return (
@@ -190,6 +231,7 @@ function Notifications() {
     <div className="notifications-panel">
       <div className="notifications-header">
         <div>
+          <span className="notifications-kicker">Activity center</span>
           <h2 className="notifications-title">Notifications</h2>
           <p className="notifications-subtitle">Likes, comments, reposts, followers, and direct messages collected in one place.</p>
         </div>
@@ -205,25 +247,62 @@ function Notifications() {
 
       {error && <div className="notifications-error">{error}</div>}
 
-      {notifications.length === 0 ? (
+      <div className="notifications-summary-strip">
+        <div className="notifications-summary-card">
+          <strong>{notifications.length}</strong>
+          <span>Total</span>
+        </div>
+        <div className="notifications-summary-card notifications-summary-card-accent">
+          <strong>{unreadCount}</strong>
+          <span>Unread</span>
+        </div>
+        <div className="notifications-summary-card">
+          <strong>{notifications.filter((item) => item.type === 'direct_message').length}</strong>
+          <span>Messages</span>
+        </div>
+        <div className="notifications-summary-card">
+          <strong>{latestNotificationAt ? formatDate(latestNotificationAt) : '—'}</strong>
+          <span>Latest activity</span>
+        </div>
+      </div>
+
+      <div className="notifications-filters" role="tablist" aria-label="Notification filters">
+        {filterItems.map((filter) => (
+          <button
+            key={filter.id}
+            type="button"
+            className={`notifications-filter ${activeFilter === filter.id ? 'active' : ''}`}
+            onClick={() => setActiveFilter(filter.id)}
+          >
+            {filter.label}
+          </button>
+        ))}
+      </div>
+
+      {filteredNotifications.length === 0 ? (
         <div className="notifications-empty">
-          <strong>No notifications yet.</strong>
-          <span>When someone interacts with you, it will appear here.</span>
+          <strong>{notifications.length === 0 ? 'No notifications yet.' : 'Nothing matches this filter.'}</strong>
+          <span>{notifications.length === 0 ? 'When someone interacts with you, it will appear here.' : 'Try another filter to see the rest of your activity.'}</span>
         </div>
       ) : (
         <div className="notifications-list">
-          {notifications.map((notification) => (
+          {filteredNotifications.map((notification) => (
             <button
               key={notification.id}
               type="button"
               className={`notifications-item ${notification.isRead ? 'read' : 'unread'}`}
               onClick={() => handleOpenNotification(notification)}
             >
-              <div className="notifications-item-top">
-                <span className="notifications-item-type">{formatNotificationType(notification.type)}</span>
-                <span className="notifications-item-date">{formatDate(notification.createdAt)}</span>
+              <div className="notifications-item-main">
+                <div className="notifications-item-icon" aria-hidden="true">{getNotificationIcon(notification.type)}</div>
+                <div className="notifications-item-body">
+                  <div className="notifications-item-top">
+                    <span className="notifications-item-type">{formatNotificationType(notification.type)}</span>
+                    <span className="notifications-item-date">{formatDate(notification.createdAt)}</span>
+                  </div>
+                  <div className="notifications-item-message">{notification.message}</div>
+                </div>
               </div>
-              <div className="notifications-item-message">{notification.message}</div>
               {!notification.isRead && <span className="notifications-unread-pill">New</span>}
             </button>
           ))}

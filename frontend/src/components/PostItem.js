@@ -43,6 +43,35 @@ function PostItem({
   const originalHandle = originalSenderName ? `@${String(originalSenderName).toLowerCase().replace(/\s+/g, '')}` : null;
   const originalInitial = String(originalSenderName || '').charAt(0).toUpperCase();
 
+  const isVideoUrl = (url) => {
+    if (!url) {
+      return false;
+    }
+
+    try {
+      const parsedUrl = new URL(url, window.location.origin);
+      return /\.(mp4|webm|ogg)$/i.test(parsedUrl.pathname);
+    } catch {
+      return /\.(mp4|webm|ogg)(\?.*)?$/i.test(url);
+    }
+  };
+
+  const renderPostMedia = (url, altText) => {
+    if (!url) {
+      return null;
+    }
+
+    return (
+      <div className="post-image-wrapper">
+        {isVideoUrl(url) ? (
+          <video src={url} className="post-media" autoPlay muted loop playsInline controls preload="metadata" />
+        ) : (
+          <img src={url} alt={altText} className="post-media" />
+        )}
+      </div>
+    );
+  };
+
   const getFriendlyError = (error, fallbackMessage) => {
     if (error instanceof ApiError) {
       switch (error.errorCode) {
@@ -310,21 +339,13 @@ function PostItem({
                 </div>
               </div>
               <div className="post-message">{post.originalMessage}</div>
-              {post.originalImageUrl && (
-                <div className="post-image-wrapper">
-                  <img src={post.originalImageUrl} alt="Reposted content preview" className="post-image" />
-                </div>
-              )}
+              {renderPostMedia(post.originalImageUrl, 'Reposted content preview')}
             </div>
           ) : (
             <div className="post-message">{post.message}</div>
           )}
 
-          {!isRepostEntry && post.imageUrl && (
-            <div className="post-image-wrapper">
-              <img src={post.imageUrl} alt="Post attachment preview" className="post-image" />
-            </div>
-          )}
+          {!isRepostEntry && renderPostMedia(post.imageUrl, 'Post attachment preview')}
 
           {recipientContent}
 
@@ -335,14 +356,14 @@ function PostItem({
               onClick={handleToggleLike}
               disabled={isSubmitting}
             >
-              {post.isLikedByCurrentUser ? 'Liked' : 'Like'} ({post.likeCount || 0})
+              {post.isLikedByCurrentUser ? '♥ Liked' : '♥ Like'} ({post.likeCount || 0})
             </button>
             <button
               type="button"
               className="post-action-button"
               onClick={() => setShowComments((prev) => !prev)}
             >
-              Replies ({post.comments?.length || 0})
+              💬 Replies ({post.comments?.length || 0})
             </button>
             <button
               type="button"
@@ -350,7 +371,7 @@ function PostItem({
               onClick={handleToggleRepost}
               disabled={isSubmitting}
             >
-              {post.isRepostedByCurrentUser ? 'Reposted' : 'Repost'} ({post.repostCount || 0})
+              {post.isRepostedByCurrentUser ? '↻ Reposted' : '↻ Repost'} ({post.repostCount || 0})
             </button>
             <button
               type="button"
@@ -358,7 +379,7 @@ function PostItem({
               onClick={handleToggleBookmark}
               disabled={isSubmitting}
             >
-              {post.isBookmarkedByCurrentUser ? 'Saved' : 'Save'}
+              {post.isBookmarkedByCurrentUser ? '★ Saved' : '☆ Save'}
             </button>
           </div>
 
@@ -493,7 +514,7 @@ function PostItem({
                 onClick={handleToggleRepost}
                 disabled={isSubmitting}
               >
-                {isSubmitting ? 'Deleting...' : 'Remove repost'}
+                {isSubmitting ? 'Deleting...' : '🗑 Remove repost'}
               </button>
             </div>
           )}

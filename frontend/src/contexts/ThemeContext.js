@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 
 const ThemeContext = createContext(null);
-const THEME_STORAGE_KEY = 'socialtdd-theme';
+const THEME_STORAGE_KEY = 'postra-theme';
 
 const getInitialTheme = () => {
   if (typeof window === 'undefined') {

@@ -6,8 +6,16 @@ import './CreatePost.css';
 
 const MAX_MESSAGE_LENGTH = 500;
 const MIN_MESSAGE_LENGTH = 1;
-const MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024;
-const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+const MAX_MEDIA_SIZE_BYTES = 25 * 1024 * 1024;
+const ALLOWED_MEDIA_TYPES = [
+  'image/jpeg',
+  'image/png',
+  'image/gif',
+  'image/webp',
+  'video/mp4',
+  'video/webm',
+  'video/ogg',
+];
 
 const postSchema = yup.object().shape({
   message: yup
@@ -23,8 +31,8 @@ const postSchema = yup.object().shape({
 
 function CreatePost({ senderId, onPostCreated, compact = false }) {
   const [message, setMessage] = useState('');
-  const [selectedImage, setSelectedImage] = useState(null);
-  const [imagePreviewUrl, setImagePreviewUrl] = useState('');
+  const [selectedMedia, setSelectedMedia] = useState(null);
+  const [mediaPreviewUrl, setMediaPreviewUrl] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(false);
@@ -32,18 +40,20 @@ function CreatePost({ senderId, onPostCreated, compact = false }) {
   const [touched, setTouched] = useState({});
 
   useEffect(() => {
-    if (!selectedImage) {
-      setImagePreviewUrl('');
+    if (!selectedMedia) {
+      setMediaPreviewUrl('');
       return undefined;
     }
 
-    const previewUrl = URL.createObjectURL(selectedImage);
-    setImagePreviewUrl(previewUrl);
+    const previewUrl = URL.createObjectURL(selectedMedia);
+    setMediaPreviewUrl(previewUrl);
 
     return () => {
       URL.revokeObjectURL(previewUrl);
     };
-  }, [selectedImage]);
+  }, [selectedMedia]);
+
+  const isVideoPreview = Boolean(selectedMedia?.type?.startsWith('video/'));
 
   useEffect(() => {
     if (touched.message && message.trim().length > 0) {
@@ -64,15 +74,15 @@ function CreatePost({ senderId, onPostCreated, compact = false }) {
     setError(null);
     setValidationErrors({});
 
-    if (selectedImage) {
-      if (!ALLOWED_IMAGE_TYPES.includes(selectedImage.type)) {
-        setValidationErrors({ image: 'Only JPG, PNG, GIF, and WEBP images are allowed.' });
+    if (selectedMedia) {
+      if (!ALLOWED_MEDIA_TYPES.includes(selectedMedia.type)) {
+        setValidationErrors({ image: 'Only JPG, PNG, GIF, WEBP, MP4, WEBM, and OGG files are allowed.' });
         setError('Validation error. Please check your input.');
         return false;
       }
 
-      if (selectedImage.size > MAX_IMAGE_SIZE_BYTES) {
-        setValidationErrors({ image: 'The image cannot be larger than 5 MB.' });
+      if (selectedMedia.size > MAX_MEDIA_SIZE_BYTES) {
+        setValidationErrors({ image: 'The media file cannot be larger than 25 MB.' });
         setError('Validation error. Please check your input.');
         return false;
       }
@@ -108,11 +118,11 @@ function CreatePost({ senderId, onPostCreated, compact = false }) {
       setError(null);
       setSuccess(false);
 
-      await postsApi.createPost(message.trim(), selectedImage);
+      await postsApi.createPost(message.trim(), selectedMedia);
 
       setSuccess(true);
       setMessage('');
-      setSelectedImage(null);
+      setSelectedMedia(null);
       setTouched({});
 
       if (onPostCreated) {
@@ -170,27 +180,27 @@ function CreatePost({ senderId, onPostCreated, compact = false }) {
     setValidationErrors((prev) => ({ ...prev, image: null }));
 
     if (!file) {
-      setSelectedImage(null);
+      setSelectedMedia(null);
       return;
     }
 
-    if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
-      setSelectedImage(null);
-      setValidationErrors((prev) => ({ ...prev, image: 'Only JPG, PNG, GIF, and WEBP images are allowed.' }));
+    if (!ALLOWED_MEDIA_TYPES.includes(file.type)) {
+      setSelectedMedia(null);
+      setValidationErrors((prev) => ({ ...prev, image: 'Only JPG, PNG, GIF, WEBP, MP4, WEBM, and OGG files are allowed.' }));
       return;
     }
 
-    if (file.size > MAX_IMAGE_SIZE_BYTES) {
-      setSelectedImage(null);
-      setValidationErrors((prev) => ({ ...prev, image: 'The image cannot be larger than 5 MB.' }));
+    if (file.size > MAX_MEDIA_SIZE_BYTES) {
+      setSelectedMedia(null);
+      setValidationErrors((prev) => ({ ...prev, image: 'The media file cannot be larger than 25 MB.' }));
       return;
     }
 
-    setSelectedImage(file);
+    setSelectedMedia(file);
   };
 
   const handleRemoveImage = () => {
-    setSelectedImage(null);
+    setSelectedMedia(null);
     setValidationErrors((prev) => ({ ...prev, image: null }));
   };
 
@@ -246,30 +256,33 @@ function CreatePost({ senderId, onPostCreated, compact = false }) {
 
         <div className="create-post-field">
           <label htmlFor="image" className="create-post-label">
-            Image (optional)
+            Photo or video (optional)
           </label>
           <p className="create-post-helper-text">
-            You can upload a JPG, PNG, GIF, or WEBP image up to 5 MB.
+            You can upload JPG, PNG, GIF, WEBP, MP4, WEBM, or OGG files up to 25 MB.
           </p>
           <input
             id="image"
             name="image"
             type="file"
-            accept="image/jpeg,image/png,image/gif,image/webp"
+            accept="image/jpeg,image/png,image/gif,image/webp,video/mp4,video/webm,video/ogg"
             onChange={handleImageChange}
             className="create-post-file-input"
             disabled={loading}
           />
 
-          {selectedImage && (
+          {selectedMedia && (
             <div className="create-post-image-preview">
-              {imagePreviewUrl && (
-                <img src={imagePreviewUrl} alt="Selected post preview" className="create-post-preview-image" />
+              {mediaPreviewUrl && (isVideoPreview ? (
+                <video src={mediaPreviewUrl} className="create-post-preview-media" controls muted />
+              ) : (
+                <img src={mediaPreviewUrl} alt="Selected post preview" className="create-post-preview-media" />
+              ))}
               )}
               <div className="create-post-image-meta">
-                <span>{selectedImage.name}</span>
+                <span>{selectedMedia.name}</span>
                 <button type="button" className="create-post-remove-image" onClick={handleRemoveImage} disabled={loading}>
-                  Remove image
+                  Remove file
                 </button>
               </div>
             </div>

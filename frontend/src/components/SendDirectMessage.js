@@ -119,7 +119,7 @@ function SendDirectMessage({ senderId, onMessageSent }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!validateForm()) {
+    if (!(await validateForm())) {
       return;
     }
 
