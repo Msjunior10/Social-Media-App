@@ -95,6 +95,9 @@ logs/
 *.temp
 *.cache
 
+## Runtime uploaded media
+backend/SocialTDD.Api/wwwroot/uploads/posts/
+
 ## Test results and coverage
 TestResults/
 [Tt]est[Rr]esult*/
