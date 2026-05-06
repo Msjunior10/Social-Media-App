@@ -64,11 +64,11 @@ function Login() {
   return (
     <div className="login-container">
       <div className="login-card">
-        <div className="login-badge">Socially Access</div>
+        <div className="login-badge">Postra Access</div>
         <h2 className="login-title">Sign in</h2>
         <p className="login-subtitle">
-          Welcome back to a more curated social feed with a stronger sense of identity,
-          rhythm, and presence.
+          Welcome back to Postra — your place to share what matters, stay close to your circle,
+          and keep every conversation moving.
         </p>
 
         <div className="login-highlights" aria-hidden="true">

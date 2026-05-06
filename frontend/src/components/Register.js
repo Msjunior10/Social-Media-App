@@ -130,11 +130,11 @@ function Register() {
   return (
     <div className="register-container">
       <div className="register-card">
-        <div className="register-badge">Create your Socially identity</div>
+        <div className="register-badge">Create your Postra identity</div>
         <h2 className="register-title">Create account</h2>
         <p className="register-subtitle">
-          Create a profile with more presence, share faster, and build a network in a more
-          polished experience.
+          Join Postra to build your identity, share with confidence, and create stronger
+          connections in a cleaner social space.
         </p>
 
         <div className="register-highlights" aria-hidden="true">

@@ -5,6 +5,7 @@ import './UserSearch.css';
 function UserSearch({ onUserSelect, placeholder = 'Search for users...', excludeUserId = null }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [users, setUsers] = useState([]);
+  const [suggestedUsers, setSuggestedUsers] = useState([]);
   const [selectedUser, setSelectedUser] = useState(null);
   const [loading, setLoading] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
@@ -34,13 +35,42 @@ function UserSearch({ onUserSelect, placeholder = 'Search for users...', exclude
 
   // Search users with debounce
   useEffect(() => {
+    let isMounted = true;
+
+    const fetchSuggestedUsers = async () => {
+      try {
+        const allUsers = await userApi.getAllUsers();
+        if (!isMounted) {
+          return;
+        }
+
+        const filteredUsers = (Array.isArray(allUsers) ? allUsers : [])
+          .filter((user) => !excludeUserId || user.id !== excludeUserId)
+          .slice(0, 6);
+
+        setSuggestedUsers(filteredUsers);
+      } catch {
+        if (isMounted) {
+          setSuggestedUsers([]);
+        }
+      }
+    };
+
+    fetchSuggestedUsers();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [excludeUserId]);
+
+  useEffect(() => {
     if (searchTimeoutRef.current) {
       clearTimeout(searchTimeoutRef.current);
     }
 
     if (searchTerm.trim().length < 2) {
       setUsers([]);
-      setShowDropdown(false);
+      setLoading(false);
       return;
     }
 
@@ -91,7 +121,7 @@ function UserSearch({ onUserSelect, placeholder = 'Search for users...', exclude
   };
 
   const handleInputFocus = () => {
-    if (users.length > 0 && searchTerm.trim().length >= 2) {
+    if ((users.length > 0 && searchTerm.trim().length >= 2) || (searchTerm.trim().length < 2 && suggestedUsers.length > 0)) {
       setShowDropdown(true);
     }
   };
@@ -113,6 +143,22 @@ function UserSearch({ onUserSelect, placeholder = 'Search for users...', exclude
     if (inputRef.current) {
       inputRef.current.focus();
     }
+  };
+
+  const usersToRender = searchTerm.trim().length >= 2 ? users : suggestedUsers;
+  const dropdownTitle = searchTerm.trim().length >= 2 ? 'Search results' : 'Suggested people';
+
+  const getInitials = (name) => {
+    if (!name) {
+      return '?';
+    }
+
+    return name
+      .split(' ')
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part[0]?.toUpperCase())
+      .join('');
   };
 
   return (
@@ -150,15 +196,24 @@ function UserSearch({ onUserSelect, placeholder = 'Search for users...', exclude
         </div>
       )}
 
+      <div className="user-search-helper-text">
+        {selectedUser
+          ? `Selected: ${selectedUser.username}`
+          : searchTerm.trim().length >= 2
+            ? `${users.length} result${users.length === 1 ? '' : 's'} for “${searchTerm.trim()}”`
+            : 'Type at least 2 characters or choose someone from the suggestions below.'}
+      </div>
+
       {showDropdown && (
         <div ref={dropdownRef} className="user-search-dropdown">
-          {users.length === 0 ? (
+          <div className="user-search-dropdown-header">{dropdownTitle}</div>
+          {usersToRender.length === 0 ? (
             <div className="user-search-no-results">
-              {loading ? 'Searching...' : 'No users found'}
+              {loading ? 'Searching...' : searchTerm.trim().length >= 2 ? 'No users found' : 'No suggestions available'}
             </div>
           ) : (
             <ul className="user-search-list">
-              {users.map((user) => (
+              {usersToRender.map((user) => (
                 <li
                   key={user.id}
                   className={`user-search-item ${
@@ -175,10 +230,16 @@ function UserSearch({ onUserSelect, placeholder = 'Search for users...', exclude
                   role="option"
                   aria-selected={selectedUser?.id === user.id}
                 >
-                  <span className="user-search-username">{user.username}</span>
-                  {user.email && (
-                    <span className="user-search-email">{user.email}</span>
-                  )}
+                  <div className="user-search-avatar">
+                    {getInitials(user.username)}
+                  </div>
+                  <div className="user-search-meta">
+                    <span className="user-search-username">{user.username}</span>
+                    {user.email && (
+                      <span className="user-search-email">{user.email}</span>
+                    )}
+                  </div>
+                  <span className="user-search-action">Open</span>
                 </li>
               ))}
             </ul>

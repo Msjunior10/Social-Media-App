@@ -19,8 +19,9 @@ function Wall({ userId, refreshKey = 0, showHeader = true }) {
       setLoading(true);
       setError(null);
       const wallPosts = await wallApi.getWall();
+
       // Sort posts so the newest appears first (chronological order)
-      const sortedPosts = wallPosts.sort((a, b) => {
+      const sortedPosts = [...wallPosts].sort((a, b) => {
         return new Date(b.createdAt) - new Date(a.createdAt);
       });
       setPosts(sortedPosts);

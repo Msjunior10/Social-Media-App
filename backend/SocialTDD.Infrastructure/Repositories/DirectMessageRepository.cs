@@ -21,6 +21,18 @@ public class DirectMessageRepository : IDirectMessageRepository
         return directMessage;
     }
 
+    public async Task<IEnumerable<DirectMessage>> GetConversationAsync(Guid userId, Guid otherUserId)
+    {
+        return await _context.DirectMessages
+            .Include(dm => dm.Sender)
+            .Include(dm => dm.Recipient)
+            .Where(dm =>
+                (dm.SenderId == userId && dm.RecipientId == otherUserId)
+                || (dm.SenderId == otherUserId && dm.RecipientId == userId))
+            .OrderBy(dm => dm.CreatedAt)
+            .ToListAsync();
+    }
+
     public async Task<IEnumerable<DirectMessage>> GetByRecipientIdAsync(Guid recipientId)
     {
         return await _context.DirectMessages

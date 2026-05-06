@@ -15,9 +15,9 @@
   padding: 40px;
   box-shadow: var(--app-shadow-medium);
   background-image:
-    radial-gradient(circle at top right, rgba(145, 92, 255, 0.16), transparent 28%),
-    radial-gradient(circle at bottom left, rgba(242, 85, 166, 0.1), transparent 24%),
-    linear-gradient(180deg, rgba(255, 253, 255, 0.99), rgba(252, 245, 255, 0.95));
+    radial-gradient(circle at top right, rgba(99, 102, 241, 0.16), transparent 28%),
+    radial-gradient(circle at bottom left, rgba(56, 189, 248, 0.12), transparent 24%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(246, 250, 255, 0.96));
   width: 100%;
   max-width: 450px;
   animation: appSlideUp 0.5s ease both;
@@ -45,12 +45,16 @@
   padding: 7px 12px;
   border-radius: 999px;
   margin-bottom: 18px;
-  background: linear-gradient(135deg, rgba(var(--app-accent-rgb), 0.16), rgba(242, 85, 166, 0.12));
+  background: linear-gradient(135deg, rgba(var(--app-accent-rgb), 0.14), rgba(56, 189, 248, 0.12));
   color: var(--app-accent-strong);
   font-size: 12px;
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+}
+
+:root[data-theme='dark'] .register-badge {
+  background: linear-gradient(135deg, rgba(var(--app-accent-rgb), 0.16), rgba(242, 85, 166, 0.12));
 }
 
 .register-title {
@@ -79,7 +83,8 @@
 .register-highlight-pill {
   padding: 8px 12px;
   border-radius: 999px;
-  background: rgba(15, 23, 42, 0.04);
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(120, 141, 173, 0.12);
   color: var(--app-text);
   font-size: 12px;
   font-weight: 700;
@@ -93,6 +98,7 @@
 
 :root[data-theme='dark'] .register-highlight-pill {
   background: rgba(16, 21, 30, 0.78);
+  border-color: transparent;
 }
 
 .register-form {
@@ -119,12 +125,14 @@
   border-radius: 14px;
   font-size: 16px;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
-  background: rgba(255, 255, 255, 0.88);
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.03);
 }
 
 :root[data-theme='dark'] .register-input {
   background: rgba(14, 18, 26, 0.92);
   color: var(--app-text);
+  box-shadow: none;
 }
 
 .register-input:focus {

@@ -51,12 +51,15 @@
   line-height: 1.2;
   word-break: normal;
   overflow-wrap: normal;
+  text-wrap: balance;
 }
 
 .send-dm-subtitle {
   margin: 0;
   color: var(--app-muted);
   line-height: 1.6;
+  max-width: 620px;
+  text-wrap: pretty;
 }
 
 .send-dm-form {
@@ -91,6 +94,13 @@
   font-family: inherit;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
   background: rgba(255, 255, 255, 0.88);
+  color: var(--app-text);
+  caret-color: var(--app-accent);
+}
+
+.send-dm-input::placeholder,
+.send-dm-textarea::placeholder {
+  color: var(--app-muted);
 }
 
 .send-dm-input:focus,
@@ -109,6 +119,18 @@
 .send-dm-textarea {
   resize: vertical;
   min-height: 100px;
+}
+
+:root[data-theme='dark'] .send-dm-input,
+:root[data-theme='dark'] .send-dm-textarea {
+  background: rgba(12, 15, 21, 0.92);
+  color: var(--app-text);
+  border-color: rgba(148, 163, 184, 0.14);
+}
+
+:root[data-theme='dark'] .send-dm-input::placeholder,
+:root[data-theme='dark'] .send-dm-textarea::placeholder {
+  color: #a5b0c5;
 }
 
 .send-dm-textarea.input-error {
@@ -147,6 +169,7 @@
   font-size: 14px;
   color: var(--app-accent-strong);
   animation: appSlideUp 0.28s ease;
+  overflow-wrap: anywhere;
 }
 
 .send-dm-button {
@@ -182,6 +205,7 @@
   border-radius: 14px;
   margin-bottom: 20px;
   font-size: 14px;
+  overflow-wrap: anywhere;
 }
 
 .send-dm-success {
@@ -192,6 +216,7 @@
   border-radius: 14px;
   margin-bottom: 20px;
   font-size: 14px;
+  overflow-wrap: anywhere;
 }
 
 @media (max-width: 768px) {
@@ -203,9 +228,17 @@
     font-size: 21px;
   }
 
+  .send-dm-subtitle {
+    font-size: 14px;
+  }
+
   .send-dm-button {
     width: 100%;
     justify-content: center;
+  }
+
+  .send-dm-progress-meta {
+    white-space: normal;
   }
 }
 

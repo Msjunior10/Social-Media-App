@@ -76,6 +76,34 @@ public class DirectMessageService : IDirectMessageService
         };
     }
 
+    public async Task<List<DirectMessageResponse>> GetInboxAsync(Guid userId)
+    {
+        var userExists = await _directMessageRepository.UserExistsAsync(userId);
+        if (!userExists)
+        {
+            throw new ArgumentException($"Användare med ID {userId} finns inte.", nameof(userId));
+        }
+
+        var receivedMessages = await _directMessageRepository.GetByRecipientIdAsync(userId);
+        var sentMessages = await _directMessageRepository.GetBySenderIdAsync(userId);
+
+        return receivedMessages
+            .Concat(sentMessages)
+            .GroupBy(message => message.Id)
+            .Select(group => group.First())
+            .OrderByDescending(message => message.CreatedAt)
+            .Select(m => new DirectMessageResponse
+            {
+                Id = m.Id,
+                SenderId = m.SenderId,
+                RecipientId = m.RecipientId,
+                Message = m.Message,
+                CreatedAt = m.CreatedAt,
+                IsRead = m.IsRead
+            })
+            .ToList();
+    }
+
     public async Task<List<DirectMessageResponse>> GetReceivedMessagesAsync(Guid userId)
     {
         // Validera att användaren existerar
@@ -89,6 +117,33 @@ public class DirectMessageService : IDirectMessageService
         var messages = await _directMessageRepository.GetByRecipientIdAsync(userId);
 
         // Konvertera till DTOs
+        return messages.Select(m => new DirectMessageResponse
+        {
+            Id = m.Id,
+            SenderId = m.SenderId,
+            RecipientId = m.RecipientId,
+            Message = m.Message,
+            CreatedAt = m.CreatedAt,
+            IsRead = m.IsRead
+        }).ToList();
+    }
+
+    public async Task<List<DirectMessageResponse>> GetConversationAsync(Guid userId, Guid otherUserId)
+    {
+        var userExists = await _directMessageRepository.UserExistsAsync(userId);
+        if (!userExists)
+        {
+            throw new ArgumentException($"Användare med ID {userId} finns inte.", nameof(userId));
+        }
+
+        var otherUserExists = await _directMessageRepository.UserExistsAsync(otherUserId);
+        if (!otherUserExists)
+        {
+            throw new ArgumentException($"Användare med ID {otherUserId} finns inte.", nameof(otherUserId));
+        }
+
+        var messages = await _directMessageRepository.GetConversationAsync(userId, otherUserId);
+
         return messages.Select(m => new DirectMessageResponse
         {
             Id = m.Id,

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../contexts/ThemeContext';
 import { notificationsApi } from '../services/notificationsApi';
 import { notificationsRealtime } from '../services/notificationsRealtime';
 import './Navigation.css';
@@ -9,13 +10,15 @@ function Navigation() {
   const location = useLocation();
   const navigate = useNavigate();
   const { username, logout } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isNotificationBadgePulsing, setIsNotificationBadgePulsing] = useState(false);
+  const isDarkMode = theme === 'dark';
 
   const navigationItems = [
     { to: '/wall', label: 'Discover', icon: '⌂' },
-    { to: '/saved', label: 'Saved', icon: '✧' },
+    { to: '/saved', label: 'Saved', icon: '☆' },
     { to: '/', label: 'Network', icon: '◎' },
     { to: '/notifications', label: 'Alerts', icon: '◔' },
     { to: '/messages', label: 'Messages', icon: '✉' },
@@ -131,10 +134,10 @@ function Navigation() {
     <div className="navigation-container">
       <div className="navigation-topbar">
         <div className="navigation-brand">
-          <div className="navigation-brand-icon">S</div>
+          <div className="navigation-brand-icon">P</div>
           <div>
-            <div className="navigation-brand-name">Socially</div>
-            <div className="navigation-brand-subtitle">Curated social flow</div>
+            <div className="navigation-brand-name">Postra</div>
+            <div className="navigation-brand-subtitle">Your voice, your space.</div>
           </div>
         </div>
 
@@ -173,6 +176,17 @@ function Navigation() {
             );
           })}
         </nav>
+
+        <button
+          type="button"
+          className="navigation-theme-toggle"
+          onClick={toggleTheme}
+          aria-label={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+          title={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+        >
+          <span className="navigation-theme-toggle-icon" aria-hidden="true">{isDarkMode ? '☀' : '☾'}</span>
+          <span className="navigation-theme-toggle-text">{isDarkMode ? 'Light mode' : 'Dark mode'}</span>
+        </button>
 
         <button type="button" className="navigation-compose-button" onClick={() => navigate('/profile')}>
           Create from profile

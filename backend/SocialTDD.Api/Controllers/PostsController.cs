@@ -13,12 +13,12 @@ namespace SocialTDD.Api.Controllers;
 [Authorize]
 public class PostsController : ControllerBase
 {
-    private static readonly HashSet<string> AllowedImageExtensions = new(StringComparer.OrdinalIgnoreCase)
+    private static readonly HashSet<string> AllowedMediaExtensions = new(StringComparer.OrdinalIgnoreCase)
     {
-        ".jpg", ".jpeg", ".png", ".gif", ".webp"
+        ".jpg", ".jpeg", ".png", ".gif", ".webp", ".mp4", ".webm", ".ogg"
     };
 
-    private const long MaxImageSizeBytes = 5 * 1024 * 1024;
+    private const long MaxMediaSizeBytes = 25 * 1024 * 1024;
 
     private readonly IPostService _postService;
     private readonly ITimelineService _timelineService;
@@ -34,8 +34,8 @@ public class PostsController : ControllerBase
     }
 
     [HttpPost]
-    [RequestFormLimits(MultipartBodyLengthLimit = MaxImageSizeBytes)]
-    [RequestSizeLimit(MaxImageSizeBytes)]
+    [RequestFormLimits(MultipartBodyLengthLimit = MaxMediaSizeBytes)]
+    [RequestSizeLimit(MaxMediaSizeBytes)]
     public async Task<ActionResult<PostResponse>> CreatePost([FromForm] CreatePostFormRequest requestDto)
     {
         try
@@ -48,7 +48,7 @@ public class PostsController : ControllerBase
                 return BadRequest(new ErrorResponse(ErrorCodes.VALIDATION_ERROR, "Request body saknas."));
             }
             
-            _logger.LogInformation("Request body: Message length={MessageLength}, HasImage={HasImage}", requestDto.Message?.Length ?? 0, requestDto.Image != null);
+            _logger.LogInformation("Request body: Message length={MessageLength}, HasMedia={HasMedia}", requestDto.Message?.Length ?? 0, requestDto.Image != null);
             
             // Hämta UserId från JWT token
             var userId = User.GetUserId();
@@ -63,15 +63,15 @@ public class PostsController : ControllerBase
 
             if (requestDto.Image != null)
             {
-                var imageValidationError = ValidateImage(requestDto.Image);
-                if (imageValidationError != null)
+                var mediaValidationError = ValidateMedia(requestDto.Image);
+                if (mediaValidationError != null)
                 {
-                    return BadRequest(new ErrorResponse(ErrorCodes.VALIDATION_ERROR, imageValidationError));
+                    return BadRequest(new ErrorResponse(ErrorCodes.VALIDATION_ERROR, mediaValidationError));
                 }
             }
 
             var imageUrl = requestDto.Image != null
-                ? await SavePostImageAsync(requestDto.Image)
+                ? await SavePostMediaAsync(requestDto.Image)
                 : null;
             
             // Mappa från DTO till Request och sätt SenderId från token för säkerhet
@@ -479,28 +479,28 @@ public class PostsController : ControllerBase
         }
     }
 
-    private string? ValidateImage(IFormFile image)
+    private string? ValidateMedia(IFormFile media)
     {
-        if (image.Length <= 0)
+        if (media.Length <= 0)
         {
-            return "Den uppladdade bilden är tom.";
+            return "Den uppladdade filen är tom.";
         }
 
-        if (image.Length > MaxImageSizeBytes)
+        if (media.Length > MaxMediaSizeBytes)
         {
-            return $"Bilden får inte vara större än {MaxImageSizeBytes / (1024 * 1024)} MB.";
+            return $"Mediafilen får inte vara större än {MaxMediaSizeBytes / (1024 * 1024)} MB.";
         }
 
-        var extension = Path.GetExtension(image.FileName);
-        if (string.IsNullOrWhiteSpace(extension) || !AllowedImageExtensions.Contains(extension))
+        var extension = Path.GetExtension(media.FileName);
+        if (string.IsNullOrWhiteSpace(extension) || !AllowedMediaExtensions.Contains(extension))
         {
-            return "Endast JPG, PNG, GIF och WEBP-bilder är tillåtna.";
+            return "Endast JPG, PNG, GIF, WEBP, MP4, WEBM och OGG är tillåtna.";
         }
 
         return null;
     }
 
-    private async Task<string> SavePostImageAsync(IFormFile image)
+    private async Task<string> SavePostMediaAsync(IFormFile media)
     {
         var webRootPath = string.IsNullOrWhiteSpace(_environment.WebRootPath)
             ? Path.Combine(_environment.ContentRootPath, "wwwroot")
@@ -509,12 +509,12 @@ public class PostsController : ControllerBase
         var uploadsDirectory = Path.Combine(webRootPath, "uploads", "posts");
         Directory.CreateDirectory(uploadsDirectory);
 
-        var extension = Path.GetExtension(image.FileName).ToLowerInvariant();
+        var extension = Path.GetExtension(media.FileName).ToLowerInvariant();
         var fileName = $"{Guid.NewGuid()}{extension}";
         var filePath = Path.Combine(uploadsDirectory, fileName);
 
         await using var stream = new FileStream(filePath, FileMode.Create);
-        await image.CopyToAsync(stream);
+        await media.CopyToAsync(stream);
 
         return $"{Request.Scheme}://{Request.Host}/uploads/posts/{fileName}";
     }

@@ -1,14 +1,16 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { dmApi } from '../services/dmApi';
 import { userApi } from '../services/userApi';
 import './DirectMessagesList.css';
 
 function DirectMessagesList({ userId }) {
+  const navigate = useNavigate();
+  const { userId: activeConversationUserId } = useParams();
   const [messages, setMessages] = useState([]);
   const [usernames, setUsernames] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [markingAsRead, setMarkingAsRead] = useState(null);
 
   const fetchMessages = useCallback(async () => {
     if (!userId) {
@@ -18,22 +20,23 @@ function DirectMessagesList({ userId }) {
     try {
       setLoading(true);
       setError(null);
-      const receivedMessages = await dmApi.getReceivedMessages();
-      // Sort messages so the newest appears first
-      const sortedMessages = receivedMessages.sort((a, b) => {
+      const inboxMessages = await dmApi.getInboxMessages();
+      const sortedMessages = inboxMessages.sort((a, b) => {
         return new Date(b.createdAt) - new Date(a.createdAt);
       });
       setMessages(sortedMessages);
 
-      // Fetch usernames for all unique senders
-      const uniqueSenderIds = new Set();
+      const uniqueParticipantIds = new Set();
       sortedMessages.forEach(msg => {
-        if (msg.senderId) uniqueSenderIds.add(msg.senderId);
+        const otherParticipantId = msg.senderId === userId ? msg.recipientId : msg.senderId;
+        if (otherParticipantId) {
+          uniqueParticipantIds.add(otherParticipantId);
+        }
       });
 
       const usernameMap = {};
       await Promise.all(
-        Array.from(uniqueSenderIds).map(async (id) => {
+        Array.from(uniqueParticipantIds).map(async (id) => {
           try {
             const user = await userApi.getUserById(id);
             if (user) {
@@ -58,23 +61,34 @@ function DirectMessagesList({ userId }) {
     }
   }, [userId, fetchMessages]);
 
-  const handleMarkAsRead = async (messageId) => {
-    try {
-      setMarkingAsRead(messageId);
-      await dmApi.markAsRead(messageId);
-      
-      // Update local state
-      setMessages((prevMessages) =>
-        prevMessages.map((msg) =>
-          msg.id === messageId ? { ...msg, isRead: true } : msg
-        )
-      );
-    } catch (err) {
-      setError(err.message || 'Could not mark message as read');
-    } finally {
-      setMarkingAsRead(null);
-    }
-  };
+  const conversations = useMemo(() => {
+    const groupedMessages = new Map();
+
+    messages.forEach((message) => {
+      const otherParticipantId = message.senderId === userId ? message.recipientId : message.senderId;
+      const existingConversation = groupedMessages.get(otherParticipantId);
+
+      if (!existingConversation) {
+        groupedMessages.set(otherParticipantId, {
+          otherParticipantId,
+          latestMessage: message,
+          unreadCount: message.recipientId === userId && !message.isRead ? 1 : 0,
+        });
+        return;
+      }
+
+      if (new Date(message.createdAt) > new Date(existingConversation.latestMessage.createdAt)) {
+        existingConversation.latestMessage = message;
+      }
+
+      if (message.recipientId === userId && !message.isRead) {
+        existingConversation.unreadCount += 1;
+      }
+    });
+
+    return Array.from(groupedMessages.values())
+      .sort((a, b) => new Date(b.latestMessage.createdAt) - new Date(a.latestMessage.createdAt));
+  }, [messages, userId]);
 
   const formatDate = (dateString) => {
     const date = new Date(dateString);
@@ -103,13 +117,26 @@ function DirectMessagesList({ userId }) {
     }
   };
 
+  const getInitials = (name) => {
+    if (!name) {
+      return '?';
+    }
+
+    return name
+      .split(' ')
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part[0]?.toUpperCase())
+      .join('');
+  };
+
   if (loading) {
     return (
       <div className="dm-list-container">
         <div className="dm-list-heading-block">
-          <span className="dm-list-badge">Inbox</span>
-          <h2 className="dm-list-title">Received messages</h2>
-          <p className="dm-list-subtitle">See the latest messages, mark them as read, and keep track of your private inbox.</p>
+          <span className="dm-list-badge">All DMs</span>
+          <h2 className="dm-list-title">Your chats</h2>
+          <p className="dm-list-subtitle">Every direct message thread, collected in one place.</p>
         </div>
         <div className="dm-list-loading">Loading messages...</div>
       </div>
@@ -120,9 +147,9 @@ function DirectMessagesList({ userId }) {
     <div className="dm-list-container">
       <div className="dm-list-header">
         <div className="dm-list-heading-block">
-          <span className="dm-list-badge">Inbox</span>
-          <h2 className="dm-list-title">Received messages</h2>
-          <p className="dm-list-subtitle">A clearer message flow that fits the rest of Socially.</p>
+          <span className="dm-list-badge">All DMs</span>
+          <h2 className="dm-list-title">Your chats</h2>
+          <p className="dm-list-subtitle">Open any thread and keep the whole DM flow on this dedicated page.</p>
         </div>
         <button
           onClick={fetchMessages}
@@ -147,45 +174,55 @@ function DirectMessagesList({ userId }) {
         </div>
       )}
 
-      {messages.length === 0 && !loading && !error && (
+      {conversations.length === 0 && !loading && !error && (
         <div className="dm-list-empty">
           <strong>No messages yet.</strong>
-          <span> When someone writes to you, everything will appear here in your inbox.</span>
+          <span>When someone writes to you, everything will appear here in your inbox.</span>
         </div>
       )}
 
-      {messages.length > 0 && (
-        <div className="dm-list-messages">
-          {messages.map((message) => (
-            <div
-              key={message.id}
-              className={`dm-message ${message.isRead ? 'dm-message-read' : 'dm-message-unread'}`}
-            >
-              <div className="dm-message-header">
-                <div className="dm-message-sender">
-                  <span className="dm-message-sender-label">From</span>
-                  <span className="dm-message-sender-name">{usernames[message.senderId] || message.senderId}</span>
-                </div>
-                <div className="dm-message-date">
-                  {formatDate(message.createdAt)}
-                </div>
-              </div>
-              <div className="dm-message-content">{message.message}</div>
-              {!message.isRead && (
+      {conversations.length > 0 && (
+        <>
+          <div className="dm-list-messages">
+            {conversations.map((conversation) => {
+              const { latestMessage, otherParticipantId, unreadCount } = conversation;
+              const participantName = usernames[otherParticipantId] || otherParticipantId;
+              const isActiveConversation = activeConversationUserId === otherParticipantId;
+              const messagePrefix = latestMessage.senderId === userId ? 'You: ' : '';
+
+              return (
                 <button
-                  onClick={() => handleMarkAsRead(message.id)}
-                  className="dm-message-mark-read"
-                  disabled={markingAsRead === message.id}
+                  key={otherParticipantId}
+                  type="button"
+                  className={`dm-message ${unreadCount > 0 ? 'dm-message-unread' : 'dm-message-read'} ${isActiveConversation ? 'dm-message-active' : ''}`}
+                  onClick={() => navigate(`/messages/${otherParticipantId}`)}
                 >
-                  {markingAsRead === message.id ? 'Marking...' : 'Mark as read'}
+                  <div className="dm-message-header">
+                    <div className="dm-message-sender-wrap">
+                      <div className="dm-message-avatar" aria-hidden="true">{getInitials(participantName)}</div>
+                      <div className="dm-message-sender">
+                        <span className="dm-message-sender-label">Conversation</span>
+                        <span className="dm-message-sender-name">{participantName}</span>
+                      </div>
+                    </div>
+                    <div className="dm-message-date" title={new Date(latestMessage.createdAt).toLocaleString('en-US')}>
+                      {formatDate(latestMessage.createdAt)}
+                    </div>
+                  </div>
+                  <div className="dm-message-content">{messagePrefix}{latestMessage.message}</div>
+                  <div className="dm-message-footer">
+                    <div className="dm-message-open-thread">Open thread</div>
+                    {unreadCount > 0 ? (
+                      <div className="dm-message-unread-pill">{unreadCount} new</div>
+                    ) : (
+                      <div className="dm-message-read-indicator">Ready to reply</div>
+                    )}
+                  </div>
                 </button>
-              )}
-              {message.isRead && (
-                <div className="dm-message-read-indicator">✓ Read</div>
-              )}
-            </div>
-          ))}
-        </div>
+              );
+            })}
+          </div>
+        </>
       )}
     </div>
   );

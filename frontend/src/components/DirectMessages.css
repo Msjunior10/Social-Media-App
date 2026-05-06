@@ -1,42 +1,17 @@
 .direct-messages-container {
   display: flex;
   flex-direction: column;
-  gap: 20px;
-  padding: 20px;
+  gap: 16px;
+  padding: 16px 0;
 }
 
 .direct-messages-intro {
-  position: relative;
-  overflow: hidden;
-  padding: 26px 26px 24px;
-  border-radius: 28px;
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  background:
-    radial-gradient(circle at top right, rgba(255, 255, 255, 0.18), transparent 24%),
-    radial-gradient(circle at bottom left, rgba(34, 211, 238, 0.12), transparent 28%),
-    var(--app-gradient-strong);
-  box-shadow: var(--app-shadow-medium), 0 24px 54px rgba(var(--app-accent-rgb), 0.16);
-  color: #fff;
-  animation: appSlideUp 0.45s ease both;
-}
-
-.direct-messages-intro::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.14), transparent 36%, rgba(255, 255, 255, 0.06) 100%);
-}
-
-.direct-messages-intro::after {
-  content: '';
-  position: absolute;
-  right: -36px;
-  bottom: -42px;
-  width: 150px;
-  height: 150px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.16), transparent 68%);
+  padding: 20px 22px;
+  border-radius: 22px;
+  border: 1px solid var(--app-border);
+  background: var(--app-card-gradient);
+  box-shadow: var(--app-shadow-soft);
+  animation: appSlideUp 0.35s ease both, appPanelGlow 5.8s ease-in-out infinite;
 }
 
 .direct-messages-intro-badge {
@@ -45,29 +20,31 @@
   padding: 7px 12px;
   border-radius: 999px;
   margin-bottom: 14px;
-  background: rgba(255, 255, 255, 0.12);
-  color: rgba(255, 255, 255, 0.92);
+  background: rgba(var(--app-accent-rgb), 0.12);
+  color: var(--app-accent-strong);
   font-size: 12px;
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  backdrop-filter: blur(10px);
+  animation: appSoftPulse 3.1s ease-in-out infinite;
 }
 
 .direct-messages-intro-title {
   margin: 0 0 10px;
-  font-size: 28px;
+  color: var(--app-text);
+  font-size: 26px;
   font-weight: 800;
   letter-spacing: -0.03em;
   font-family: var(--app-font-display);
+  max-width: 680px;
+  line-height: 1.18;
 }
 
 .direct-messages-intro-text {
-  max-width: 760px;
+  max-width: 680px;
   margin: 0;
-  color: rgba(255, 255, 255, 0.86);
-  line-height: 1.7;
+  color: var(--app-muted);
+  line-height: 1.6;
 }
 
 .direct-messages-grid {
@@ -77,14 +54,94 @@
   align-items: start;
 }
 
+.direct-messages-workspace {
+  display: grid;
+  grid-template-columns: minmax(340px, 420px) minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+
+.direct-messages-sidebar,
+.direct-messages-main {
+  min-width: 0;
+}
+
+.direct-messages-home-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+.direct-messages-home-copy {
+  padding: 20px 22px;
+  border-radius: 22px;
+  border: 1px solid var(--app-border);
+  background: var(--app-card-gradient);
+  box-shadow: var(--app-shadow-soft);
+  animation: appPanelGlow 6.4s ease-in-out infinite;
+}
+
+.direct-messages-home-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 7px 12px;
+  border-radius: 999px;
+  background: rgba(var(--app-accent-rgb), 0.12);
+  color: var(--app-accent-strong);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  animation: appSoftPulse 3.5s ease-in-out infinite;
+}
+
+.direct-messages-home-title {
+  margin: 14px 0 10px;
+  color: var(--app-text);
+  font-size: 24px;
+  font-weight: 800;
+  font-family: var(--app-font-display);
+  letter-spacing: -0.03em;
+}
+
+.direct-messages-home-text {
+  margin: 0;
+  color: var(--app-muted);
+  line-height: 1.7;
+  max-width: 56ch;
+}
+
+.direct-messages-home-actions {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.direct-messages-home-shortcut {
+  border: 1px solid var(--app-border);
+  background: var(--app-surface);
+  color: var(--app-text);
+  border-radius: 999px;
+  padding: 10px 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.direct-messages-home-shortcut:hover {
+  background: var(--app-hover-surface);
+  transform: translateY(-1px);
+  box-shadow: 0 14px 28px rgba(var(--app-accent-rgb), 0.14);
+}
+
 @media (max-width: 768px) {
   .direct-messages-container {
-    padding: 10px;
+    padding: 8px 0;
     gap: 16px;
   }
 
   .direct-messages-intro {
-    padding: 22px 18px 20px;
+    padding: 18px 16px;
     border-radius: 20px;
   }
 
@@ -94,16 +151,13 @@
 }
 
 @media (max-width: 980px) {
-  .direct-messages-grid {
+  .direct-messages-grid,
+  .direct-messages-workspace {
     grid-template-columns: 1fr;
   }
 }
 
 @media (max-width: 480px) {
-  .direct-messages-container {
-    padding: 8px;
-  }
-
   .direct-messages-intro {
     padding: 18px 14px;
     border-radius: 18px;

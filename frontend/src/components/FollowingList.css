@@ -1,7 +1,7 @@
 .following-list {
   background: var(--app-card-gradient);
-  border-radius: 18px;
-  padding: 20px;
+  border-radius: 24px;
+  padding: 22px;
   border: 1px solid var(--app-border);
   box-shadow: var(--app-shadow-soft);
 }
@@ -9,24 +9,40 @@
 .following-list-header {
   display: flex;
   justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.following-list-kicker {
+  display: inline-flex;
   align-items: center;
-  margin-bottom: 16px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: var(--app-gradient-soft);
+  color: var(--app-accent-strong);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .following-list h3 {
-  margin: 0;
+  margin: 12px 0 0;
   color: var(--app-text);
   font-size: 20px;
   font-weight: 800;
 }
 
 .refresh-button {
-  background: none;
-  border: none;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid var(--app-border);
   cursor: pointer;
-  padding: 6px 10px;
+  min-height: 40px;
+  padding: 8px 12px;
   border-radius: 999px;
-  transition: background-color 0.2s;
+  box-shadow: 0 10px 24px rgba(17, 32, 51, 0.06);
+  transition: background-color 0.2s, transform 0.2s ease, box-shadow 0.2s ease;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -34,6 +50,8 @@
 
 .refresh-button:hover:not(:disabled) {
   background-color: var(--app-accent-soft);
+  transform: translateY(-1px);
+  box-shadow: 0 14px 28px rgba(var(--app-accent-rgb), 0.12);
 }
 
 .refresh-button:disabled {
@@ -63,9 +81,10 @@
 
 .loading,
 .error {
-  padding: 12px;
+  padding: 14px;
   text-align: center;
   color: var(--app-muted);
+  border-radius: 16px;
 }
 
 .error {
@@ -76,30 +95,40 @@
 }
 
 .empty-message {
-  padding: 20px;
+  padding: 22px;
   text-align: center;
   color: var(--app-muted);
   font-style: italic;
+  background: rgba(255, 255, 255, 0.68);
+  border: 1px dashed var(--app-border);
+  border-radius: 18px;
 }
 
 .following-list-items {
   list-style: none;
   padding: 0;
   margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 .following-item {
-  padding: 12px;
-  border-bottom: 1px solid var(--app-border);
-  transition: background-color 0.2s ease;
-}
-
-.following-item:last-child {
-  border-bottom: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid rgba(120, 141, 173, 0.14);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.78);
+  box-shadow: 0 10px 24px rgba(17, 32, 51, 0.05);
+  transition: background-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
 }
 
 .following-item:hover {
   background-color: var(--app-surface-soft);
+  transform: translateY(-2px);
 }
 
 .following-item-clickable {
@@ -108,14 +137,37 @@
 
 .following-item-clickable:hover {
   background: var(--app-card-gradient-strong);
-  border-left: 3px solid var(--app-accent);
+  border-color: rgba(var(--app-accent-rgb), 0.18);
+  box-shadow: var(--app-shadow-soft);
+}
+
+.following-main {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex: 1;
+}
+
+.following-avatar {
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+  border-radius: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--app-gradient-strong);
+  color: #fff;
+  font-weight: 800;
+  box-shadow: 0 12px 26px rgba(var(--app-accent-rgb), 0.18);
 }
 
 .following-action-hint {
   font-size: 12px;
   color: var(--app-accent);
-  margin-top: 4px;
-  display: block;
+  font-weight: 700;
+  white-space: nowrap;
   opacity: 0;
   transition: opacity 0.2s;
 }
@@ -128,16 +180,30 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
+  min-width: 0;
 }
 
 .following-id {
   font-weight: 700;
   color: var(--app-text);
+  font-size: 15px;
 }
 
 .following-date {
-  font-size: 14px;
+  font-size: 13px;
   color: var(--app-muted);
+  line-height: 1.5;
+}
+
+:root[data-theme='dark'] .refresh-button,
+:root[data-theme='dark'] .following-item,
+:root[data-theme='dark'] .empty-message {
+  background: rgba(16, 21, 30, 0.78);
+  border-color: rgba(148, 163, 184, 0.1);
+}
+
+:root[data-theme='dark'] .following-item {
+  box-shadow: 0 18px 38px rgba(1, 4, 10, 0.34);
 }
 
 @media (max-width: 560px) {
@@ -151,10 +217,13 @@
   }
 
   .following-item {
-    padding: 10px 0;
+    padding: 14px;
+    flex-direction: column;
+    align-items: stretch;
   }
 
   .following-action-hint {
     opacity: 1;
+    text-align: center;
   }
 }

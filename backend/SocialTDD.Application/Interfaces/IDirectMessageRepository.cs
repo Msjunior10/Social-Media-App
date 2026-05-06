@@ -5,6 +5,7 @@ namespace SocialTDD.Application.Interfaces;
 public interface IDirectMessageRepository
 {
     Task<DirectMessage> CreateAsync(DirectMessage directMessage);
+    Task<IEnumerable<DirectMessage>> GetConversationAsync(Guid userId, Guid otherUserId);
     Task<IEnumerable<DirectMessage>> GetByRecipientIdAsync(Guid recipientId);
     Task<IEnumerable<DirectMessage>> GetBySenderIdAsync(Guid senderId);
     Task<DirectMessage?> GetByIdAsync(Guid id);

@@ -3,6 +3,6 @@ import App from './App';
 
 test('renders app', () => {
   render(<App />);
-  const heading = screen.getByText(/Socially/i);
+  const heading = screen.getByText(/Postra/i);
   expect(heading).toBeInTheDocument();
 });

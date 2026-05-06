@@ -1,14 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { userApi } from '../services/userApi';
+import { postsApi } from '../services/postsApi';
+import { followApi } from '../services/followApi';
 import './UserProfile.css';
 
-function UserProfile({ userId, username, isEditable = false }) {
+function UserProfile({ userId, username, isEditable = false, refreshKey = 0 }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
+  const [stats, setStats] = useState({
+    postsCount: 0,
+    followersCount: 0,
+    followingCount: 0,
+  });
   const [formData, setFormData] = useState({
     bio: '',
     profileImageUrl: '',
@@ -56,7 +63,29 @@ function UserProfile({ userId, username, isEditable = false }) {
           return;
         }
 
+        if (!userData || !userData.id) {
+          setUser(null);
+          setStats({
+            postsCount: 0,
+            followersCount: 0,
+            followingCount: 0,
+          });
+          setError('User not found');
+          return;
+        }
+
+        const [posts, followers, following] = await Promise.all([
+          postsApi.getTimelineByUserId(userData.id),
+          followApi.getFollowers(userData.id),
+          followApi.getFollowing(userData.id),
+        ]);
+
         setUser(userData);
+        setStats({
+          postsCount: Array.isArray(posts) ? posts.length : 0,
+          followersCount: Array.isArray(followers) ? followers.length : 0,
+          followingCount: Array.isArray(following) ? following.length : 0,
+        });
         setFormData({
           bio: userData.bio || '',
           profileImageUrl: userData.profileImageUrl || '',
@@ -71,7 +100,7 @@ function UserProfile({ userId, username, isEditable = false }) {
     if (userId || username) {
       fetchUser();
     }
-  }, [userId, username]);
+  }, [userId, username, refreshKey]);
 
   if (loading) {
     return <div className="user-profile-loading">Loading profile...</div>;
@@ -84,6 +113,47 @@ function UserProfile({ userId, username, isEditable = false }) {
   if (!user) {
     return <div className="user-profile-error">User not found</div>;
   }
+
+  const profileChecklist = [
+    {
+      id: 'bio',
+      label: 'Add a bio',
+      done: Boolean(user.bio?.trim()),
+    },
+    {
+      id: 'image',
+      label: 'Add a profile image',
+      done: Boolean(user.profileImageUrl?.trim()),
+    },
+    {
+      id: 'first-post',
+      label: 'Publish a first post',
+      done: stats.postsCount > 0,
+    },
+    {
+      id: 'network',
+      label: 'Follow at least one person',
+      done: stats.followingCount > 0,
+    },
+  ];
+
+  const completedChecklistItems = profileChecklist.filter((item) => item.done).length;
+  const completionPercent = Math.round((completedChecklistItems / profileChecklist.length) * 100);
+  const joinedDaysAgo = user.createdAt
+    ? Math.max(1, Math.floor((Date.now() - new Date(user.createdAt).getTime()) / (1000 * 60 * 60 * 24)))
+    : null;
+  const isPublicProfile = !isEditable;
+  const publicProfileHighlight = (() => {
+    if (stats.postsCount >= 8 && stats.followersCount >= 5) {
+      return 'This profile is active and already building real momentum on Postra.';
+    }
+
+    if (stats.postsCount > 0) {
+      return 'Posts are already live here, so this profile has started building a visible presence.';
+    }
+
+    return 'This profile is still getting started. Follow now to catch the first updates early.';
+  })();
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -148,11 +218,30 @@ function UserProfile({ userId, username, isEditable = false }) {
         </div>
 
         <div className="user-profile-identity">
+          <div className="user-profile-kicker">{isEditable ? 'My profile' : 'Public profile'}</div>
           <h3 className="user-profile-username">{user.username}</h3>
-          <p className="user-profile-email">{user.email}</p>
+          {isEditable ? (
+            <p className="user-profile-email">{user.email}</p>
+          ) : (
+            <p className="user-profile-public-badge">Open member profile on Postra</p>
+          )}
           <p className="user-profile-last-active">
             Last active: {formatDateTime(user.lastActiveAt)}
           </p>
+          <div className="user-profile-stat-row">
+            <div className="user-profile-stat-pill">
+              <strong>{stats.postsCount}</strong>
+              <span>Posts</span>
+            </div>
+            <div className="user-profile-stat-pill">
+              <strong>{stats.followersCount}</strong>
+              <span>Followers</span>
+            </div>
+            <div className="user-profile-stat-pill">
+              <strong>{stats.followingCount}</strong>
+              <span>Following</span>
+            </div>
+          </div>
         </div>
 
         {isEditable && !isEditing && (
@@ -181,23 +270,75 @@ function UserProfile({ userId, username, isEditable = false }) {
         </div>
       )}
 
-      <div className="user-profile-details">
-        <div className="user-profile-detail">
-          <span className="user-profile-label">Email:</span>
-          <span className="user-profile-value">{user.email}</span>
+      {isPublicProfile && (
+        <div className="user-profile-public-spotlight">
+          <div className="user-profile-public-copy">
+            <span className="user-profile-label">Profile spotlight</span>
+            <h4>{user.username}&apos;s public presence</h4>
+            <p>{publicProfileHighlight}</p>
+          </div>
+          <div className="user-profile-public-grid">
+            <div className="user-profile-public-card">
+              <strong>{stats.postsCount}</strong>
+              <span>Posts shared</span>
+            </div>
+            <div className="user-profile-public-card">
+              <strong>{stats.followersCount}</strong>
+              <span>Followers</span>
+            </div>
+            <div className="user-profile-public-card">
+              <strong>{joinedDaysAgo || 0}</strong>
+              <span>Days on Postra</span>
+            </div>
+          </div>
         </div>
+      )}
+
+      <div className="user-profile-details">
+        {isEditable && (
+          <div className="user-profile-detail user-profile-detail-column user-profile-detail-accent">
+            <span className="user-profile-label">Profile strength:</span>
+            <div className="user-profile-strength-header">
+              <strong>{completionPercent}% complete</strong>
+              <span>{completedChecklistItems}/{profileChecklist.length} milestones</span>
+            </div>
+            <div className="user-profile-strength-bar" aria-hidden="true">
+              <span style={{ width: `${completionPercent}%` }}></span>
+            </div>
+          </div>
+        )}
+        {isEditable && (
+          <div className="user-profile-detail">
+            <span className="user-profile-label">Email:</span>
+            <span className="user-profile-value">{user.email}</span>
+          </div>
+        )}
         <div className="user-profile-detail">
           <span className="user-profile-label">Member since:</span>
           <span className="user-profile-value">
             {new Date(user.createdAt).toLocaleDateString('en-US')}
           </span>
         </div>
+        {joinedDaysAgo && (
+          <div className="user-profile-detail">
+            <span className="user-profile-label">Tenure:</span>
+            <span className="user-profile-value">{joinedDaysAgo} day{joinedDaysAgo === 1 ? '' : 's'} on Postra</span>
+          </div>
+        )}
         <div className="user-profile-detail user-profile-detail-column">
           <span className="user-profile-label">Bio:</span>
           <span className="user-profile-value user-profile-bio">
             {user.bio || 'No bio yet.'}
           </span>
         </div>
+        {isPublicProfile && (
+          <div className="user-profile-detail user-profile-detail-column">
+            <span className="user-profile-label">Audience snapshot:</span>
+            <span className="user-profile-value">
+              Following {stats.followingCount} account{stats.followingCount === 1 ? '' : 's'} and showing up with {stats.postsCount} public post{stats.postsCount === 1 ? '' : 's'} so far.
+            </span>
+          </div>
+        )}
         {user.profileImageUrl && (
           <div className="user-profile-detail user-profile-detail-column">
             <span className="user-profile-label">Profile image:</span>
@@ -212,6 +353,23 @@ function UserProfile({ userId, username, isEditable = false }) {
           </div>
         )}
       </div>
+
+      {isEditable && (
+        <div className="user-profile-checklist">
+          <div className="user-profile-checklist-header">
+            <h4>Recommended next steps</h4>
+            <span>{completionPercent}% complete</span>
+          </div>
+          <div className="user-profile-checklist-items">
+            {profileChecklist.map((item) => (
+              <div key={item.id} className={`user-profile-checklist-item ${item.done ? 'done' : ''}`}>
+                <span className="user-profile-checklist-icon" aria-hidden="true">{item.done ? '✓' : '○'}</span>
+                <span>{item.label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {isEditable && isEditing && (
         <form className="user-profile-form" onSubmit={handleSubmit}>

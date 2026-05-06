@@ -17,7 +17,7 @@
 }
 
 .wall-refresh-button {
-  background: var(--app-surface-elevated);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(243, 248, 255, 0.92));
   border: 1px solid var(--app-border);
   border-radius: 999px;
   padding: 8px 12px;
@@ -71,7 +71,7 @@
 
 .error-message {
   padding: 16px;
-  background-color: var(--app-warning-soft);
+  background: linear-gradient(180deg, rgba(255, 250, 242, 0.98), rgba(255, 244, 226, 0.96));
   border: 1px solid var(--app-warning-border);
   border-radius: 16px;
   margin: 16px 20px;
@@ -135,7 +135,7 @@
 .post-card {
   position: relative;
   overflow: hidden;
-  background: var(--app-card-gradient);
+  background: var(--app-card-gradient-strong);
   border: 1px solid var(--app-border);
   border-radius: 24px;
   padding: 20px;
@@ -148,13 +148,29 @@
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background: radial-gradient(circle at top right, rgba(var(--app-accent-rgb), 0.08), transparent 32%);
+  background: radial-gradient(circle at top right, rgba(var(--app-accent-rgb), 0.12), transparent 32%);
 }
 
 .post-card:hover {
   transform: translateY(-2px);
   border-color: rgba(var(--app-accent-rgb), 0.18);
   box-shadow: var(--app-shadow-medium);
+}
+
+:root[data-theme='dark'] .wall-refresh-button {
+  background: var(--app-surface-elevated);
+}
+
+:root[data-theme='dark'] .error-message {
+  background-color: var(--app-warning-soft);
+}
+
+:root[data-theme='dark'] .post-card {
+  background: var(--app-card-gradient);
+}
+
+:root[data-theme='dark'] .post-card::before {
+  background: radial-gradient(circle at top right, rgba(var(--app-accent-rgb), 0.08), transparent 32%);
 }
 
 .post-footer {
