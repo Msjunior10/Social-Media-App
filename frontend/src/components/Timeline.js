@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { postsApi } from '../services/postsApi';
 import { userApi } from '../services/userApi';
 import { ApiError, ErrorCodes } from '../utils/ApiError';
@@ -6,51 +6,72 @@ import PostItem from './PostItem';
 import './Timeline.css';
 
 function Timeline({ userId, refreshKey = 0, showHeader = true }) {
+  const PAGE_SIZE = 10;
   const [posts, setPosts] = useState([]);
   const [usernames, setUsernames] = useState({});
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState(null);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
+  const loadMoreRef = useRef(null);
 
-  const fetchTimeline = useCallback(async () => {
+  const loadUsernames = useCallback(async (timelinePosts) => {
+    const uniqueUserIds = new Set();
+
+    timelinePosts.forEach(post => {
+      if (post.senderId) uniqueUserIds.add(post.senderId);
+      if (post.recipientId) uniqueUserIds.add(post.recipientId);
+      if (post.originalSenderId) uniqueUserIds.add(post.originalSenderId);
+      (post.comments || []).forEach(comment => {
+        if (comment.userId) uniqueUserIds.add(comment.userId);
+      });
+    });
+
+    const usernameMap = {};
+    await Promise.all(
+      Array.from(uniqueUserIds).map(async (id) => {
+        try {
+          const user = await userApi.getUserById(id);
+          if (user) {
+            usernameMap[id] = user.username;
+          }
+        } catch (err) {
+          console.error(`Could not fetch user ${id}:`, err);
+        }
+      })
+    );
+
+    setUsernames(current => ({ ...current, ...usernameMap }));
+  }, []);
+
+  const fetchTimelinePage = useCallback(async (targetPage, replace = false) => {
     if (!userId) {
       return;
     }
 
     try {
-      setLoading(true);
+      if (replace) {
+        setLoading(true);
+      } else {
+        setLoadingMore(true);
+      }
+
       setError(null);
-      const timelinePosts = await postsApi.getTimeline();
-      // Sort posts so the newest appears first (chronological order)
-      const sortedPosts = timelinePosts.sort((a, b) => {
-        return new Date(b.createdAt) - new Date(a.createdAt);
-      });
-      setPosts(sortedPosts);
+      const timelinePage = await postsApi.getTimelinePage(targetPage, PAGE_SIZE);
+      const incomingPosts = [...timelinePage.items].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
-      // Fetch usernames for all unique user IDs
-      const uniqueUserIds = new Set();
-      sortedPosts.forEach(post => {
-        if (post.senderId) uniqueUserIds.add(post.senderId);
-        if (post.recipientId) uniqueUserIds.add(post.recipientId);
-        if (post.originalSenderId) uniqueUserIds.add(post.originalSenderId);
-        (post.comments || []).forEach(comment => {
-          if (comment.userId) uniqueUserIds.add(comment.userId);
-        });
-      });
+      setPosts(current => {
+        if (replace) {
+          return incomingPosts;
+        }
 
-      const usernameMap = {};
-      await Promise.all(
-        Array.from(uniqueUserIds).map(async (id) => {
-          try {
-            const user = await userApi.getUserById(id);
-            if (user) {
-              usernameMap[id] = user.username;
-            }
-          } catch (err) {
-            console.error(`Could not fetch user ${id}:`, err);
-          }
-        })
-      );
-      setUsernames(usernameMap);
+        const seen = new Set(current.map(post => post.id));
+        return current.concat(incomingPosts.filter(post => !seen.has(post.id)));
+      });
+      setPage(timelinePage.page);
+      setHasMore(timelinePage.hasMore);
+      await loadUsernames(incomingPosts);
     } catch (err) {
       if (err instanceof ApiError) {
         switch (err.errorCode) {
@@ -74,14 +95,50 @@ function Timeline({ userId, refreshKey = 0, showHeader = true }) {
       }
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
-  }, [userId]);
+  }, [userId, loadUsernames]);
+
+  const refreshTimeline = useCallback(async () => {
+    setPosts([]);
+    setUsernames({});
+    setPage(1);
+    setHasMore(false);
+    await fetchTimelinePage(1, true);
+  }, [fetchTimelinePage]);
+
+  const loadMoreTimeline = useCallback(async () => {
+    if (!hasMore || loading || loadingMore) {
+      return;
+    }
+
+    await fetchTimelinePage(page + 1, false);
+  }, [fetchTimelinePage, hasMore, loading, loadingMore, page]);
 
   useEffect(() => {
     if (userId) {
-      fetchTimeline();
+      refreshTimeline();
     }
-  }, [userId, fetchTimeline, refreshKey]);
+  }, [userId, refreshTimeline, refreshKey]);
+
+  useEffect(() => {
+    if (!loadMoreRef.current || !hasMore) {
+      return undefined;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          loadMoreTimeline();
+        }
+      },
+      { rootMargin: '240px 0px' }
+    );
+
+    observer.observe(loadMoreRef.current);
+
+    return () => observer.disconnect();
+  }, [hasMore, loadMoreTimeline]);
 
   const formatDate = (dateString) => {
     const date = new Date(dateString);
@@ -118,13 +175,13 @@ function Timeline({ userId, refreshKey = 0, showHeader = true }) {
         <div className="timeline-header">
           <h3>Timeline</h3>
           <button
-            onClick={fetchTimeline}
+            onClick={refreshTimeline}
             className="timeline-refresh-button"
-            disabled={loading}
+            disabled={loading || loadingMore}
             title="Refresh timeline"
             aria-label="Refresh timeline"
           >
-            <span className={loading ? 'refresh-icon spinning' : 'refresh-icon'}>⟳</span>
+            <span className={loading || loadingMore ? 'refresh-icon spinning' : 'refresh-icon'}>⟳</span>
           </button>
         </div>
       )}
@@ -133,7 +190,7 @@ function Timeline({ userId, refreshKey = 0, showHeader = true }) {
         <div className="error-message" role="alert">
           <span className="error-icon">⚠️</span>
           <span className="error-text">{error}</span>
-          <button onClick={fetchTimeline} className="error-retry-button">
+          <button onClick={refreshTimeline} className="error-retry-button">
             Try again
           </button>
         </div>
@@ -154,10 +211,17 @@ function Timeline({ userId, refreshKey = 0, showHeader = true }) {
               currentUserId={userId}
               formatDate={formatDate}
               isPublicPost={isPublicPost}
-              onPostChanged={fetchTimeline}
+              onPostChanged={refreshTimeline}
               containerClassName="post-item"
             />
           ))}
+          {loadingMore && (
+            <div className="timeline-load-more">
+              <span className="loading-spinner"></span>
+              <span>Loading more posts...</span>
+            </div>
+          )}
+          {hasMore && <div ref={loadMoreRef} className="timeline-sentinel" aria-hidden="true" />}
         </div>
       )}
     </div>

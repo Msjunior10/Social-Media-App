@@ -9,6 +9,8 @@ public class NotificationService : INotificationService
     private const string FollowType = "follow";
     private const string PostLikeType = "post_like";
     private const string PostCommentType = "post_comment";
+    private const string PostMentionType = "post_mention";
+    private const string CommentMentionType = "comment_mention";
     private const string PostRepostType = "post_repost";
     private const string DirectMessageType = "direct_message";
 
@@ -86,6 +88,16 @@ public class NotificationService : INotificationService
         return CreateNotificationAsync(recipientUserId, actorUserId, PostCommentType, postId, null);
     }
 
+    public Task CreatePostMentionNotificationAsync(Guid recipientUserId, Guid actorUserId, Guid postId)
+    {
+        return CreateNotificationAsync(recipientUserId, actorUserId, PostMentionType, postId, null);
+    }
+
+    public Task CreateCommentMentionNotificationAsync(Guid recipientUserId, Guid actorUserId, Guid postId)
+    {
+        return CreateNotificationAsync(recipientUserId, actorUserId, CommentMentionType, postId, null);
+    }
+
     public Task CreatePostRepostNotificationAsync(Guid recipientUserId, Guid actorUserId, Guid postId)
     {
         return CreateNotificationAsync(recipientUserId, actorUserId, PostRepostType, postId, null);
@@ -159,6 +171,8 @@ public class NotificationService : INotificationService
             FollowType => $"{safeActor} började följa dig.",
             PostLikeType => $"{safeActor} gillade ditt inlägg.",
             PostCommentType => $"{safeActor} kommenterade ditt inlägg.",
+            PostMentionType => $"{safeActor} nämnde dig i ett inlägg.",
+            CommentMentionType => $"{safeActor} nämnde dig i en kommentar.",
             PostRepostType => $"{safeActor} återpublicerade ditt inlägg.",
             DirectMessageType => $"{safeActor} skickade ett direktmeddelande.",
             _ => $"{safeActor} har ny aktivitet för dig."

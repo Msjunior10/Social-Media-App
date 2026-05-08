@@ -120,6 +120,7 @@ public class ApplicationDbContext : DbContext
         {
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Message).IsRequired().HasMaxLength(500);
+            entity.Property(e => e.MediaUrl).HasMaxLength(2048);
             entity.Property(e => e.CreatedAt).IsRequired();
             entity.Property(e => e.IsRead).IsRequired().HasDefaultValue(false);
 

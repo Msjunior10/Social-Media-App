@@ -282,7 +282,6 @@
 .dm-message-content {
   color: var(--app-text);
   line-height: 1.7;
-  margin-bottom: 14px;
   padding: 12px 14px;
   border-radius: 16px;
   background: var(--app-surface-soft);
@@ -290,6 +289,56 @@
   white-space: pre-wrap;
   word-wrap: break-word;
   overflow-wrap: anywhere;
+}
+
+.dm-message-content-wrap {
+  display: flex;
+  align-items: stretch;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.dm-message-content-wrap .dm-message-content {
+  flex: 1;
+  margin-bottom: 0;
+  min-width: 0;
+}
+
+.dm-message-media-thumb-wrap {
+  width: 72px;
+  min-width: 72px;
+}
+
+.dm-message-media-thumb,
+.dm-message-media-thumb-video {
+  width: 72px;
+  height: 72px;
+  border-radius: 16px;
+}
+
+.dm-message-media-thumb {
+  display: block;
+  object-fit: cover;
+  border: 1px solid rgba(var(--app-accent-rgb), 0.14);
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.dm-message-media-thumb-video {
+  position: relative;
+}
+
+.dm-message-media-badge {
+  position: absolute;
+  right: 6px;
+  bottom: 6px;
+  padding: 4px 6px;
+  border-radius: 999px;
+  background: rgba(8, 11, 18, 0.72);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .dm-message-footer {
@@ -365,6 +414,11 @@
   border-color: rgba(148, 163, 184, 0.1);
 }
 
+:root[data-theme='dark'] .dm-message-media-thumb {
+  background: rgba(14, 18, 25, 0.9);
+  border-color: rgba(148, 163, 184, 0.12);
+}
+
 @media (max-width: 768px) {
   .dm-list-container {
     padding: 20px 16px;
@@ -391,6 +445,10 @@
   .dm-message-date {
     align-self: flex-start;
   }
+
+  .dm-message-content-wrap {
+    align-items: flex-start;
+  }
 }
 
 @media (max-width: 480px) {
@@ -413,6 +471,18 @@
 
   .dm-message-content {
     padding: 12px 14px;
+  }
+
+  .dm-message-content-wrap {
+    flex-direction: column;
+  }
+
+  .dm-message-media-thumb-wrap,
+  .dm-message-media-thumb,
+  .dm-message-media-thumb-video {
+    width: 100%;
+    min-width: 0;
+    height: 132px;
   }
 
   .dm-message-sender-name {

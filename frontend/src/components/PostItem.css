@@ -288,6 +288,7 @@
 
 .post-comment-form {
   margin-bottom: 14px;
+  overflow: visible;
 }
 
 .post-comment-textarea {

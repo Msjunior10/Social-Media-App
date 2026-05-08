@@ -22,26 +22,49 @@
 .create-post-form {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 18px;
 }
 
 .create-post-field {
+  position: relative;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
+  padding: 14px 0 0;
+  overflow: visible;
+}
+
+.create-post-field::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(var(--app-accent-rgb), 0.28), rgba(var(--app-accent-rgb), 0.08) 48%, transparent);
+}
+
+.create-post-field:first-child {
+  padding-top: 0;
+}
+
+.create-post-field:first-child::before {
+  display: none;
 }
 
 .create-post-label {
   font-weight: 700;
-  color: var(--app-text);
+  color: color-mix(in srgb, var(--app-text) 92%, var(--app-accent-strong));
   font-size: 14px;
+  letter-spacing: 0.01em;
 }
 
 .create-post-helper-text {
   margin: 0;
-  color: var(--app-muted);
+  color: color-mix(in srgb, var(--app-muted) 82%, var(--app-text));
   font-size: 13px;
   line-height: 1.5;
+  max-width: 56ch;
 }
 
 .required-asterisk {
@@ -52,20 +75,23 @@
 .create-post-input,
 .create-post-textarea {
   padding: 14px 16px;
-  border: 1px solid var(--app-border);
-  border-radius: 18px;
+  border: 1px solid rgba(97, 114, 153, 0.24);
+  border-radius: 20px;
   font-size: 15px;
   font-family: inherit;
-  transition: border-color 0.2s, box-shadow 0.2s;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(250, 252, 255, 0.94));
-  box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.03);
+  transition: border-color 0.2s, box-shadow 0.2s, background 0.2s ease, transform 0.2s ease;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(246, 249, 255, 0.94)),
+    var(--app-gradient-soft);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.84), 0 10px 24px rgba(80, 66, 130, 0.06);
 }
 
 .create-post-input:focus,
 .create-post-textarea:focus {
   outline: none;
-  border-color: var(--app-accent);
-  box-shadow: 0 0 0 3px var(--app-accent-soft);
+  border-color: rgba(var(--app-accent-rgb), 0.42);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(251, 252, 255, 0.96));
+  box-shadow: 0 0 0 4px rgba(var(--app-accent-rgb), 0.1), 0 16px 30px rgba(var(--app-accent-rgb), 0.08);
 }
 
 .create-post-input:disabled,
@@ -81,21 +107,64 @@
 }
 
 .create-post-file-input {
-  padding: 10px;
-  border: 1px dashed var(--app-border);
-  border-radius: 14px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(245, 250, 255, 0.88));
+  padding: 14px 16px;
+  border: 1px dashed rgba(var(--app-accent-rgb), 0.3);
+  border-radius: 20px;
+  background:
+    radial-gradient(circle at top left, rgba(255, 255, 255, 0.72), transparent 34%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(241, 247, 255, 0.96));
   font-size: 14px;
+  font-weight: 600;
+  color: var(--app-text);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.86), 0 12px 28px rgba(80, 66, 130, 0.05);
+  transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+  position: relative;
+}
+
+.create-post-file-input:hover {
+  border-color: rgba(var(--app-accent-rgb), 0.34);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(240, 246, 255, 0.98));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.88), 0 16px 34px rgba(80, 66, 130, 0.08);
+}
+
+.create-post-file-input:focus {
+  outline: none;
+  border-color: rgba(var(--app-accent-rgb), 0.44);
+  box-shadow: 0 0 0 4px rgba(var(--app-accent-rgb), 0.09);
+}
+
+.create-post-file-input::file-selector-button {
+  margin-right: 14px;
+  padding: 10px 14px;
+  border: none;
+  border-radius: 999px;
+  background: var(--app-gradient-strong);
+  color: white;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  box-shadow: 0 10px 20px rgba(var(--app-accent-rgb), 0.24);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.create-post-file-input:hover::file-selector-button {
+  transform: translateY(-1px);
+  box-shadow: 0 14px 28px rgba(var(--app-accent-rgb), 0.28);
 }
 
 .create-post-image-preview {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  padding: 12px;
-  border: 1px solid var(--app-border);
-  border-radius: 16px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(245, 249, 255, 0.9));
+  padding: 14px;
+  border: 1px solid rgba(var(--app-accent-rgb), 0.16);
+  border-radius: 20px;
+  background:
+    radial-gradient(circle at top left, rgba(255, 255, 255, 0.7), transparent 30%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(240, 246, 255, 0.96));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.84), 0 14px 32px rgba(80, 66, 130, 0.06);
 }
 
 :root[data-theme='dark'] .create-post-container {
@@ -105,14 +174,29 @@
 
 :root[data-theme='dark'] .create-post-input,
 :root[data-theme='dark'] .create-post-textarea {
-  background: rgba(14, 18, 26, 0.92);
-  box-shadow: none;
+  background: rgba(7, 10, 16, 0.74);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
   color: var(--app-text);
+  border-color: rgba(148, 163, 184, 0.14);
+}
+
+:root[data-theme='dark'] .create-post-input:focus,
+:root[data-theme='dark'] .create-post-textarea:focus {
+  background: rgba(9, 13, 20, 0.94);
+  box-shadow: 0 0 0 4px rgba(34, 211, 238, 0.08), 0 18px 32px rgba(2, 6, 23, 0.24);
 }
 
 :root[data-theme='dark'] .create-post-file-input,
 :root[data-theme='dark'] .create-post-image-preview {
-  background: var(--app-surface);
+  background: rgba(8, 11, 18, 0.86);
+}
+
+:root[data-theme='dark'] .create-post-file-input {
+  border-color: rgba(34, 211, 238, 0.22);
+}
+
+:root[data-theme='dark'] .create-post-file-input::file-selector-button {
+  box-shadow: 0 10px 20px rgba(34, 211, 238, 0.12);
 }
 
 .create-post-preview-media,
@@ -161,7 +245,8 @@
   font-size: 12px;
   color: var(--app-muted);
   text-align: right;
-  margin-top: 4px;
+  margin-top: 2px;
+  padding-top: 2px;
 }
 
 .character-count-error {
@@ -186,22 +271,39 @@
 }
 
 .create-post-button {
-  padding: 12px 24px;
+  min-width: 160px;
+  padding: 13px 26px;
   background: var(--app-gradient-strong);
   color: white;
   border: none;
   border-radius: 999px;
   font-size: 16px;
   font-weight: 800;
+  letter-spacing: 0.015em;
   cursor: pointer;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
   align-self: flex-end;
-  box-shadow: 0 16px 28px rgba(37, 99, 235, 0.22);
+  box-shadow: 0 18px 34px rgba(var(--app-accent-rgb), 0.26), inset 0 1px 0 rgba(255, 255, 255, 0.22);
+  position: relative;
+  overflow: hidden;
 }
 
 .create-post-button:hover:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow: 0 20px 34px rgba(37, 99, 235, 0.28);
+  transform: translateY(-2px) scale(1.01);
+  box-shadow: 0 24px 40px rgba(var(--app-accent-rgb), 0.32);
+}
+
+.create-post-button::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(120deg, transparent 0%, rgba(255, 255, 255, 0.32) 35%, transparent 64%);
+  transform: translateX(-120%);
+  transition: transform 0.7s ease;
+}
+
+.create-post-button:hover:not(:disabled)::after {
+  transform: translateX(120%);
 }
 
 .create-post-button:focus-visible {
@@ -209,7 +311,8 @@
 }
 
 .create-post-button:disabled {
-  background-color: #93c5fd;
+  background: linear-gradient(135deg, rgba(141, 157, 190, 0.9), rgba(169, 182, 210, 0.92));
+  box-shadow: none;
   cursor: not-allowed;
 }
 

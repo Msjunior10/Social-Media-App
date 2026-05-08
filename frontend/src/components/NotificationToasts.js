@@ -177,6 +177,10 @@ function formatNotificationType(type) {
       return 'Like';
     case 'post_comment':
       return 'Comment';
+    case 'post_mention':
+      return 'Mention';
+    case 'comment_mention':
+      return 'Comment mention';
     case 'post_repost':
       return 'Repost';
     case 'direct_message':
@@ -193,6 +197,10 @@ function getNotificationIcon(type) {
     case 'post_like':
       return '♥';
     case 'post_comment':
+      return '✦';
+    case 'post_mention':
+      return '@';
+    case 'comment_mention':
       return '✦';
     case 'post_repost':
       return '↻';
@@ -211,21 +219,23 @@ function getNotificationTarget(notification) {
       return `/users/${notification.actorId}`;
     case 'post_like':
     case 'post_comment':
+    case 'post_mention':
+    case 'comment_mention':
     case 'post_repost': {
       if (!notification.postId) {
         return '/profile';
       }
 
       const searchParams = new URLSearchParams({
-        postId: notification.postId,
+        focus: notification.postId,
         notificationType: notification.type,
       });
 
-      if (notification.type === 'post_comment') {
+      if (notification.type === 'post_comment' || notification.type === 'comment_mention') {
         searchParams.set('openComments', '1');
       }
 
-      return `/profile?${searchParams.toString()}`;
+      return `/posts/${notification.postId}?${searchParams.toString()}`;
     }
     default:
       return '/notifications';

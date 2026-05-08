@@ -130,6 +130,22 @@ function DirectMessagesList({ userId }) {
       .join('');
   };
 
+  const getMessagePreview = (message, isOwnMessage) => {
+    const prefix = isOwnMessage ? 'You: ' : '';
+    if (message.message?.trim()) {
+      return `${prefix}${message.message}`;
+    }
+
+    if (message.mediaUrl) {
+      const isVideo = /\.(mp4|webm|ogg)(\?.*)?$/i.test(message.mediaUrl);
+      return `${prefix}${isVideo ? 'Sent a video' : 'Sent a photo'}`;
+    }
+
+    return prefix;
+  };
+
+  const isVideoUrl = (url) => /\.(mp4|webm|ogg)(\?.*)?$/i.test(url || '');
+
   if (loading) {
     return (
       <div className="dm-list-container">
@@ -188,7 +204,9 @@ function DirectMessagesList({ userId }) {
               const { latestMessage, otherParticipantId, unreadCount } = conversation;
               const participantName = usernames[otherParticipantId] || otherParticipantId;
               const isActiveConversation = activeConversationUserId === otherParticipantId;
-              const messagePrefix = latestMessage.senderId === userId ? 'You: ' : '';
+              const preview = getMessagePreview(latestMessage, latestMessage.senderId === userId);
+              const resolvedMediaUrl = dmApi.resolveMediaUrl(latestMessage.mediaUrl);
+              const hasMediaPreview = Boolean(resolvedMediaUrl);
 
               return (
                 <button
@@ -209,7 +227,21 @@ function DirectMessagesList({ userId }) {
                       {formatDate(latestMessage.createdAt)}
                     </div>
                   </div>
-                  <div className="dm-message-content">{messagePrefix}{latestMessage.message}</div>
+                  <div className="dm-message-content-wrap">
+                    <div className="dm-message-content">{preview}</div>
+                    {hasMediaPreview && (
+                      <div className="dm-message-media-thumb-wrap" aria-hidden="true">
+                        {isVideoUrl(resolvedMediaUrl) ? (
+                          <div className="dm-message-media-thumb-video">
+                            <video src={resolvedMediaUrl} className="dm-message-media-thumb" muted preload="metadata" />
+                            <span className="dm-message-media-badge">Video</span>
+                          </div>
+                        ) : (
+                          <img src={resolvedMediaUrl} alt="" className="dm-message-media-thumb" />
+                        )}
+                      </div>
+                    )}
+                  </div>
                   <div className="dm-message-footer">
                     <div className="dm-message-open-thread">Open thread</div>
                     {unreadCount > 0 ? (

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate, useParams, Link } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import Navigation from './components/Navigation';
@@ -15,6 +15,7 @@ import Notifications from './components/Notifications';
 import SavedPosts from './components/SavedPosts';
 import CreatePost from './components/CreatePost';
 import ProfilePosts from './components/ProfilePosts';
+import PostItem from './components/PostItem';
 import UserSearch from './components/UserSearch';
 import UserProfile from './components/UserProfile';
 import NotificationToasts from './components/NotificationToasts';
@@ -115,6 +116,14 @@ function AppContent() {
             element={
               <ProtectedRoute>
                 <ProfilePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/posts/:postId"
+            element={
+              <ProtectedRoute>
+                <PostDetailPage />
               </ProtectedRoute>
             }
           />
@@ -496,6 +505,117 @@ function PublicProfilePage() {
           highlightedPostId={highlightedPostId}
           openCommentsPostId={openCommentsPostId}
         />
+      </div>
+    </AppShell>
+  );
+}
+
+function PostDetailPage() {
+  const { userId } = useAuth();
+  const { postId } = useParams();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [post, setPost] = useState(null);
+  const [usernames, setUsernames] = useState({});
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const searchParams = new URLSearchParams(location.search);
+  const shouldOpenComments = searchParams.get('openComments') === '1';
+
+  const loadPost = useCallback(async () => {
+    if (!postId) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError(null);
+
+      const postData = await postsApi.getPostById(postId);
+      setPost(postData);
+
+      const uniqueUserIds = new Set();
+      if (postData.senderId) uniqueUserIds.add(postData.senderId);
+      if (postData.recipientId) uniqueUserIds.add(postData.recipientId);
+      if (postData.originalSenderId) uniqueUserIds.add(postData.originalSenderId);
+      (postData.comments || []).forEach((comment) => {
+        if (comment.userId) uniqueUserIds.add(comment.userId);
+      });
+
+      const usernameEntries = await Promise.all(
+        Array.from(uniqueUserIds).map(async (id) => {
+          try {
+            const user = await userApi.getUserById(id);
+            return [id, user?.username || id];
+          } catch {
+            return [id, id];
+          }
+        })
+      );
+
+      setUsernames(Object.fromEntries(usernameEntries));
+    } catch (err) {
+      setError(err?.message || 'Could not load the post.');
+    } finally {
+      setLoading(false);
+    }
+  }, [postId]);
+
+  useEffect(() => {
+    loadPost();
+  }, [loadPost]);
+
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    const datePart = date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+    });
+    const timePart = date.toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+    return `${datePart} · ${timePart}`;
+  };
+
+  const isPublicPost = (postItem) => !postItem.recipientId || postItem.recipientId === postItem.senderId;
+
+  return (
+    <AppShell title="Post" subtitle="Open the exact post connected to your notification.">
+      <div className="timeline">
+        <div className="timeline-header">
+          <button type="button" className="timeline-refresh-button" onClick={() => navigate(-1)} aria-label="Go back" title="Go back">
+            <span className="refresh-icon">←</span>
+          </button>
+        </div>
+
+        {loading && <div className="loading"><span className="loading-spinner"></span><span>Loading post...</span></div>}
+
+        {error && !loading && (
+          <div className="error-message" role="alert">
+            <span className="error-icon">⚠️</span>
+            <span className="error-text">{error}</span>
+            <button onClick={loadPost} className="error-retry-button">Try again</button>
+          </div>
+        )}
+
+        {post && !loading && !error && (
+          <div className="timeline-posts">
+            <PostItem
+              post={post}
+              usernames={usernames}
+              currentUserId={userId}
+              formatDate={formatDate}
+              isPublicPost={isPublicPost}
+              onPostChanged={loadPost}
+              containerClassName="post-item"
+              postDomId={`post-${post.id}`}
+              isHighlighted
+              shouldOpenComments={shouldOpenComments}
+            />
+          </div>
+        )}
       </div>
     </AppShell>
   );

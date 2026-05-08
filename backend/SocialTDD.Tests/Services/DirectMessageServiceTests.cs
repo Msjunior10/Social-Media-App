@@ -41,6 +41,7 @@ public class DirectMessageServiceTests
             SenderId = senderId,
             RecipientId = recipientId,
             Message = request.Message,
+            MediaUrl = request.MediaUrl,
             CreatedAt = DateTime.UtcNow,
             IsRead = false
         };
@@ -60,6 +61,40 @@ public class DirectMessageServiceTests
         result.Id.Should().Be(expectedMessage.Id);
         result.IsRead.Should().BeFalse();
         _mockRepository.Verify(r => r.CreateAsync(It.IsAny<DirectMessage>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task SendDirectMessageAsync_WithMediaOnly_ReturnsDirectMessageResponse()
+    {
+        var senderId = Guid.NewGuid();
+        var recipientId = Guid.NewGuid();
+        var request = new CreateDirectMessageRequest
+        {
+            SenderId = senderId,
+            RecipientId = recipientId,
+            Message = string.Empty,
+            MediaUrl = "/uploads/directmessages/test.mp4"
+        };
+
+        var expectedMessage = new DirectMessage
+        {
+            Id = Guid.NewGuid(),
+            SenderId = senderId,
+            RecipientId = recipientId,
+            Message = string.Empty,
+            MediaUrl = request.MediaUrl,
+            CreatedAt = DateTime.UtcNow,
+            IsRead = false
+        };
+
+        _mockRepository.Setup(r => r.UserExistsAsync(senderId)).ReturnsAsync(true);
+        _mockRepository.Setup(r => r.UserExistsAsync(recipientId)).ReturnsAsync(true);
+        _mockRepository.Setup(r => r.CreateAsync(It.IsAny<DirectMessage>())).ReturnsAsync(expectedMessage);
+
+        var result = await _directMessageService.SendDirectMessageAsync(request);
+
+        result.MediaUrl.Should().Be(request.MediaUrl);
+        _mockRepository.Verify(r => r.CreateAsync(It.Is<DirectMessage>(message => message.MediaUrl == request.MediaUrl)), Times.Once);
     }
 
     [Fact]

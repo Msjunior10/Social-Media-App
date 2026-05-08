@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using SocialTDD.Api.Extensions;
 using SocialTDD.Api.Models;
@@ -12,17 +13,28 @@ namespace SocialTDD.Api.Controllers;
 [Authorize]
 public class DirectMessagesController : ControllerBase
 {
+    private static readonly HashSet<string> AllowedMediaExtensions = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ".jpg", ".jpeg", ".png", ".gif", ".webp", ".mp4", ".webm", ".ogg"
+    };
+
+    private const long MaxMediaSizeBytes = 25 * 1024 * 1024;
+
     private readonly IDirectMessageService _directMessageService;
     private readonly ILogger<DirectMessagesController> _logger;
+    private readonly IWebHostEnvironment _environment;
 
-    public DirectMessagesController(IDirectMessageService directMessageService, ILogger<DirectMessagesController> logger)
+    public DirectMessagesController(IDirectMessageService directMessageService, ILogger<DirectMessagesController> logger, IWebHostEnvironment environment)
     {
         _directMessageService = directMessageService;
         _logger = logger;
+        _environment = environment;
     }
 
     [HttpPost]
-    public async Task<ActionResult<DirectMessageResponse>> SendDirectMessage([FromBody] CreateDirectMessageRequest request)
+    [RequestFormLimits(MultipartBodyLengthLimit = MaxMediaSizeBytes)]
+    [RequestSizeLimit(MaxMediaSizeBytes)]
+    public async Task<ActionResult<DirectMessageResponse>> SendDirectMessage([FromForm] CreateDirectMessageFormRequest request)
     {
         try
         {
@@ -34,8 +46,8 @@ public class DirectMessagesController : ControllerBase
                 return BadRequest(new ErrorResponse(ErrorCodes.VALIDATION_ERROR, "Request body saknas."));
             }
             
-            _logger.LogInformation("Request body: RecipientId={RecipientId}, Message length={MessageLength}", 
-                request.RecipientId, request.Message?.Length ?? 0);
+            _logger.LogInformation("Request body: RecipientId={RecipientId}, Message length={MessageLength}, HasMedia={HasMedia}", 
+                request.RecipientId, request.Message?.Length ?? 0, request.Media != null);
             
             // Hämta SenderId från JWT token
             var senderId = User.GetUserId();
@@ -47,13 +59,27 @@ public class DirectMessagesController : ControllerBase
                 _logger.LogWarning("RecipientId är tomt eller ogiltigt. RecipientId: {RecipientId}", request.RecipientId);
                 return BadRequest(new ErrorResponse(ErrorCodes.INVALID_RECIPIENT_ID, "RecipientId är obligatoriskt och måste vara ett giltigt användar-ID."));
             }
+
+            if (request.Media != null)
+            {
+                var mediaValidationError = ValidateMedia(request.Media);
+                if (mediaValidationError != null)
+                {
+                    return BadRequest(new ErrorResponse(ErrorCodes.VALIDATION_ERROR, mediaValidationError));
+                }
+            }
+
+            var mediaUrl = request.Media != null
+                ? await SaveDirectMessageMediaAsync(request.Media)
+                : null;
             
             // Sätt SenderId från token för säkerhet
             var authenticatedRequest = new CreateDirectMessageRequest
             {
                 SenderId = senderId,
                 RecipientId = request.RecipientId,
-                Message = request.Message ?? string.Empty
+                Message = request.Message ?? string.Empty,
+                MediaUrl = mediaUrl
             };
             
             var result = await _directMessageService.SendDirectMessageAsync(authenticatedRequest);
@@ -183,5 +209,47 @@ public class DirectMessagesController : ControllerBase
                 "Ett oväntat fel uppstod. Försök igen senare."
             ));
         }
+    }
+
+    private string? ValidateMedia(IFormFile media)
+    {
+        if (media.Length <= 0)
+        {
+            return "Den valda filen är tom.";
+        }
+
+        if (media.Length > MaxMediaSizeBytes)
+        {
+            return "Mediafilen får inte vara större än 25 MB.";
+        }
+
+        var extension = Path.GetExtension(media.FileName);
+        if (string.IsNullOrWhiteSpace(extension) || !AllowedMediaExtensions.Contains(extension))
+        {
+            return "Endast JPG, PNG, GIF, WEBP, MP4, WEBM och OGG stöds i direktmeddelanden.";
+        }
+
+        return null;
+    }
+
+    private async Task<string> SaveDirectMessageMediaAsync(IFormFile media)
+    {
+        var webRootPath = _environment.WebRootPath;
+        if (string.IsNullOrWhiteSpace(webRootPath))
+        {
+            webRootPath = Path.Combine(_environment.ContentRootPath, "wwwroot");
+        }
+
+        var uploadsDirectory = Path.Combine(webRootPath, "uploads", "directmessages");
+        Directory.CreateDirectory(uploadsDirectory);
+
+        var extension = Path.GetExtension(media.FileName);
+        var fileName = $"{Guid.NewGuid():N}{extension}";
+        var filePath = Path.Combine(uploadsDirectory, fileName);
+
+        await using var stream = System.IO.File.Create(filePath);
+        await media.CopyToAsync(stream);
+
+        return $"/uploads/directmessages/{fileName}";
     }
 }

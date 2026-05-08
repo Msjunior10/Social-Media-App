@@ -12,6 +12,7 @@ namespace SocialTDD.Tests.Services;
 public class PostServiceTests
 {
     private readonly Mock<IPostRepository> _mockRepository;
+    private readonly Mock<IUserRepository> _mockUserRepository;
     private readonly Mock<INotificationService> _mockNotificationService;
     private readonly IValidator<CreatePostRequest> _createValidator;
     private readonly IValidator<UpdatePostRequest> _updateValidator;
@@ -21,6 +22,7 @@ public class PostServiceTests
     public PostServiceTests()
     {
         _mockRepository = new Mock<IPostRepository>();
+        _mockUserRepository = new Mock<IUserRepository>();
         _mockNotificationService = new Mock<INotificationService>();
         _createValidator = new CreatePostRequestValidator();
         _updateValidator = new UpdatePostRequestValidator();
@@ -32,7 +34,7 @@ public class PostServiceTests
         _mockRepository.Setup(r => r.IsLikedByUserAsync(It.IsAny<Guid>(), It.IsAny<Guid>())).ReturnsAsync(false);
         _mockRepository.Setup(r => r.IsBookmarkedByUserAsync(It.IsAny<Guid>(), It.IsAny<Guid>())).ReturnsAsync(false);
         _mockRepository.Setup(r => r.IsRepostedByUserAsync(It.IsAny<Guid>(), It.IsAny<Guid>())).ReturnsAsync(false);
-        _postService = new PostService(_mockRepository.Object, _createValidator, _updateValidator, _commentValidator, _mockNotificationService.Object);
+        _postService = new PostService(_mockRepository.Object, _mockUserRepository.Object, _createValidator, _updateValidator, _commentValidator, _mockNotificationService.Object);
     }
 
     [Fact]
@@ -69,6 +71,94 @@ public class PostServiceTests
             p.SenderId == senderId &&
             p.RecipientId == senderId &&
             p.Message == request.Message)), Times.Once);
+    }
+
+    [Fact]
+    public async Task CreatePostAsync_WithMentions_CreatesMentionNotificationsForUniqueUsers()
+    {
+        var senderId = Guid.NewGuid();
+        var mentionedUserId = Guid.NewGuid();
+        var request = new CreatePostRequest
+        {
+            SenderId = senderId,
+            Message = "Hej @alice och igen @alice"
+        };
+
+        var createdPost = new Post
+        {
+            Id = Guid.NewGuid(),
+            SenderId = senderId,
+            RecipientId = senderId,
+            Message = request.Message,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        _mockRepository.Setup(r => r.UserExistsAsync(senderId)).ReturnsAsync(true);
+        _mockRepository.Setup(r => r.CreateAsync(It.IsAny<Post>())).ReturnsAsync(createdPost);
+        _mockUserRepository.Setup(r => r.GetUserByUsernameAsync("alice")).ReturnsAsync(new User { Id = mentionedUserId, Username = "alice" });
+
+        await _postService.CreatePostAsync(request);
+
+        _mockNotificationService.Verify(n => n.CreatePostMentionNotificationAsync(mentionedUserId, senderId, createdPost.Id), Times.Once);
+    }
+
+    [Fact]
+    public async Task GetPostByIdAsync_WhenPostExists_ReturnsMappedPost()
+    {
+        var currentUserId = Guid.NewGuid();
+        var postId = Guid.NewGuid();
+        var post = new Post
+        {
+            Id = postId,
+            SenderId = Guid.NewGuid(),
+            RecipientId = Guid.NewGuid(),
+            Message = "Detaljpost",
+            CreatedAt = DateTime.UtcNow
+        };
+
+        _mockRepository.Setup(r => r.GetByIdAsync(postId)).ReturnsAsync(post);
+
+        var result = await _postService.GetPostByIdAsync(postId, currentUserId);
+
+        result.Id.Should().Be(postId);
+        result.Message.Should().Be("Detaljpost");
+    }
+
+    [Fact]
+    public async Task GetPostByIdAsync_WhenPostIsMissing_ThrowsKeyNotFoundException()
+    {
+        var postId = Guid.NewGuid();
+        _mockRepository.Setup(r => r.GetByIdAsync(postId)).ReturnsAsync((Post?)null);
+
+        Func<Task> act = () => _postService.GetPostByIdAsync(postId, Guid.NewGuid());
+
+        await act.Should().ThrowAsync<KeyNotFoundException>();
+    }
+
+    [Fact]
+    public async Task AddCommentAsync_WithMentionForPostOwner_DoesNotDuplicateCommentNotificationAsMention()
+    {
+        var postId = Guid.NewGuid();
+        var postOwnerId = Guid.NewGuid();
+        var actorUserId = Guid.NewGuid();
+        var request = new CreatePostCommentRequest { Message = "Hej @owner" };
+
+        _mockRepository.Setup(r => r.GetByIdAsync(postId)).ReturnsAsync(new Post
+        {
+            Id = postId,
+            SenderId = postOwnerId,
+            RecipientId = postOwnerId,
+            Message = "Original",
+            CreatedAt = DateTime.UtcNow
+        });
+        _mockRepository.Setup(r => r.UserExistsAsync(actorUserId)).ReturnsAsync(true);
+        _mockRepository.Setup(r => r.AddCommentAsync(It.IsAny<PostComment>())).ReturnsAsync((PostComment comment) => comment);
+        _mockUserRepository.Setup(r => r.GetUserByUsernameAsync("owner")).ReturnsAsync(new User { Id = postOwnerId, Username = "owner" });
+
+        await _postService.AddCommentAsync(postId, actorUserId, request);
+
+        _mockNotificationService.Verify(n => n.CreatePostCommentNotificationAsync(postOwnerId, actorUserId, postId), Times.Once);
+        _mockNotificationService.Verify(n => n.CreateCommentMentionNotificationAsync(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<Guid>()), Times.Never);
     }
 
     [Fact]

@@ -1,4 +1,5 @@
 using FluentValidation;
+using System.Text.RegularExpressions;
 using SocialTDD.Application.DTOs;
 using SocialTDD.Application.Interfaces;
 using SocialTDD.Domain.Entities;
@@ -7,7 +8,10 @@ namespace SocialTDD.Application.Services;
 
 public class PostService : IPostService
 {
+    private static readonly Regex MentionRegex = new(@"(?<![A-Za-z0-9_])@(?<username>[A-Za-z0-9_]{3,50})", RegexOptions.Compiled);
+
     private readonly IPostRepository _postRepository;
+    private readonly IUserRepository _userRepository;
     private readonly INotificationService _notificationService;
     private readonly IValidator<CreatePostRequest> _createValidator;
     private readonly IValidator<UpdatePostRequest> _updateValidator;
@@ -15,12 +19,14 @@ public class PostService : IPostService
 
     public PostService(
         IPostRepository postRepository,
+        IUserRepository userRepository,
         IValidator<CreatePostRequest> createValidator,
         IValidator<UpdatePostRequest> updateValidator,
         IValidator<CreatePostCommentRequest> commentValidator,
         INotificationService? notificationService = null)
     {
         _postRepository = postRepository;
+        _userRepository = userRepository;
         _notificationService = notificationService ?? new NullNotificationService();
         _createValidator = createValidator;
         _updateValidator = updateValidator;
@@ -56,7 +62,20 @@ public class PostService : IPostService
 
         var createdPost = await _postRepository.CreateAsync(post);
 
+        await CreateMentionNotificationsAsync(createdPost.Message, request.SenderId, createdPost.Id, isCommentMention: false);
+
         return await MapToPostResponseAsync(createdPost, request.SenderId);
+    }
+
+    public async Task<PostResponse> GetPostByIdAsync(Guid postId, Guid currentUserId)
+    {
+        var post = await _postRepository.GetByIdAsync(postId);
+        if (post == null)
+        {
+            throw new KeyNotFoundException($"Inlägg med ID {postId} finns inte.");
+        }
+
+        return await MapToPostResponseAsync(post, currentUserId);
     }
 
     public async Task<PostResponse> UpdatePostAsync(Guid postId, Guid userId, UpdatePostRequest request)
@@ -275,6 +294,7 @@ public class PostService : IPostService
         });
 
         await _notificationService.CreatePostCommentNotificationAsync(post.SenderId, userId, postId);
+        await CreateMentionNotificationsAsync(createdComment.Message, userId, postId, isCommentMention: true, userIdToSkip: post.SenderId);
 
         return new PostCommentResponse
         {
@@ -441,6 +461,46 @@ public class PostService : IPostService
                 CreatedAt = c.CreatedAt
             }).ToList()
         };
+    }
+
+    private async Task CreateMentionNotificationsAsync(string? message, Guid actorUserId, Guid postId, bool isCommentMention, Guid? userIdToSkip = null)
+    {
+        var mentionedUsernames = ExtractMentionedUsernames(message);
+        if (mentionedUsernames.Count == 0)
+        {
+            return;
+        }
+
+        foreach (var username in mentionedUsernames)
+        {
+            var user = await _userRepository.GetUserByUsernameAsync(username);
+            if (user == null || user.Id == actorUserId || user.Id == userIdToSkip)
+            {
+                continue;
+            }
+
+            if (isCommentMention)
+            {
+                await _notificationService.CreateCommentMentionNotificationAsync(user.Id, actorUserId, postId);
+            }
+            else
+            {
+                await _notificationService.CreatePostMentionNotificationAsync(user.Id, actorUserId, postId);
+            }
+        }
+    }
+
+    private static HashSet<string> ExtractMentionedUsernames(string? message)
+    {
+        if (string.IsNullOrWhiteSpace(message))
+        {
+            return new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        }
+
+        return MentionRegex.Matches(message)
+            .Select(match => match.Groups["username"].Value)
+            .Where(username => !string.IsNullOrWhiteSpace(username))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
     }
 }
 

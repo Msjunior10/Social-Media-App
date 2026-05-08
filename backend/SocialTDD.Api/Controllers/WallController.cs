@@ -22,13 +22,13 @@ public class WallController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<List<PostResponse>>> GetWall()
+    public async Task<ActionResult<PagedResponse<PostResponse>>> GetWall([FromQuery] int page = 1, [FromQuery] int pageSize = 10)
     {
         try
         {
             // Hämta UserId från JWT token
             var userId = User.GetUserId();
-            var result = await _wallService.GetWallAsync(userId, userId);
+            var result = await _wallService.GetWallPageAsync(userId, userId, page, pageSize);
             return Ok(result);
         }
         catch (ArgumentException ex)

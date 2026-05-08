@@ -11,7 +11,7 @@
   border: 1px solid var(--app-border);
   background: var(--app-card-gradient);
   box-shadow: var(--app-shadow-soft);
-  animation: appSlideUp 0.35s ease both, appPanelGlow 5.8s ease-in-out infinite;
+  animation: appSlideUp 0.35s ease both;
 }
 
 .direct-messages-intro-badge {
@@ -26,7 +26,7 @@
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  animation: appSoftPulse 3.1s ease-in-out infinite;
+  box-shadow: 0 10px 22px rgba(var(--app-accent-rgb), 0.14);
 }
 
 .direct-messages-intro-title {
@@ -79,7 +79,7 @@
   border: 1px solid var(--app-border);
   background: var(--app-card-gradient);
   box-shadow: var(--app-shadow-soft);
-  animation: appPanelGlow 6.4s ease-in-out infinite;
+  animation: appSlideUp 0.4s ease both;
 }
 
 .direct-messages-home-badge {
@@ -93,7 +93,7 @@
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  animation: appSoftPulse 3.5s ease-in-out infinite;
+  box-shadow: 0 10px 22px rgba(var(--app-accent-rgb), 0.14);
 }
 
 .direct-messages-home-title {

@@ -7,6 +7,16 @@ import './SendDirectMessage.css';
 
 const MAX_MESSAGE_LENGTH = 500;
 const MIN_MESSAGE_LENGTH = 1;
+const MAX_MEDIA_SIZE_BYTES = 25 * 1024 * 1024;
+const ALLOWED_MEDIA_TYPES = [
+  'image/jpeg',
+  'image/png',
+  'image/gif',
+  'image/webp',
+  'video/mp4',
+  'video/webm',
+  'video/ogg',
+];
 
 // Yup validation schema
 const directMessageSchema = yup.object().shape({
@@ -32,11 +42,27 @@ function SendDirectMessage({ senderId, onMessageSent }) {
   const [recipientId, setRecipientId] = useState('');
   const [selectedUser, setSelectedUser] = useState(null);
   const [message, setMessage] = useState('');
+  const [selectedMedia, setSelectedMedia] = useState(null);
+  const [mediaPreviewUrl, setMediaPreviewUrl] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(false);
   const [validationErrors, setValidationErrors] = useState({});
   const [touched, setTouched] = useState({});
+
+  useEffect(() => {
+    if (!selectedMedia) {
+      setMediaPreviewUrl('');
+      return undefined;
+    }
+
+    const previewUrl = URL.createObjectURL(selectedMedia);
+    setMediaPreviewUrl(previewUrl);
+
+    return () => URL.revokeObjectURL(previewUrl);
+  }, [selectedMedia]);
+
+  const isVideoPreview = Boolean(selectedMedia?.type?.startsWith('video/'));
 
   const handleUserSelect = (user) => {
     if (user) {
@@ -86,10 +112,30 @@ function SendDirectMessage({ senderId, onMessageSent }) {
     setValidationErrors({});
 
     try {
+      if (selectedMedia) {
+        if (!ALLOWED_MEDIA_TYPES.includes(selectedMedia.type)) {
+          setValidationErrors({ media: 'Only JPG, PNG, GIF, WEBP, MP4, WEBM, and OGG files are allowed.' });
+          setError('Validation error. Please check your input.');
+          return false;
+        }
+
+        if (selectedMedia.size > MAX_MEDIA_SIZE_BYTES) {
+          setValidationErrors({ media: 'The media file cannot be larger than 25 MB.' });
+          setError('Validation error. Please check your input.');
+          return false;
+        }
+      }
+
+      if (!message.trim() && !selectedMedia) {
+        setValidationErrors({ message: 'The message must contain text or media.' });
+        setError('Validation error. Please check your input.');
+        return false;
+      }
+
       await directMessageSchema.validate(
         {
           recipientId: recipientId.trim(),
-          message: message.trim(),
+          message: message.trim() || 'media',
         },
         { abortEarly: false }
       );
@@ -128,10 +174,11 @@ function SendDirectMessage({ senderId, onMessageSent }) {
       setError(null);
       setSuccess(false);
 
-      await dmApi.sendDirectMessage(recipientId.trim(), message.trim());
+      await dmApi.sendDirectMessage(recipientId.trim(), message.trim(), selectedMedia);
 
       setSuccess(true);
       setMessage('');
+      setSelectedMedia(null);
       setRecipientId('');
       setSelectedUser(null);
       setTouched({});
@@ -192,6 +239,35 @@ function SendDirectMessage({ senderId, onMessageSent }) {
     }
   };
 
+  const handleMediaChange = (event) => {
+    const file = event.target.files?.[0] || null;
+    setValidationErrors((prev) => ({ ...prev, media: null, message: null }));
+
+    if (!file) {
+      setSelectedMedia(null);
+      return;
+    }
+
+    if (!ALLOWED_MEDIA_TYPES.includes(file.type)) {
+      setSelectedMedia(null);
+      setValidationErrors((prev) => ({ ...prev, media: 'Only JPG, PNG, GIF, WEBP, MP4, WEBM, and OGG files are allowed.' }));
+      return;
+    }
+
+    if (file.size > MAX_MEDIA_SIZE_BYTES) {
+      setSelectedMedia(null);
+      setValidationErrors((prev) => ({ ...prev, media: 'The media file cannot be larger than 25 MB.' }));
+      return;
+    }
+
+    setSelectedMedia(file);
+  };
+
+  const handleRemoveMedia = () => {
+    setSelectedMedia(null);
+    setValidationErrors((prev) => ({ ...prev, media: null }));
+  };
+
   const handleUserSearchBlur = () => {
     if (!touched.recipientId) {
       setTouched(prev => ({ ...prev, recipientId: true }));
@@ -244,7 +320,7 @@ function SendDirectMessage({ senderId, onMessageSent }) {
 
         <div className="send-dm-field">
           <label htmlFor="message" className="send-dm-label">
-            Message <span className="required-asterisk">*</span>
+            Message or media <span className="required-asterisk">*</span>
           </label>
           <textarea
             id="message"
@@ -272,10 +348,41 @@ function SendDirectMessage({ senderId, onMessageSent }) {
           )}
         </div>
 
+        <div className="send-dm-field">
+          <label htmlFor="dm-media" className="send-dm-label">Photo or video (optional)</label>
+          <input
+            id="dm-media"
+            name="dm-media"
+            type="file"
+            accept="image/jpeg,image/png,image/gif,image/webp,video/mp4,video/webm,video/ogg"
+            onChange={handleMediaChange}
+            className="send-dm-file-input"
+            disabled={loading}
+          />
+
+          {selectedMedia && (
+            <div className="send-dm-media-preview">
+              {mediaPreviewUrl && (isVideoPreview ? (
+                <video src={mediaPreviewUrl} className="send-dm-preview-media" controls muted />
+              ) : (
+                <img src={mediaPreviewUrl} alt="Selected DM media preview" className="send-dm-preview-media" />
+              ))}
+              <div className="send-dm-media-meta">
+                <span>{selectedMedia.name}</span>
+                <button type="button" className="send-dm-remove-media" onClick={handleRemoveMedia} disabled={loading}>Remove file</button>
+              </div>
+            </div>
+          )}
+
+          {validationErrors.media && (
+            <div className="field-error" role="alert">{validationErrors.media}</div>
+          )}
+        </div>
+
         <button
           type="submit"
           className="send-dm-button"
-          disabled={loading || !senderId || !recipientId || !message.trim()}
+          disabled={loading || !senderId || !recipientId || (!message.trim() && !selectedMedia)}
         >
           {loading ? 'Sending...' : 'Send message'}
         </button>

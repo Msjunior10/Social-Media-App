@@ -59,6 +59,24 @@ public class PostRepository : IPostRepository
             .ToListAsync();
     }
 
+    public async Task<IEnumerable<Post>> GetAllPostsPageAsync(int page, int pageSize)
+    {
+        return await _context.Posts
+            .Include(p => p.Sender)
+            .Include(p => p.Recipient)
+            .Include(p => p.OriginalPost)
+                .ThenInclude(p => p!.Sender)
+            .OrderByDescending(p => p.CreatedAt)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+    }
+
+    public async Task<int> CountAllPostsAsync()
+    {
+        return await _context.Posts.CountAsync();
+    }
+
     public async Task<Post?> GetByIdAsync(Guid id)
     {
         return await _context.Posts
@@ -91,7 +109,27 @@ public class PostRepository : IPostRepository
             .Include(p => p.OriginalPost)
                 .ThenInclude(p => p!.Sender)
             .Where(p => p.RecipientId == userId)
+            .OrderByDescending(p => p.CreatedAt)
             .ToListAsync();
+    }
+
+    public async Task<IEnumerable<Post>> GetTimelinePostsPageAsync(Guid userId, int page, int pageSize)
+    {
+        return await _context.Posts
+            .Include(p => p.Sender)
+            .Include(p => p.Recipient)
+            .Include(p => p.OriginalPost)
+                .ThenInclude(p => p!.Sender)
+            .Where(p => p.RecipientId == userId)
+            .OrderByDescending(p => p.CreatedAt)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+    }
+
+    public async Task<int> CountTimelinePostsAsync(Guid userId)
+    {
+        return await _context.Posts.CountAsync(p => p.RecipientId == userId);
     }
 
     public async Task<IEnumerable<Post>> GetConversationAsync(Guid userId1, Guid userId2)
