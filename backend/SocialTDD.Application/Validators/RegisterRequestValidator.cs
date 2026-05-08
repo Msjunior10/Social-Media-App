@@ -23,6 +23,7 @@ public class RegisterRequestValidator : AbstractValidator<RegisterRequest>
             .MaximumLength(100).WithMessage("Lösenord får inte vara längre än 100 tecken.")
             .Matches("[A-Z]").WithMessage("Lösenord måste innehålla minst en stor bokstav.")
             .Matches("[a-z]").WithMessage("Lösenord måste innehålla minst en liten bokstav.")
-            .Matches("[0-9]").WithMessage("Lösenord måste innehålla minst en siffra.");
+            .Matches("[0-9]").WithMessage("Lösenord måste innehålla minst en siffra.")
+            .Matches("[^a-zA-Z0-9]").WithMessage("Lösenord måste innehålla minst ett specialtecken.");
     }
 }

@@ -225,9 +225,11 @@ function UserProfile({ userId, username, isEditable = false, refreshKey = 0 }) {
           ) : (
             <p className="user-profile-public-badge">Open member profile on Postra</p>
           )}
-          <p className="user-profile-last-active">
-            Last active: {formatDateTime(user.lastActiveAt)}
-          </p>
+          {user.lastActiveAt && (
+            <p className="user-profile-last-active">
+              Last active: {formatDateTime(user.lastActiveAt)}
+            </p>
+          )}
           <div className="user-profile-stat-row">
             <div className="user-profile-stat-pill">
               <strong>{stats.postsCount}</strong>

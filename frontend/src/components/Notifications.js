@@ -176,6 +176,40 @@ function Notifications() {
     }
   };
 
+  const getNotificationActionLabel = (notification) => {
+    switch (notification.type) {
+      case 'direct_message':
+        return 'Open thread';
+      case 'follow':
+        return 'View profile';
+      case 'post_like':
+      case 'post_comment':
+      case 'post_mention':
+      case 'comment_mention':
+      case 'post_repost':
+        return 'View post';
+      default:
+        return 'Open';
+    }
+  };
+
+  const getNotificationDestination = (notification) => {
+    switch (notification.type) {
+      case 'direct_message':
+        return 'Direct messages';
+      case 'follow':
+        return 'Profile';
+      case 'post_like':
+      case 'post_comment':
+      case 'post_mention':
+      case 'comment_mention':
+      case 'post_repost':
+        return 'Post detail';
+      default:
+        return 'Activity';
+    }
+  };
+
   const handleOpenNotification = async (notification) => {
     try {
       if (!notification.isRead) {
@@ -213,6 +247,24 @@ function Notifications() {
     { id: 'follows', label: 'Follows' },
     { id: 'messages', label: 'Messages' },
   ];
+
+  const getFilterCount = (filterId) => {
+    switch (filterId) {
+      case 'unread':
+        return unreadCount;
+      case 'posts':
+        return notifications.filter((notification) => (
+          ['post_like', 'post_comment', 'post_mention', 'comment_mention', 'post_repost'].includes(notification.type)
+        )).length;
+      case 'follows':
+        return notifications.filter((notification) => notification.type === 'follow').length;
+      case 'messages':
+        return notifications.filter((notification) => notification.type === 'direct_message').length;
+      case 'all':
+      default:
+        return notifications.length;
+    }
+  };
 
   const filteredNotifications = notifications.filter((notification) => {
     switch (activeFilter) {
@@ -284,7 +336,8 @@ function Notifications() {
             className={`notifications-filter ${activeFilter === filter.id ? 'active' : ''}`}
             onClick={() => setActiveFilter(filter.id)}
           >
-            {filter.label}
+            <span>{filter.label}</span>
+            <span className="notifications-filter-count">{getFilterCount(filter.id)}</span>
           </button>
         ))}
       </div>
@@ -311,6 +364,10 @@ function Notifications() {
                     <span className="notifications-item-date">{formatDate(notification.createdAt)}</span>
                   </div>
                   <div className="notifications-item-message">{notification.message}</div>
+                  <div className="notifications-item-footer">
+                    <span className="notifications-item-destination">{getNotificationDestination(notification)}</span>
+                    <span className="notifications-item-action">{getNotificationActionLabel(notification)}</span>
+                  </div>
                 </div>
               </div>
               {!notification.isRead && <span className="notifications-unread-pill">New</span>}

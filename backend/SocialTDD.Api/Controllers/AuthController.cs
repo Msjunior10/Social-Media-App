@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.Mvc;
 using SocialTDD.Api.Models;
 using SocialTDD.Application.DTOs;
@@ -7,6 +8,7 @@ namespace SocialTDD.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[EnableRateLimiting("auth")]
 public class AuthController : ControllerBase
 {
     private readonly IUserService _userService;

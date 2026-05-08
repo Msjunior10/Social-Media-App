@@ -21,8 +21,20 @@ public class UserController : ControllerBase
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
+    private static PublicUserResponse MapToPublicUserResponse(UserResponse user)
+    {
+        return new PublicUserResponse
+        {
+            Id = user.Id,
+            Username = user.Username,
+            Bio = user.Bio,
+            ProfileImageUrl = user.ProfileImageUrl,
+            CreatedAt = user.CreatedAt
+        };
+    }
+
     [HttpGet("{userId}")]
-    public async Task<ActionResult<UserResponse>> GetUserById(Guid userId)
+    public async Task<ActionResult<PublicUserResponse>> GetUserById(Guid userId)
     {
         try
         {
@@ -31,7 +43,7 @@ public class UserController : ControllerBase
             {
                 return NotFound(new ErrorResponse(ErrorCodes.USER_NOT_FOUND, $"Användare med ID {userId} hittades inte."));
             }
-            return Ok(user);
+            return Ok(MapToPublicUserResponse(user));
         }
         catch (Exception ex)
         {
@@ -44,7 +56,7 @@ public class UserController : ControllerBase
     }
 
     [HttpGet("username/{username}")]
-    public async Task<ActionResult<UserResponse>> GetUserByUsername(string username)
+    public async Task<ActionResult<PublicUserResponse>> GetUserByUsername(string username)
     {
         try
         {
@@ -53,7 +65,7 @@ public class UserController : ControllerBase
             {
                 return NotFound(new ErrorResponse(ErrorCodes.USER_NOT_FOUND, $"Användare med användarnamn '{username}' hittades inte."));
             }
-            return Ok(user);
+            return Ok(MapToPublicUserResponse(user));
         }
         catch (Exception ex)
         {
@@ -129,12 +141,12 @@ public class UserController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<List<UserResponse>>> GetAllUsers()
+    public async Task<ActionResult<List<PublicUserResponse>>> GetAllUsers()
     {
         try
         {
             var users = await _userService.GetAllUsersAsync();
-            return Ok(users);
+            return Ok(users.Select(MapToPublicUserResponse).ToList());
         }
         catch (Exception ex)
         {
@@ -147,12 +159,12 @@ public class UserController : ControllerBase
     }
 
     [HttpGet("search")]
-    public async Task<ActionResult<List<UserResponse>>> SearchUsers([FromQuery] string q)
+    public async Task<ActionResult<List<PublicUserResponse>>> SearchUsers([FromQuery] string q)
     {
         try
         {
             var users = await _userService.SearchUsersAsync(q ?? string.Empty);
-            return Ok(users);
+            return Ok(users.Select(MapToPublicUserResponse).ToList());
         }
         catch (Exception ex)
         {

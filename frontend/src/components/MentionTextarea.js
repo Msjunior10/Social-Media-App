@@ -3,12 +3,20 @@ import { userApi } from '../services/userApi';
 import './MentionTextarea.css';
 
 const HighlightedText = ({ value }) => {
-  const segments = String(value ?? '').split(/(@[A-Za-z0-9_]{3,50})/g);
+  const segments = String(value ?? '').split(/(@[A-Za-z0-9_]{3,50}|#[A-Za-z0-9_]+)/g);
 
   return segments.map((segment, index) => {
     if (/^@[A-Za-z0-9_]{3,50}$/.test(segment)) {
       return (
         <span key={`mention-${index}`} className="mention-text-highlight">
+          {segment}
+        </span>
+      );
+    }
+
+    if (/^#[A-Za-z0-9_]+$/.test(segment)) {
+      return (
+        <span key={`hashtag-${index}`} className="hashtag-text-highlight">
           {segment}
         </span>
       );

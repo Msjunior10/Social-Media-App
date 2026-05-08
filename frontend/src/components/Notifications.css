@@ -124,6 +124,9 @@
 }
 
 .notifications-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   border: 1px solid var(--app-border);
   background: rgba(255, 255, 255, 0.84);
   color: var(--app-muted);
@@ -133,6 +136,20 @@
   font-weight: 700;
   cursor: pointer;
   transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease, color 0.2s ease;
+}
+
+.notifications-filter-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  min-height: 24px;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: rgba(var(--app-accent-rgb), 0.1);
+  color: var(--app-accent-strong);
+  font-size: 12px;
+  font-weight: 800;
 }
 
 .notifications-filter:hover {
@@ -229,6 +246,11 @@
   background: rgba(16, 21, 30, 0.78);
 }
 
+:root[data-theme='dark'] .notifications-filter-count {
+  background: rgba(124, 198, 255, 0.14);
+  color: #dceeff;
+}
+
 :root[data-theme='dark'] .notifications-summary-card-accent {
   background: linear-gradient(180deg, rgba(53, 36, 91, 0.64), rgba(16, 21, 30, 0.86));
 }
@@ -236,6 +258,11 @@
 :root[data-theme='dark'] .notifications-empty,
 :root[data-theme='dark'] .notifications-item {
   background: var(--app-card-gradient);
+}
+
+:root[data-theme='dark'] .notifications-item-destination {
+  background: rgba(124, 198, 255, 0.12);
+  color: #dceeff;
 }
 
 :root[data-theme='dark'] .notifications-item:hover {
@@ -269,6 +296,39 @@
   color: var(--app-text);
   line-height: 1.6;
   overflow-wrap: anywhere;
+}
+
+.notifications-item-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.notifications-item-destination {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(var(--app-accent-rgb), 0.08);
+  color: var(--app-accent-strong);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+
+.notifications-item-action {
+  color: var(--app-accent-strong);
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+}
+
+.notifications-item:hover .notifications-item-action {
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
 }
 
 .notifications-unread-pill {
@@ -306,6 +366,11 @@
 
   .notifications-item-date {
     text-align: left;
+  }
+
+  .notifications-item-footer {
+    flex-direction: column;
+    align-items: flex-start;
   }
 }
 

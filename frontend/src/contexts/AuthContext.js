@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { notificationsRealtime } from '../services/notificationsRealtime';
-import { AUTH_EXPIRED_EVENT, clearStoredAuth } from '../utils/apiClient';
+import { AUTH_EXPIRED_EVENT, clearStoredAuth, getStoredAuth, setStoredAuth } from '../utils/apiClient';
 
 const AuthContext = createContext(null);
 
@@ -13,33 +13,14 @@ export const useAuth = () => {
 };
 
 export const AuthProvider = ({ children }) => {
-  const [token, setToken] = useState(localStorage.getItem('token') || null);
-  const [userId, setUserId] = useState(localStorage.getItem('userId') || null);
-  const [username, setUsername] = useState(localStorage.getItem('username') || null);
+  const storedAuth = getStoredAuth();
+  const [token, setToken] = useState(storedAuth.token);
+  const [userId, setUserId] = useState(storedAuth.userId);
+  const [username, setUsername] = useState(storedAuth.username);
 
   useEffect(() => {
-    if (token) {
-      localStorage.setItem('token', token);
-    } else {
-      localStorage.removeItem('token');
-    }
-  }, [token]);
-
-  useEffect(() => {
-    if (userId) {
-      localStorage.setItem('userId', userId);
-    } else {
-      localStorage.removeItem('userId');
-    }
-  }, [userId]);
-
-  useEffect(() => {
-    if (username) {
-      localStorage.setItem('username', username);
-    } else {
-      localStorage.removeItem('username');
-    }
-  }, [username]);
+    setStoredAuth({ token, userId, username });
+  }, [token, userId, username]);
 
   useEffect(() => {
     if (token) {
@@ -63,9 +44,7 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const login = (authData) => {
-    localStorage.setItem('token', authData.token);
-    localStorage.setItem('userId', authData.userId);
-    localStorage.setItem('username', authData.username);
+    setStoredAuth(authData);
     setToken(authData.token);
     setUserId(authData.userId);
     setUsername(authData.username);

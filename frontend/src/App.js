@@ -44,8 +44,8 @@ function AppContent() {
       <NotificationToasts />
       <main className="App-main">
         <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
+          <Route path="/login" element={<AuthScene><Login /></AuthScene>} />
+          <Route path="/register" element={<AuthScene><Register /></AuthScene>} />
           
           <Route
             path="/"
@@ -139,6 +139,120 @@ function AppContent() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
+    </div>
+  );
+}
+
+function AuthScene({ children }) {
+  return (
+    <div className="auth-scene">
+      <div className="auth-scene-preview" aria-hidden="true">
+        <div className="app-shell auth-preview-shell">
+          <aside className="app-shell-sidebar">
+            <div className="sidebar-stack auth-preview-sidebar">
+              <section className="sidebar-card">
+                <span className="sidebar-card-label">Today&apos;s focus</span>
+                <h3>Hi there</h3>
+                <p>Share updates, discover new people, and keep your conversations moving.</p>
+                <div className="sidebar-link-list sidebar-link-list-spaced">
+                  <span className="sidebar-link-item">Open your profile</span>
+                  <span className="sidebar-link-item">Explore the feed</span>
+                  <span className="sidebar-link-item">Open your messages</span>
+                </div>
+              </section>
+
+              <section className="sidebar-card">
+                <span className="sidebar-card-label">Your activity</span>
+                <h3>Fresh momentum</h3>
+                <div className="sidebar-stats-grid">
+                  <div className="sidebar-stat-item">
+                    <span className="sidebar-stat-value">12</span>
+                    <span className="sidebar-stat-label">Posts</span>
+                  </div>
+                  <div className="sidebar-stat-item">
+                    <span className="sidebar-stat-value">48</span>
+                    <span className="sidebar-stat-label">Followers</span>
+                  </div>
+                  <div className="sidebar-stat-item">
+                    <span className="sidebar-stat-value">19</span>
+                    <span className="sidebar-stat-label">Following</span>
+                  </div>
+                </div>
+                <p className="sidebar-activity-tip">Keep posting to stay visible in the feed.</p>
+              </section>
+            </div>
+          </aside>
+
+          <section className="app-shell-center">
+            <div className="page-column auth-preview-column">
+              <div className="page-column-header">
+                <div>
+                  <h1>Discover</h1>
+                  <p>A cleaner social space with faster conversations and stronger profiles.</p>
+                </div>
+              </div>
+              <div className="page-column-content">
+                <div className="content-panel auth-preview-feed">
+                  <div className="auth-preview-composer">
+                    <div className="auth-preview-composer-row auth-preview-composer-row-short" />
+                    <div className="auth-preview-composer-row" />
+                    <div className="auth-preview-composer-actions">
+                      <span className="auth-preview-chip" />
+                      <span className="auth-preview-chip" />
+                      <span className="auth-preview-button" />
+                    </div>
+                  </div>
+
+                  {[1, 2, 3].map((item) => (
+                    <article key={item} className="auth-preview-post">
+                      <div className="auth-preview-post-header">
+                        <div className="auth-preview-avatar" />
+                        <div className="auth-preview-post-meta">
+                          <div className="auth-preview-line auth-preview-line-short" />
+                          <div className="auth-preview-line auth-preview-line-medium" />
+                        </div>
+                      </div>
+                      <div className="auth-preview-post-body">
+                        <div className="auth-preview-line" />
+                        <div className="auth-preview-line" />
+                        <div className="auth-preview-line auth-preview-line-medium" />
+                      </div>
+                      <div className="auth-preview-post-actions">
+                        <span className="auth-preview-chip" />
+                        <span className="auth-preview-chip" />
+                        <span className="auth-preview-chip" />
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <aside className="app-shell-right">
+            <div className="sidebar-stack auth-preview-sidebar">
+              <section className="sidebar-card">
+                <span className="sidebar-card-label">Quick access</span>
+                <div className="sidebar-link-list">
+                  <span className="sidebar-link-item">Notifications</span>
+                  <span className="sidebar-link-item">Saved posts</span>
+                  <span className="sidebar-link-item">Network</span>
+                </div>
+              </section>
+
+              <section className="sidebar-card">
+                <span className="sidebar-card-label">Messages</span>
+                <h3>Private conversations</h3>
+                <p>Keep up with your latest threads and share media in a focused space.</p>
+              </section>
+            </div>
+          </aside>
+        </div>
+      </div>
+
+      <div className="auth-scene-overlay">
+        {children}
+      </div>
     </div>
   );
 }

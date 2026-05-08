@@ -1,5 +1,7 @@
+using System.Threading.RateLimiting;
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -17,11 +19,47 @@ using SocialTDD.Infrastructure.Data;
 using SocialTDD.Infrastructure.Repositories;
 
 var builder = WebApplication.CreateBuilder(args);
+var configuredCorsOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>();
+var allowedCorsOrigins = (configuredCorsOrigins is { Length: > 0 }
+    ? configuredCorsOrigins
+    : builder.Environment.IsDevelopment()
+        ? [
+            "http://localhost:3000",
+            "http://127.0.0.1:3000",
+            "http://localhost:3001",
+            "http://127.0.0.1:3001"
+        ]
+        : [])
+    .Distinct(StringComparer.OrdinalIgnoreCase)
+    .ToArray();
+
+if (!builder.Environment.IsDevelopment() && allowedCorsOrigins.Length == 0)
+{
+    throw new InvalidOperationException("CORS configuration is missing. Set Cors:AllowedOrigins for non-development environments.");
+}
 
 // Add services to the container
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSignalR();
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.AddPolicy("auth", context =>
+    {
+        var remoteIp = context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+
+        return RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: remoteIp,
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 10,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0,
+                AutoReplenishment = true
+            });
+    });
+});
 builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new OpenApiInfo { Title = "Socially API", Version = "v1" });
@@ -46,9 +84,10 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 
 // Configure JWT
 var jwtConfig = builder.Configuration.GetSection("Jwt").Get<JwtConfiguration>();
-if (jwtConfig == null || string.IsNullOrEmpty(jwtConfig.Secret))
+var insecureDefaultJwtSecret = "CHANGE_ME_IN_USER_SECRETS_OR_ENV";
+if (jwtConfig == null || string.IsNullOrWhiteSpace(jwtConfig.Secret) || jwtConfig.Secret == insecureDefaultJwtSecret)
 {
-    throw new InvalidOperationException("JWT configuration is missing or invalid.");
+    throw new InvalidOperationException("JWT configuration is missing or invalid. Set Jwt:Secret via user secrets, environment variables, or secure configuration.");
 }
 
 builder.Services.AddSingleton(jwtConfig);
@@ -126,7 +165,7 @@ builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
     {
-        policy.AllowAnyOrigin()
+        policy.WithOrigins(allowedCorsOrigins)
               .AllowAnyMethod()
               .AllowAnyHeader();
     });
@@ -152,6 +191,7 @@ else
 
 app.UseStaticFiles();
 app.UseCors();
+app.UseRateLimiter();
 app.UseAuthentication(); // Lägg till detta före UseAuthorization
 app.UseMiddleware<UpdateLastActivityMiddleware>();
 app.UseAuthorization();

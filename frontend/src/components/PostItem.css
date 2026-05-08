@@ -73,6 +73,42 @@
   word-break: break-word;
 }
 
+.post-mention {
+  color: #0f6cbd;
+  font-weight: 800;
+  background: rgba(15, 108, 189, 0.14);
+  border-radius: 8px;
+  box-shadow: 0 0 0 1px rgba(15, 108, 189, 0.08);
+}
+
+.post-hashtag {
+  color: #9a6700;
+  font-weight: 800;
+  background: rgba(183, 121, 31, 0.16);
+  border-radius: 8px;
+  box-shadow: 0 0 0 1px rgba(183, 121, 31, 0.1);
+}
+
+.post-meta-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.post-meta-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: rgba(var(--app-accent-rgb), 0.08);
+  color: var(--app-accent-strong);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
 .post-image-wrapper {
   margin: 12px 0;
 }
@@ -137,6 +173,23 @@
 :root[data-theme='dark'] .post-action-button {
   background: color-mix(in srgb, var(--app-surface-elevated) 72%, transparent);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+:root[data-theme='dark'] .post-meta-chip {
+  background: rgba(124, 198, 255, 0.12);
+  color: #dceeff;
+}
+
+:root[data-theme='dark'] .post-mention {
+  color: #7cc6ff;
+  background: rgba(64, 156, 255, 0.18);
+  box-shadow: 0 0 0 1px rgba(124, 198, 255, 0.14);
+}
+
+:root[data-theme='dark'] .post-hashtag {
+  color: #ffd98a;
+  background: rgba(251, 191, 36, 0.18);
+  box-shadow: 0 0 0 1px rgba(251, 191, 36, 0.14);
 }
 
 :root[data-theme='dark'] .post-action-button:hover:not(:disabled) {

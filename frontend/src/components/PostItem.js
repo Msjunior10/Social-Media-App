@@ -17,6 +17,14 @@ function PostItem({
   isHighlighted = false,
   shouldOpenComments = false,
 }) {
+  const [interactionState, setInteractionState] = useState({
+    isLikedByCurrentUser: Boolean(post.isLikedByCurrentUser),
+    likeCount: post.likeCount || 0,
+    isBookmarkedByCurrentUser: Boolean(post.isBookmarkedByCurrentUser),
+    isRepostedByCurrentUser: Boolean(post.isRepostedByCurrentUser),
+    repostCount: post.repostCount || 0,
+  });
+  const [commentsState, setCommentsState] = useState(post.comments || []);
   const [isEditing, setIsEditing] = useState(false);
   const [editedMessage, setEditedMessage] = useState(post.message);
   const [showComments, setShowComments] = useState(false);
@@ -37,12 +45,45 @@ function PostItem({
     }
   }, [shouldOpenComments]);
 
+  useEffect(() => {
+    setCommentsState(post.comments || []);
+  }, [post.comments]);
+
+  useEffect(() => {
+    setInteractionState({
+      isLikedByCurrentUser: Boolean(post.isLikedByCurrentUser),
+      likeCount: post.likeCount || 0,
+      isBookmarkedByCurrentUser: Boolean(post.isBookmarkedByCurrentUser),
+      isRepostedByCurrentUser: Boolean(post.isRepostedByCurrentUser),
+      repostCount: post.repostCount || 0,
+    });
+  }, [
+    post.isLikedByCurrentUser,
+    post.likeCount,
+    post.isBookmarkedByCurrentUser,
+    post.isRepostedByCurrentUser,
+    post.repostCount,
+  ]);
+
   const senderName = usernames[post.senderId] || post.senderId;
   const senderHandle = `@${String(senderName).toLowerCase().replace(/\s+/g, '')}`;
   const senderInitial = String(senderName).charAt(0).toUpperCase();
   const originalSenderName = post.originalSenderId ? (usernames[post.originalSenderId] || post.originalSenderId) : null;
   const originalHandle = originalSenderName ? `@${String(originalSenderName).toLowerCase().replace(/\s+/g, '')}` : null;
   const originalInitial = String(originalSenderName || '').charAt(0).toUpperCase();
+  const currentUserName = usernames[currentUserId] || currentUserId;
+  const hasMedia = Boolean(post.imageUrl || post.originalImageUrl);
+  const replyCount = commentsState.length;
+  const likeCount = interactionState.likeCount;
+  const repostCount = interactionState.repostCount;
+
+  const postMetaItems = [
+    isRepostEntry ? 'Repost' : (isPublicPost(post) ? 'Public post' : 'Wall post'),
+    hasMedia ? 'Media attached' : null,
+    `${replyCount} ${replyCount === 1 ? 'reply' : 'replies'}`,
+    `${likeCount} ${likeCount === 1 ? 'like' : 'likes'}`,
+    repostCount > 0 ? `${repostCount} ${repostCount === 1 ? 'repost' : 'reposts'}` : null,
+  ].filter(Boolean);
 
   const isVideoUrl = (url) => {
     if (!url) {
@@ -146,15 +187,19 @@ function PostItem({
     try {
       setIsSubmitting(true);
       setActionError(null);
-      if (post.isLikedByCurrentUser) {
+      if (interactionState.isLikedByCurrentUser) {
         await postsApi.unlikePost(targetPostId);
       } else {
         await postsApi.likePost(targetPostId);
       }
 
-      if (onPostChanged) {
-        await onPostChanged();
-      }
+      setInteractionState((current) => ({
+        ...current,
+        isLikedByCurrentUser: !current.isLikedByCurrentUser,
+        likeCount: current.isLikedByCurrentUser
+          ? Math.max(0, current.likeCount - 1)
+          : current.likeCount + 1,
+      }));
     } catch (error) {
       setActionError(getFriendlyError(error, 'Could not update the like.'));
     } finally {
@@ -166,15 +211,16 @@ function PostItem({
     try {
       setIsSubmitting(true);
       setActionError(null);
-      if (post.isBookmarkedByCurrentUser) {
+      if (interactionState.isBookmarkedByCurrentUser) {
         await postsApi.removeBookmark(targetPostId);
       } else {
         await postsApi.bookmarkPost(targetPostId);
       }
 
-      if (onPostChanged) {
-        await onPostChanged();
-      }
+      setInteractionState((current) => ({
+        ...current,
+        isBookmarkedByCurrentUser: !current.isBookmarkedByCurrentUser,
+      }));
     } catch (error) {
       setActionError(getFriendlyError(error, 'Could not update the saved state of the post.'));
     } finally {
@@ -186,15 +232,24 @@ function PostItem({
     try {
       setIsSubmitting(true);
       setActionError(null);
-      if (post.isRepostedByCurrentUser) {
+      if (interactionState.isRepostedByCurrentUser) {
         await postsApi.removeRepost(targetPostId);
       } else {
         await postsApi.repostPost(targetPostId);
       }
 
-      if (onPostChanged) {
+      if (isRepostEntry && onPostChanged) {
         await onPostChanged();
+        return;
       }
+
+      setInteractionState((current) => ({
+        ...current,
+        isRepostedByCurrentUser: !current.isRepostedByCurrentUser,
+        repostCount: current.isRepostedByCurrentUser
+          ? Math.max(0, current.repostCount - 1)
+          : current.repostCount + 1,
+      }));
     } catch (error) {
       setActionError(getFriendlyError(error, 'Could not update the repost.'));
     } finally {
@@ -206,13 +261,26 @@ function PostItem({
     try {
       setIsSubmitting(true);
       setActionError(null);
-      await postsApi.addComment(targetPostId, commentMessage.trim());
+      const trimmedCommentMessage = commentMessage.trim();
+      const createdComment = await postsApi.addComment(targetPostId, trimmedCommentMessage);
+      const fallbackComment = {
+        id: `temp-${Date.now()}`,
+        userId: currentUserId,
+        message: trimmedCommentMessage,
+        createdAt: new Date().toISOString(),
+      };
+      const nextComment = createdComment && typeof createdComment === 'object' && !Array.isArray(createdComment)
+        ? {
+            id: createdComment.id ?? fallbackComment.id,
+            userId: createdComment.userId ?? fallbackComment.userId,
+            message: createdComment.message ?? fallbackComment.message,
+            createdAt: createdComment.createdAt ?? fallbackComment.createdAt,
+          }
+        : fallbackComment;
+
+      setCommentsState((current) => [...current, nextComment]);
       setCommentMessage('');
       setShowComments(true);
-
-      if (onPostChanged) {
-        await onPostChanged();
-      }
     } catch (error) {
       setActionError(getFriendlyError(error, 'Could not add the comment.'));
     } finally {
@@ -230,10 +298,7 @@ function PostItem({
       setIsSubmitting(true);
       setActionError(null);
       await postsApi.deleteComment(targetPostId, commentId);
-
-      if (onPostChanged) {
-        await onPostChanged();
-      }
+      setCommentsState((current) => current.filter((comment) => comment.id !== commentId));
     } catch (error) {
       setActionError(getFriendlyError(error, 'Could not delete the comment.'));
     } finally {
@@ -258,12 +323,13 @@ function PostItem({
       setIsSubmitting(true);
       setActionError(null);
       await postsApi.updateComment(targetPostId, commentId, editingCommentMessage.trim());
+      setCommentsState((current) => current.map((comment) => (
+        comment.id === commentId
+          ? { ...comment, message: editingCommentMessage.trim() }
+          : comment
+      )));
       setEditingCommentId(null);
       setEditingCommentMessage('');
-
-      if (onPostChanged) {
-        await onPostChanged();
-      }
     } catch (error) {
       setActionError(getFriendlyError(error, 'Could not update the comment.'));
     } finally {
@@ -281,6 +347,18 @@ function PostItem({
     )
   );
 
+  const renderFormattedText = (text) => String(text ?? '').split(/(@[A-Za-z0-9_]{3,50}|#[A-Za-z0-9_]+)/g).map((segment, index) => {
+    if (/^@[A-Za-z0-9_]{3,50}$/.test(segment)) {
+      return <span key={`mention-${index}`} className="post-mention">{segment}</span>;
+    }
+
+    if (/^#[A-Za-z0-9_]+$/.test(segment)) {
+      return <span key={`hashtag-${index}`} className="post-hashtag">{segment}</span>;
+    }
+
+    return <span key={`text-${index}`}>{segment}</span>;
+  });
+
   return (
     <div id={postDomId} className={`${containerClassName} ${isHighlighted ? 'post-item-highlighted' : ''}`.trim()}>
       <div className="post-layout">
@@ -294,6 +372,12 @@ function PostItem({
               <span className="post-separator">·</span>
               <span className="post-date">{formatDate(post.createdAt)}</span>
             </div>
+          </div>
+
+          <div className="post-meta-strip" aria-label="Post summary">
+            {postMetaItems.map((item) => (
+              <span key={item} className="post-meta-chip">{item}</span>
+            ))}
           </div>
 
           {isEditing ? (
@@ -339,11 +423,11 @@ function PostItem({
                   </div>
                 </div>
               </div>
-              <div className="post-message">{post.originalMessage}</div>
+              <div className="post-message">{renderFormattedText(post.originalMessage)}</div>
               {renderPostMedia(post.originalImageUrl, 'Reposted content preview')}
             </div>
           ) : (
-            <div className="post-message">{post.message}</div>
+            <div className="post-message">{renderFormattedText(post.message)}</div>
           )}
 
           {!isRepostEntry && renderPostMedia(post.imageUrl, 'Post attachment preview')}
@@ -353,34 +437,34 @@ function PostItem({
           <div className="post-social-bar">
             <button
               type="button"
-              className={`post-action-button ${post.isLikedByCurrentUser ? 'post-action-liked' : ''}`}
+              className={`post-action-button ${interactionState.isLikedByCurrentUser ? 'post-action-liked' : ''}`}
               onClick={handleToggleLike}
               disabled={isSubmitting}
             >
-              {post.isLikedByCurrentUser ? '♥ Liked' : '♥ Like'} ({post.likeCount || 0})
+              {interactionState.isLikedByCurrentUser ? '♥ Liked' : '♥ Like'} ({interactionState.likeCount})
             </button>
             <button
               type="button"
               className="post-action-button"
               onClick={() => setShowComments((prev) => !prev)}
             >
-              💬 Replies ({post.comments?.length || 0})
+              💬 Replies ({commentsState.length})
             </button>
             <button
               type="button"
-              className={`post-action-button ${post.isRepostedByCurrentUser ? 'post-action-reposted' : ''}`}
+              className={`post-action-button ${interactionState.isRepostedByCurrentUser ? 'post-action-reposted' : ''}`}
               onClick={handleToggleRepost}
               disabled={isSubmitting}
             >
-              {post.isRepostedByCurrentUser ? '↻ Reposted' : '↻ Repost'} ({post.repostCount || 0})
+              {interactionState.isRepostedByCurrentUser ? '↻ Reposted' : '↻ Repost'} ({interactionState.repostCount})
             </button>
             <button
               type="button"
-              className={`post-action-button ${post.isBookmarkedByCurrentUser ? 'post-action-bookmarked' : ''}`}
+              className={`post-action-button ${interactionState.isBookmarkedByCurrentUser ? 'post-action-bookmarked' : ''}`}
               onClick={handleToggleBookmark}
               disabled={isSubmitting}
             >
-              {post.isBookmarkedByCurrentUser ? '★ Saved' : '☆ Save'}
+              {interactionState.isBookmarkedByCurrentUser ? '★ Saved' : '☆ Save'}
             </button>
           </div>
 
@@ -412,14 +496,14 @@ function PostItem({
               </div>
 
               <div className="post-comments-list">
-                {(post.comments || []).length === 0 ? (
+                {commentsState.length === 0 ? (
                   <div className="post-comments-empty">No comments yet.</div>
                 ) : (
-                  post.comments.map((comment) => (
+                  commentsState.map((comment) => (
                     <div key={comment.id} className="post-comment-item">
                       <div className="post-comment-header">
                         <div className="post-comment-meta">
-                          <span className="post-comment-user">{usernames[comment.userId] || comment.userId}</span>
+                          <span className="post-comment-user">{usernames[comment.userId] || (comment.userId === currentUserId ? currentUserName : comment.userId)}</span>
                           <span className="post-comment-date">{formatDate(comment.createdAt)}</span>
                         </div>
                         {currentUserId === comment.userId && (
@@ -479,7 +563,7 @@ function PostItem({
                           <div className="post-edit-meta">{editingCommentMessage.length} / 500 characters</div>
                         </div>
                       ) : (
-                        <div className="post-comment-message">{comment.message}</div>
+                        <div className="post-comment-message">{renderFormattedText(comment.message)}</div>
                       )}
                     </div>
                   ))

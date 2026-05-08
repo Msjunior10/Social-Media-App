@@ -64,6 +64,14 @@
   box-shadow: 0 0 0 1px rgba(15, 108, 189, 0.08);
 }
 
+.hashtag-text-highlight {
+  color: #9a6700;
+  font-weight: 800;
+  background: rgba(183, 121, 31, 0.16);
+  border-radius: 8px;
+  box-shadow: 0 0 0 1px rgba(183, 121, 31, 0.1);
+}
+
 .mention-textarea-overlay-trailing-space {
   visibility: hidden;
 }
@@ -165,4 +173,10 @@
   color: #7cc6ff;
   background: rgba(64, 156, 255, 0.18);
   box-shadow: 0 0 0 1px rgba(124, 198, 255, 0.14);
+}
+
+:root[data-theme='dark'] .hashtag-text-highlight {
+  color: #ffd98a;
+  background: rgba(251, 191, 36, 0.18);
+  box-shadow: 0 0 0 1px rgba(251, 191, 36, 0.14);
 }

@@ -37,8 +37,8 @@ function Register() {
       errors.password = 'Password is required.';
     } else if (password.length < 8) {
       errors.password = 'Password must be at least 8 characters.';
-    } else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(password)) {
-      errors.password = 'Password must contain at least one uppercase letter, one lowercase letter, and one number.';
+    } else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^a-zA-Z0-9])/.test(password)) {
+      errors.password = 'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character.';
     }
 
     if (!confirmPassword) {
@@ -191,11 +191,14 @@ function Register() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="At least 8 characters, uppercase/lowercase, and a number"
+              placeholder="8+ chars, upper/lowercase, number, special character"
               className={`register-input ${validationErrors.password ? 'input-error' : ''}`}
               disabled={loading}
               autoComplete="new-password"
             />
+            <div className="register-password-hint" aria-live="polite">
+              Use at least 8 characters with an uppercase letter, lowercase letter, number, and special character.
+            </div>
             {validationErrors.password && (
               <span className="field-error">{validationErrors.password}</span>
             )}
