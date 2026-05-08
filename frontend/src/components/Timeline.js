@@ -7,6 +7,7 @@ import './Timeline.css';
 
 function Timeline({ userId, refreshKey = 0, showHeader = true }) {
   const PAGE_SIZE = 10;
+  const skeletonItems = [1, 2, 3];
   const [posts, setPosts] = useState([]);
   const [usernames, setUsernames] = useState({});
   const [loading, setLoading] = useState(true);
@@ -161,9 +162,22 @@ function Timeline({ userId, refreshKey = 0, showHeader = true }) {
         <div className="timeline-header">
           {showHeader && <h3>Timeline</h3>}
         </div>
-        <div className="loading">
-          <span className="loading-spinner"></span>
-          <span>Loading timeline...</span>
+        <div className="timeline-skeleton-list" aria-hidden="true">
+          {skeletonItems.map((item) => (
+            <div key={item} className="timeline-skeleton-item">
+              <div className="timeline-skeleton-avatar" />
+              <div className="timeline-skeleton-body">
+                <div className="timeline-skeleton-row timeline-skeleton-row-short" />
+                <div className="timeline-skeleton-row" />
+                <div className="timeline-skeleton-row timeline-skeleton-row-medium" />
+                <div className="timeline-skeleton-chips">
+                  <span className="timeline-skeleton-chip" />
+                  <span className="timeline-skeleton-chip" />
+                  <span className="timeline-skeleton-chip" />
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     );
@@ -173,7 +187,10 @@ function Timeline({ userId, refreshKey = 0, showHeader = true }) {
     <div className="timeline">
       {showHeader && (
         <div className="timeline-header">
-          <h3>Timeline</h3>
+          <div className="timeline-title-group">
+            <h3>Timeline</h3>
+            <span className="timeline-count-badge">{posts.length} loaded</span>
+          </div>
           <button
             onClick={refreshTimeline}
             className="timeline-refresh-button"

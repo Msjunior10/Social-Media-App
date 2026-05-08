@@ -2,11 +2,50 @@ import { ApiError, ErrorCodes } from './ApiError';
 
 const API_TIMEOUT = 10000; // 10 sekunder
 export const AUTH_EXPIRED_EVENT = 'postra:auth-expired';
+const AUTH_STORAGE_KEYS = ['token', 'userId', 'username'];
+
+const getStorageValue = (key) => {
+  const sessionValue = sessionStorage.getItem(key);
+  if (sessionValue) {
+    return sessionValue;
+  }
+
+  const legacyLocalValue = localStorage.getItem(key);
+  if (legacyLocalValue) {
+    sessionStorage.setItem(key, legacyLocalValue);
+    localStorage.removeItem(key);
+    return legacyLocalValue;
+  }
+
+  return null;
+};
+
+export const getStoredAuth = () => ({
+  token: getStorageValue('token'),
+  userId: getStorageValue('userId'),
+  username: getStorageValue('username'),
+});
+
+export const setStoredAuth = ({ token, userId, username }) => {
+  const entries = { token, userId, username };
+
+  AUTH_STORAGE_KEYS.forEach((key) => {
+    const value = entries[key];
+    if (value) {
+      sessionStorage.setItem(key, value);
+    } else {
+      sessionStorage.removeItem(key);
+    }
+
+    localStorage.removeItem(key);
+  });
+};
 
 export const clearStoredAuth = () => {
-  localStorage.removeItem('token');
-  localStorage.removeItem('userId');
-  localStorage.removeItem('username');
+  AUTH_STORAGE_KEYS.forEach((key) => {
+    sessionStorage.removeItem(key);
+    localStorage.removeItem(key);
+  });
 };
 
 export const isTokenExpired = (token) => {
@@ -44,7 +83,7 @@ const notifyAuthExpired = () => {
 
 // Utility function för att hämta token från localStorage
 const getAuthToken = () => {
-  return localStorage.getItem('token');
+  return getStorageValue('token');
 };
 
 const createTimeoutPromise = (timeoutMs) => {

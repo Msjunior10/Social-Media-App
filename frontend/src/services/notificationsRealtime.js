@@ -1,4 +1,5 @@
 import * as signalR from '@microsoft/signalr';
+import { getStoredAuth } from '../utils/apiClient';
 
 const HUB_URL = 'http://localhost:5000/hubs/notifications';
 
@@ -19,7 +20,7 @@ const notifyListeners = (event) => {
 const buildConnection = () => {
   const hubConnection = new signalR.HubConnectionBuilder()
     .withUrl(HUB_URL, {
-      accessTokenFactory: () => localStorage.getItem('token') || '',
+      accessTokenFactory: () => getStoredAuth().token || '',
     })
     .withAutomaticReconnect()
     .build();
@@ -59,7 +60,7 @@ const buildConnection = () => {
 };
 
 const ensureConnection = async () => {
-  const token = localStorage.getItem('token');
+  const token = getStoredAuth().token;
   if (!token) {
     return null;
   }

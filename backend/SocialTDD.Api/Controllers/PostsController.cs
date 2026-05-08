@@ -502,23 +502,11 @@ public class PostsController : ControllerBase
 
     private string? ValidateMedia(IFormFile media)
     {
-        if (media.Length <= 0)
-        {
-            return "Den uppladdade filen är tom.";
-        }
-
-        if (media.Length > MaxMediaSizeBytes)
-        {
-            return $"Mediafilen får inte vara större än {MaxMediaSizeBytes / (1024 * 1024)} MB.";
-        }
-
-        var extension = Path.GetExtension(media.FileName);
-        if (string.IsNullOrWhiteSpace(extension) || !AllowedMediaExtensions.Contains(extension))
-        {
-            return "Endast JPG, PNG, GIF, WEBP, MP4, WEBM och OGG är tillåtna.";
-        }
-
-        return null;
+        return MediaUploadValidation.Validate(
+            media,
+            AllowedMediaExtensions,
+            MaxMediaSizeBytes,
+            "Endast JPG, PNG, GIF, WEBP, MP4, WEBM och OGG är tillåtna.");
     }
 
     private async Task<string> SavePostMediaAsync(IFormFile media)

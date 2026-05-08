@@ -8,6 +8,6 @@ public interface IDirectMessageService
     Task<DirectMessageResponse> SendDirectMessageAsync(CreateDirectMessageRequest request);
     Task<List<DirectMessageResponse>> GetConversationAsync(Guid userId, Guid otherUserId);
     Task<List<DirectMessageResponse>> GetReceivedMessagesAsync(Guid userId);
-    Task MarkAsReadAsync(Guid messageId);
+    Task MarkAsReadAsync(Guid messageId, Guid userId);
 }
 

@@ -160,12 +160,17 @@ public class DirectMessageService : IDirectMessageService
         }).ToList();
     }
 
-    public async Task MarkAsReadAsync(Guid messageId)
+    public async Task MarkAsReadAsync(Guid messageId, Guid userId)
     {
         var message = await _directMessageRepository.GetByIdAsync(messageId);
         if (message == null)
         {
             throw new ArgumentException($"Meddelande med ID {messageId} finns inte.", nameof(messageId));
+        }
+
+        if (message.RecipientId != userId)
+        {
+            throw new UnauthorizedAccessException("Du kan bara markera dina egna mottagna meddelanden som lästa.");
         }
 
         if (!message.IsRead)

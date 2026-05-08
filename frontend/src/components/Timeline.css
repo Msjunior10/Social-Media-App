@@ -10,11 +10,31 @@
   border-bottom: 1px solid var(--app-border);
 }
 
+.timeline-title-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
 .timeline h3 {
   margin: 0;
   color: var(--app-text);
   font-size: 20px;
   font-weight: 800;
+}
+
+.timeline-count-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: rgba(var(--app-accent-rgb), 0.08);
+  color: var(--app-accent-strong);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
 }
 
 .timeline-refresh-button {
@@ -141,6 +161,80 @@
   gap: 0;
 }
 
+.timeline-skeleton-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.timeline-skeleton-item {
+  display: flex;
+  gap: 14px;
+  padding: 18px 20px;
+  border-bottom: 1px solid var(--app-border);
+}
+
+.timeline-skeleton-avatar,
+.timeline-skeleton-row,
+.timeline-skeleton-chip {
+  position: relative;
+  overflow: hidden;
+  background: rgba(var(--app-accent-rgb), 0.08);
+}
+
+.timeline-skeleton-avatar::after,
+.timeline-skeleton-row::after,
+.timeline-skeleton-chip::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.7), transparent);
+  transform: translateX(-100%);
+  animation: appShimmerSweep 1.8s ease-in-out infinite;
+}
+
+.timeline-skeleton-avatar {
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  border-radius: 16px;
+}
+
+.timeline-skeleton-body {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.timeline-skeleton-row {
+  height: 12px;
+  width: 100%;
+  border-radius: 999px;
+}
+
+.timeline-skeleton-row-short {
+  width: 34%;
+}
+
+.timeline-skeleton-row-medium {
+  width: 72%;
+}
+
+.timeline-skeleton-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.timeline-skeleton-chip {
+  width: 84px;
+  height: 28px;
+  border-radius: 999px;
+}
+
 .timeline-load-more {
   padding: 22px 20px 30px;
   display: flex;
@@ -167,7 +261,8 @@
 
 @media (max-width: 768px) {
   .timeline-header,
-  .post-item {
+  .post-item,
+  .timeline-skeleton-item {
     padding-left: 16px;
     padding-right: 16px;
   }
@@ -181,11 +276,16 @@
     flex-direction: column;
     align-items: flex-start;
   }
+
+  .timeline-title-group {
+    flex-wrap: wrap;
+  }
 }
 
 @media (max-width: 480px) {
   .timeline-header,
-  .post-item {
+  .post-item,
+  .timeline-skeleton-item {
     padding-left: 12px;
     padding-right: 12px;
   }

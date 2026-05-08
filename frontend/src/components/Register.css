@@ -161,6 +161,22 @@
   margin-top: -4px;
 }
 
+.register-password-hint {
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: rgba(var(--app-accent-rgb), 0.08);
+  border: 1px solid rgba(var(--app-accent-rgb), 0.14);
+  color: var(--app-muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+:root[data-theme='dark'] .register-password-hint {
+  background: rgba(124, 198, 255, 0.08);
+  border-color: rgba(124, 198, 255, 0.14);
+  color: #c7d4e6;
+}
+
 .register-button {
   padding: 14px;
   background: var(--app-gradient-strong);

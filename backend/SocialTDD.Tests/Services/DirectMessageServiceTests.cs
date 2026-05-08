@@ -399,7 +399,7 @@ public class DirectMessageServiceTests
         _mockRepository.Setup(r => r.UpdateAsync(It.IsAny<DirectMessage>())).Returns(Task.CompletedTask);
 
         // Act
-        await _directMessageService.MarkAsReadAsync(messageId);
+        await _directMessageService.MarkAsReadAsync(messageId, message.RecipientId);
 
         // Assert
         _mockRepository.Verify(r => r.GetByIdAsync(messageId), Times.Once);
@@ -415,7 +415,7 @@ public class DirectMessageServiceTests
         _mockRepository.Setup(r => r.GetByIdAsync(messageId)).ReturnsAsync((DirectMessage?)null);
 
         // Act & Assert
-        var exception = await Assert.ThrowsAsync<ArgumentException>(() => _directMessageService.MarkAsReadAsync(messageId));
+        var exception = await Assert.ThrowsAsync<ArgumentException>(() => _directMessageService.MarkAsReadAsync(messageId, Guid.NewGuid()));
         exception.Message.Should().Contain("finns inte");
         _mockRepository.Verify(r => r.UpdateAsync(It.IsAny<DirectMessage>()), Times.Never);
     }
@@ -438,10 +438,36 @@ public class DirectMessageServiceTests
         _mockRepository.Setup(r => r.GetByIdAsync(messageId)).ReturnsAsync(message);
 
         // Act
-        await _directMessageService.MarkAsReadAsync(messageId);
+        await _directMessageService.MarkAsReadAsync(messageId, message.RecipientId);
 
         // Assert
         _mockRepository.Verify(r => r.GetByIdAsync(messageId), Times.Once);
+        _mockRepository.Verify(r => r.UpdateAsync(It.IsAny<DirectMessage>()), Times.Never);
+
+    }
+
+    [Fact]
+    public async Task MarkAsReadAsync_WhenUserIsNotRecipient_ThrowsUnauthorizedAccessException()
+    {
+        // Arrange
+        var messageId = Guid.NewGuid();
+        var message = new DirectMessage
+        {
+            Id = messageId,
+            SenderId = Guid.NewGuid(),
+            RecipientId = Guid.NewGuid(),
+            Message = "Testmeddelande",
+            CreatedAt = DateTime.UtcNow,
+            IsRead = false
+        };
+
+        _mockRepository.Setup(r => r.GetByIdAsync(messageId)).ReturnsAsync(message);
+
+        // Act
+        var act = () => _directMessageService.MarkAsReadAsync(messageId, Guid.NewGuid());
+
+        // Assert
+        await act.Should().ThrowAsync<UnauthorizedAccessException>();
         _mockRepository.Verify(r => r.UpdateAsync(It.IsAny<DirectMessage>()), Times.Never);
     }
 

@@ -193,8 +193,14 @@ public class DirectMessagesController : ControllerBase
     {
         try
         {
-            await _directMessageService.MarkAsReadAsync(messageId);
+            var userId = User.GetUserId();
+            await _directMessageService.MarkAsReadAsync(messageId, userId);
             return NoContent();
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            _logger.LogWarning(ex, "Otillåten markering av DM som läst: {MessageId}", messageId);
+            return Unauthorized(new ErrorResponse(ErrorCodes.UNAUTHORIZED, ex.Message));
         }
         catch (ArgumentException ex)
         {
@@ -213,23 +219,11 @@ public class DirectMessagesController : ControllerBase
 
     private string? ValidateMedia(IFormFile media)
     {
-        if (media.Length <= 0)
-        {
-            return "Den valda filen är tom.";
-        }
-
-        if (media.Length > MaxMediaSizeBytes)
-        {
-            return "Mediafilen får inte vara större än 25 MB.";
-        }
-
-        var extension = Path.GetExtension(media.FileName);
-        if (string.IsNullOrWhiteSpace(extension) || !AllowedMediaExtensions.Contains(extension))
-        {
-            return "Endast JPG, PNG, GIF, WEBP, MP4, WEBM och OGG stöds i direktmeddelanden.";
-        }
-
-        return null;
+        return MediaUploadValidation.Validate(
+            media,
+            AllowedMediaExtensions,
+            MaxMediaSizeBytes,
+            "Endast JPG, PNG, GIF, WEBP, MP4, WEBM och OGG stöds i direktmeddelanden.");
     }
 
     private async Task<string> SaveDirectMessageMediaAsync(IFormFile media)

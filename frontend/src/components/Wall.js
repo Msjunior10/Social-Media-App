@@ -6,6 +6,7 @@ import './Wall.css';
 
 function Wall({ userId, refreshKey = 0, showHeader = true }) {
   const PAGE_SIZE = 10;
+  const skeletonItems = [1, 2, 3];
   const [posts, setPosts] = useState([]);
   const [usernames, setUsernames] = useState({});
   const [loading, setLoading] = useState(true);
@@ -141,9 +142,22 @@ function Wall({ userId, refreshKey = 0, showHeader = true }) {
         <div className="wall-header">
           {showHeader && <h2>Wall</h2>}
         </div>
-        <div className="loading">
-          <span className="loading-spinner"></span>
-          <span>Loading wall...</span>
+        <div className="wall-skeleton-list" aria-hidden="true">
+          {skeletonItems.map((item) => (
+            <div key={item} className="wall-skeleton-item">
+              <div className="wall-skeleton-avatar" />
+              <div className="wall-skeleton-body">
+                <div className="wall-skeleton-row wall-skeleton-row-short" />
+                <div className="wall-skeleton-row" />
+                <div className="wall-skeleton-row wall-skeleton-row-medium" />
+                <div className="wall-skeleton-chips">
+                  <span className="wall-skeleton-chip" />
+                  <span className="wall-skeleton-chip" />
+                  <span className="wall-skeleton-chip" />
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     );
@@ -153,7 +167,10 @@ function Wall({ userId, refreshKey = 0, showHeader = true }) {
     <div className="wall">
       {showHeader && (
         <div className="wall-header">
-          <h2>Wall</h2>
+          <div className="wall-title-group">
+            <h2>Wall</h2>
+            <span className="wall-count-badge">{posts.length} loaded</span>
+          </div>
           <button
             onClick={refreshWall}
             className="wall-refresh-button"
