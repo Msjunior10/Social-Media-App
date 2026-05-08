@@ -41,6 +41,10 @@ namespace SocialTDD.Infrastructure.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
+                    b.Property<string>("MediaUrl")
+                        .HasMaxLength(2048)
+                        .HasColumnType("nvarchar(2048)");
+
                     b.Property<Guid>("RecipientId")
                         .HasColumnType("uniqueidentifier");
 

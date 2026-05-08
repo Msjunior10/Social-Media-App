@@ -5,6 +5,7 @@ namespace SocialTDD.Application.Interfaces;
 public interface IPostService
 {
     Task<PostResponse> CreatePostAsync(CreatePostRequest request);
+    Task<PostResponse> GetPostByIdAsync(Guid postId, Guid currentUserId);
     Task<PostResponse> UpdatePostAsync(Guid postId, Guid userId, UpdatePostRequest request);
     Task DeletePostAsync(Guid postId, Guid userId);
     Task<PostResponse> LikePostAsync(Guid postId, Guid userId);

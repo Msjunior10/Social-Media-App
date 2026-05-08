@@ -154,6 +154,27 @@ public class PostsController : ControllerBase
         }
     }
 
+    [HttpGet("{postId}")]
+    public async Task<ActionResult<PostResponse>> GetPostById(Guid postId)
+    {
+        try
+        {
+            var userId = User.GetUserId();
+            var result = await _postService.GetPostByIdAsync(postId, userId);
+            return Ok(result);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            _logger.LogWarning(ex, "Inlägg hittades inte vid hämtning {PostId}", postId);
+            return NotFound(new ErrorResponse(ErrorCodes.POST_NOT_FOUND, ex.Message));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Ett oväntat fel uppstod vid hämtning av inlägg {PostId}", postId);
+            return StatusCode(500, new ErrorResponse(ErrorCodes.INTERNAL_SERVER_ERROR, "Ett oväntat fel uppstod. Försök igen senare."));
+        }
+    }
+
     [HttpDelete("{postId}")]
     public async Task<IActionResult> DeletePost(Guid postId)
     {
@@ -181,13 +202,13 @@ public class PostsController : ControllerBase
     }
 
     [HttpGet("timeline")]
-    public async Task<ActionResult<List<PostResponse>>> GetTimeline()
+    public async Task<ActionResult<PagedResponse<PostResponse>>> GetTimeline([FromQuery] int page = 1, [FromQuery] int pageSize = 10)
     {
         try
         {
             // Hämta UserId från JWT token
             var userId = User.GetUserId();
-            var result = await _timelineService.GetTimelineAsync(userId, userId);
+            var result = await _timelineService.GetTimelinePageAsync(userId, userId, page, pageSize);
             return Ok(result);
         }
         catch (ArgumentException ex)
@@ -206,12 +227,12 @@ public class PostsController : ControllerBase
     }
 
     [HttpGet("timeline/{userId}")]
-    public async Task<ActionResult<List<PostResponse>>> GetTimelineByUserId(Guid userId)
+    public async Task<ActionResult<PagedResponse<PostResponse>>> GetTimelineByUserId(Guid userId, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
     {
         try
         {
             var currentUserId = User.GetUserId();
-            var result = await _timelineService.GetTimelineAsync(userId, currentUserId);
+            var result = await _timelineService.GetTimelinePageAsync(userId, currentUserId, page, pageSize);
             return Ok(result);
         }
         catch (ArgumentException ex)

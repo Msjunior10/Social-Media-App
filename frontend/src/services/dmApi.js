@@ -1,8 +1,23 @@
 import { authenticatedFetch, handleApiResponse } from '../utils/apiClient';
 
 const API_BASE_URL = 'http://localhost:5000/api';
+const API_ORIGIN = API_BASE_URL.replace(/\/api$/, '');
+
+function resolveMediaUrl(mediaUrl) {
+  if (!mediaUrl) {
+    return '';
+  }
+
+  if (/^https?:\/\//i.test(mediaUrl)) {
+    return mediaUrl;
+  }
+
+  return `${API_ORIGIN}${mediaUrl.startsWith('/') ? '' : '/'}${mediaUrl}`;
+}
 
 export const dmApi = {
+  resolveMediaUrl,
+
   async getInboxMessages() {
     const response = await authenticatedFetch(`${API_BASE_URL}/directmessages`);
 
@@ -18,13 +33,17 @@ export const dmApi = {
   },
 
   // Skicka ett direktmeddelande
-  async sendDirectMessage(recipientId, message) {
+  async sendDirectMessage(recipientId, message, mediaFile = null) {
+    const formData = new FormData();
+    formData.append('recipientId', recipientId);
+    formData.append('message', message ?? '');
+    if (mediaFile) {
+      formData.append('media', mediaFile);
+    }
+
     const response = await authenticatedFetch(`${API_BASE_URL}/directmessages`, {
       method: 'POST',
-      body: JSON.stringify({
-        recipientId,
-        message,
-      }),
+      body: formData,
     });
     return await handleApiResponse(response);
   },

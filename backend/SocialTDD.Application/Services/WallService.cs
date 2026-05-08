@@ -1,5 +1,6 @@
 using SocialTDD.Application.DTOs;
 using SocialTDD.Application.Interfaces;
+using SocialTDD.Domain.Entities;
 
 namespace SocialTDD.Application.Services;
 
@@ -7,6 +8,8 @@ public class WallService : IWallService
 {
     private readonly IFollowRepository _followRepository;
     private readonly IPostRepository _postRepository;
+    private const int DefaultPageSize = 10;
+    private const int MaxPageSize = 25;
 
     public WallService(IFollowRepository followRepository, IPostRepository postRepository)
     {
@@ -16,6 +19,12 @@ public class WallService : IWallService
 
     public async Task<List<PostResponse>> GetWallAsync(Guid userId, Guid currentUserId)
     {
+        var page = await GetWallPageAsync(userId, currentUserId, 1, int.MaxValue);
+        return page.Items;
+    }
+
+    public async Task<PagedResponse<PostResponse>> GetWallPageAsync(Guid userId, Guid currentUserId, int page, int pageSize)
+    {
         // Validera att användaren existerar
         var userExists = await _postRepository.UserExistsAsync(userId);
         if (!userExists)
@@ -23,10 +32,23 @@ public class WallService : IWallService
             throw new ArgumentException($"Användare med ID {userId} finns inte.", nameof(userId));
         }
 
-        // Hämta alla offentliga inlägg i appen
-        var posts = await _postRepository.GetAllPostsAsync();
+        var normalizedPage = Math.Max(page, 1);
+        var normalizedPageSize = NormalizePageSize(pageSize);
 
-        // Konvertera Post entities till PostResponse DTOs och sortera kronologiskt (senaste först)
+        var posts = await _postRepository.GetAllPostsPageAsync(normalizedPage, normalizedPageSize);
+        var totalCount = await _postRepository.CountAllPostsAsync();
+
+        return new PagedResponse<PostResponse>
+        {
+            Items = await MapPostsAsync(posts, currentUserId),
+            Page = normalizedPage,
+            PageSize = normalizedPageSize,
+            TotalCount = totalCount
+        };
+    }
+
+    private async Task<List<PostResponse>> MapPostsAsync(IEnumerable<SocialTDD.Domain.Entities.Post> posts, Guid currentUserId)
+    {
         var postResponses = new List<PostResponse>();
 
         foreach (var post in posts.OrderByDescending(p => p.CreatedAt))
@@ -66,5 +88,20 @@ public class WallService : IWallService
         }
 
         return postResponses;
+    }
+
+    private static int NormalizePageSize(int pageSize)
+    {
+        if (pageSize == int.MaxValue)
+        {
+            return int.MaxValue;
+        }
+
+        if (pageSize <= 0)
+        {
+            return DefaultPageSize;
+        }
+
+        return Math.Min(pageSize, MaxPageSize);
     }
 }

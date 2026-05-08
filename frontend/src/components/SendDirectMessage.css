@@ -121,10 +121,71 @@
   min-height: 100px;
 }
 
+.send-dm-file-input {
+  padding: 14px 16px;
+  border: 1px dashed rgba(var(--app-accent-rgb), 0.24);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--app-text);
+}
+
+.send-dm-file-input::file-selector-button {
+  margin-right: 12px;
+  padding: 9px 12px;
+  border: none;
+  border-radius: 999px;
+  background: var(--app-gradient-strong);
+  color: white;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.send-dm-media-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--app-border);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.send-dm-preview-media {
+  width: 100%;
+  max-height: 280px;
+  object-fit: cover;
+  border-radius: 16px;
+}
+
+.send-dm-media-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  color: var(--app-muted);
+  font-size: 13px;
+}
+
+.send-dm-remove-media {
+  border: none;
+  background: transparent;
+  color: var(--app-danger);
+  font-weight: 700;
+  cursor: pointer;
+}
+
 :root[data-theme='dark'] .send-dm-input,
 :root[data-theme='dark'] .send-dm-textarea {
   background: rgba(12, 15, 21, 0.92);
   color: var(--app-text);
+  border-color: rgba(148, 163, 184, 0.14);
+}
+
+:root[data-theme='dark'] .send-dm-file-input,
+:root[data-theme='dark'] .send-dm-media-preview {
+  background: rgba(12, 15, 21, 0.92);
   border-color: rgba(148, 163, 184, 0.14);
 }
 

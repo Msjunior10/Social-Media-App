@@ -8,9 +8,13 @@ public interface IPostRepository
     Task<Post> UpdateAsync(Post post);
     Task<bool> DeleteAsync(Guid id);
     Task<IEnumerable<Post>> GetAllPostsAsync();
+    Task<IEnumerable<Post>> GetAllPostsPageAsync(int page, int pageSize);
+    Task<int> CountAllPostsAsync();
     Task<Post?> GetByIdAsync(Guid id);
     Task<IEnumerable<Post>> GetByRecipientIdAsync(Guid recipientId);
     Task<IEnumerable<Post>> GetTimelinePostsAsync(Guid userId); // NY METOD
+    Task<IEnumerable<Post>> GetTimelinePostsPageAsync(Guid userId, int page, int pageSize);
+    Task<int> CountTimelinePostsAsync(Guid userId);
     Task<IEnumerable<Post>> GetConversationAsync(Guid userId1, Guid userId2);
     Task<IEnumerable<Post>> GetPostsBySenderIdsAsync(IEnumerable<Guid> senderIds);
     Task<IEnumerable<Post>> GetBookmarkedPostsAsync(Guid userId);

@@ -106,15 +106,15 @@ function Notifications() {
     }
 
     const searchParams = new URLSearchParams({
-      postId: notification.postId,
+      focus: notification.postId,
       notificationType: notification.type,
     });
 
-    if (notification.type === 'post_comment') {
+    if (notification.type === 'post_comment' || notification.type === 'comment_mention') {
       searchParams.set('openComments', '1');
     }
 
-    return `/profile?${searchParams.toString()}`;
+    return `/posts/${notification.postId}?${searchParams.toString()}`;
   };
 
   const getNotificationTarget = (notification) => {
@@ -125,6 +125,8 @@ function Notifications() {
         return `/users/${notification.actorId}`;
       case 'post_like':
       case 'post_comment':
+      case 'post_mention':
+      case 'comment_mention':
       case 'post_repost':
         return getPostNotificationTarget(notification);
       default:
@@ -140,6 +142,10 @@ function Notifications() {
         return 'like';
       case 'post_comment':
         return 'comment';
+      case 'post_mention':
+        return 'mention';
+      case 'comment_mention':
+        return 'comment mention';
       case 'post_repost':
         return 'repost';
       case 'direct_message':
@@ -157,6 +163,10 @@ function Notifications() {
         return '♥';
       case 'post_comment':
         return '💬';
+      case 'post_mention':
+        return '@';
+      case 'comment_mention':
+        return '✦';
       case 'post_repost':
         return '⟳';
       case 'direct_message':
@@ -209,7 +219,7 @@ function Notifications() {
       case 'unread':
         return !notification.isRead;
       case 'posts':
-        return ['post_like', 'post_comment', 'post_repost'].includes(notification.type);
+        return ['post_like', 'post_comment', 'post_mention', 'comment_mention', 'post_repost'].includes(notification.type);
       case 'follows':
         return notification.type === 'follow';
       case 'messages':

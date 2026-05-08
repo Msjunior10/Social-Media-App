@@ -1,11 +1,14 @@
 using SocialTDD.Application.DTOs;
 using SocialTDD.Application.Interfaces;
+using SocialTDD.Domain.Entities;
 
 namespace SocialTDD.Application.Services;
 
 public class TimelineService : ITimelineService
 {
     private readonly IPostRepository _postRepository;
+    private const int DefaultPageSize = 10;
+    private const int MaxPageSize = 25;
 
     public TimelineService(IPostRepository postRepository)
     {
@@ -14,6 +17,12 @@ public class TimelineService : ITimelineService
 
     public async Task<List<PostResponse>> GetTimelineAsync(Guid userId, Guid currentUserId)
     {
+        var page = await GetTimelinePageAsync(userId, currentUserId, 1, int.MaxValue);
+        return page.Items;
+    }
+
+    public async Task<PagedResponse<PostResponse>> GetTimelinePageAsync(Guid userId, Guid currentUserId, int page, int pageSize)
+    {
         // Validera att användaren existerar
         var userExists = await _postRepository.UserExistsAsync(userId);
         if (!userExists)
@@ -21,10 +30,23 @@ public class TimelineService : ITimelineService
             throw new ArgumentException($"Användare med ID {userId} finns inte.", nameof(userId));
         }
 
-        // Hämta alla posts för användarens tidslinje
-        var posts = await _postRepository.GetTimelinePostsAsync(userId);
+        var normalizedPage = Math.Max(page, 1);
+        var normalizedPageSize = NormalizePageSize(pageSize);
 
-        // Konvertera Post entities till PostResponse DTOs och sortera kronologiskt (senaste först)
+        var posts = await _postRepository.GetTimelinePostsPageAsync(userId, normalizedPage, normalizedPageSize);
+        var totalCount = await _postRepository.CountTimelinePostsAsync(userId);
+
+        return new PagedResponse<PostResponse>
+        {
+            Items = await MapPostsAsync(posts, currentUserId),
+            Page = normalizedPage,
+            PageSize = normalizedPageSize,
+            TotalCount = totalCount
+        };
+    }
+
+    private async Task<List<PostResponse>> MapPostsAsync(IEnumerable<SocialTDD.Domain.Entities.Post> posts, Guid currentUserId)
+    {
         var postResponses = new List<PostResponse>();
 
         foreach (var post in posts.OrderByDescending(p => p.CreatedAt))
@@ -64,6 +86,21 @@ public class TimelineService : ITimelineService
         }
 
         return postResponses;
+    }
+
+    private static int NormalizePageSize(int pageSize)
+    {
+        if (pageSize == int.MaxValue)
+        {
+            return int.MaxValue;
+        }
+
+        if (pageSize <= 0)
+        {
+            return DefaultPageSize;
+        }
+
+        return Math.Min(pageSize, MaxPageSize);
     }
 }
 

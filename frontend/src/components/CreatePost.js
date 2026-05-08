@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import * as yup from 'yup';
 import { postsApi } from '../services/postsApi';
 import { ApiError, ErrorCodes } from '../utils/ApiError';
+import MentionTextarea from './MentionTextarea';
 import './CreatePost.css';
 
 const MAX_MESSAGE_LENGTH = 500;
@@ -228,7 +229,7 @@ function CreatePost({ senderId, onPostCreated, compact = false }) {
           <p className="create-post-helper-text">
             The post will be published publicly and visible to all users in the app.
           </p>
-          <textarea
+          <MentionTextarea
             id="message"
             name="message"
             value={message}
@@ -238,9 +239,11 @@ function CreatePost({ senderId, onPostCreated, compact = false }) {
             className={`create-post-textarea ${
               validationErrors.message && touched.message ? 'input-error' : ''
             }`}
-            rows="5"
+            rows={5}
             disabled={loading}
-            required
+            maxLength={MAX_MESSAGE_LENGTH}
+            excludeUserId={senderId}
+            overlayClassName="create-post-textarea"
           />
           <div className="create-post-character-count">
             <span className={message.length > MAX_MESSAGE_LENGTH ? 'character-count-error' : ''}>
@@ -277,8 +280,7 @@ function CreatePost({ senderId, onPostCreated, compact = false }) {
                 <video src={mediaPreviewUrl} className="create-post-preview-media" controls muted />
               ) : (
                 <img src={mediaPreviewUrl} alt="Selected post preview" className="create-post-preview-media" />
-              ))}
-              )}
+                ))}
               <div className="create-post-image-meta">
                 <span>{selectedMedia.name}</span>
                 <button type="button" className="create-post-remove-image" onClick={handleRemoveImage} disabled={loading}>

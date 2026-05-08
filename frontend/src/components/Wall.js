@@ -1,68 +1,124 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { wallApi } from '../services/wallApi';
 import { userApi } from '../services/userApi';
 import PostItem from './PostItem';
 import './Wall.css';
 
 function Wall({ userId, refreshKey = 0, showHeader = true }) {
+  const PAGE_SIZE = 10;
   const [posts, setPosts] = useState([]);
   const [usernames, setUsernames] = useState({});
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState(null);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
+  const loadMoreRef = useRef(null);
 
-  const fetchWall = useCallback(async () => {
+  const loadUsernames = useCallback(async (wallPosts) => {
+    const uniqueUserIds = new Set();
+
+    wallPosts.forEach(post => {
+      if (post.senderId) uniqueUserIds.add(post.senderId);
+      if (post.recipientId) uniqueUserIds.add(post.recipientId);
+      if (post.originalSenderId) uniqueUserIds.add(post.originalSenderId);
+      (post.comments || []).forEach(comment => {
+        if (comment.userId) uniqueUserIds.add(comment.userId);
+      });
+    });
+
+    const usernameMap = {};
+    await Promise.all(
+      Array.from(uniqueUserIds).map(async (id) => {
+        try {
+          const user = await userApi.getUserById(id);
+          if (user) {
+            usernameMap[id] = user.username;
+          }
+        } catch (err) {
+          console.error(`Could not fetch user ${id}:`, err);
+        }
+      })
+    );
+
+    setUsernames(current => ({ ...current, ...usernameMap }));
+  }, []);
+
+  const fetchWallPage = useCallback(async (targetPage, replace = false) => {
     if (!userId) {
       return;
     }
 
     try {
-      setLoading(true);
+      if (replace) {
+        setLoading(true);
+      } else {
+        setLoadingMore(true);
+      }
+
       setError(null);
-      const wallPosts = await wallApi.getWall();
+      const wallPage = await wallApi.getWallPage(targetPage, PAGE_SIZE);
+      const incomingPosts = [...wallPage.items].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
-      // Sort posts so the newest appears first (chronological order)
-      const sortedPosts = [...wallPosts].sort((a, b) => {
-        return new Date(b.createdAt) - new Date(a.createdAt);
+      setPosts(current => {
+        if (replace) {
+          return incomingPosts;
+        }
+
+        const seen = new Set(current.map(post => post.id));
+        return current.concat(incomingPosts.filter(post => !seen.has(post.id)));
       });
-      setPosts(sortedPosts);
-
-      // Fetch usernames for all unique user IDs
-      const uniqueUserIds = new Set();
-      sortedPosts.forEach(post => {
-        if (post.senderId) uniqueUserIds.add(post.senderId);
-        if (post.recipientId) uniqueUserIds.add(post.recipientId);
-        if (post.originalSenderId) uniqueUserIds.add(post.originalSenderId);
-        (post.comments || []).forEach(comment => {
-          if (comment.userId) uniqueUserIds.add(comment.userId);
-        });
-      });
-
-      const usernameMap = {};
-      await Promise.all(
-        Array.from(uniqueUserIds).map(async (id) => {
-          try {
-            const user = await userApi.getUserById(id);
-            if (user) {
-              usernameMap[id] = user.username;
-            }
-          } catch (err) {
-            console.error(`Could not fetch user ${id}:`, err);
-          }
-        })
-      );
-      setUsernames(usernameMap);
+      setPage(wallPage.page);
+      setHasMore(wallPage.hasMore);
+      await loadUsernames(incomingPosts);
     } catch (err) {
       setError(err.message || 'Could not fetch wall');
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
-  }, [userId]);
+  }, [userId, loadUsernames]);
+
+  const refreshWall = useCallback(async () => {
+    setPosts([]);
+    setUsernames({});
+    setPage(1);
+    setHasMore(false);
+    await fetchWallPage(1, true);
+  }, [fetchWallPage]);
+
+  const loadMoreWall = useCallback(async () => {
+    if (!hasMore || loading || loadingMore) {
+      return;
+    }
+
+    await fetchWallPage(page + 1, false);
+  }, [fetchWallPage, hasMore, loading, loadingMore, page]);
 
   useEffect(() => {
     if (userId) {
-      fetchWall();
+      refreshWall();
     }
-  }, [userId, fetchWall, refreshKey]);
+  }, [userId, refreshWall, refreshKey]);
+
+  useEffect(() => {
+    if (!loadMoreRef.current || !hasMore) {
+      return undefined;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          loadMoreWall();
+        }
+      },
+      { rootMargin: '240px 0px' }
+    );
+
+    observer.observe(loadMoreRef.current);
+
+    return () => observer.disconnect();
+  }, [hasMore, loadMoreWall]);
 
   const formatDate = (dateString) => {
     const date = new Date(dateString);
@@ -99,13 +155,13 @@ function Wall({ userId, refreshKey = 0, showHeader = true }) {
         <div className="wall-header">
           <h2>Wall</h2>
           <button
-            onClick={fetchWall}
+            onClick={refreshWall}
             className="wall-refresh-button"
-            disabled={loading}
+            disabled={loading || loadingMore}
             title="Refresh wall"
             aria-label="Refresh wall"
           >
-            <span className={loading ? 'refresh-icon spinning' : 'refresh-icon'}>⟳</span>
+            <span className={loading || loadingMore ? 'refresh-icon spinning' : 'refresh-icon'}>⟳</span>
           </button>
         </div>
       )}
@@ -114,7 +170,7 @@ function Wall({ userId, refreshKey = 0, showHeader = true }) {
         <div className="error-message" role="alert">
           <span className="error-icon">⚠️</span>
           <span className="error-text">{error}</span>
-          <button onClick={fetchWall} className="error-retry-button">
+          <button onClick={refreshWall} className="error-retry-button">
             Try again
           </button>
         </div>
@@ -135,11 +191,18 @@ function Wall({ userId, refreshKey = 0, showHeader = true }) {
               currentUserId={userId}
               formatDate={formatDate}
               isPublicPost={isPublicPost}
-              onPostChanged={fetchWall}
+              onPostChanged={refreshWall}
               containerClassName="post-card"
               recipientWrapperClassName="post-footer"
             />
           ))}
+          {loadingMore && (
+            <div className="wall-load-more">
+              <span className="loading-spinner"></span>
+              <span>Loading more posts...</span>
+            </div>
+          )}
+          {hasMore && <div ref={loadMoreRef} className="wall-sentinel" aria-hidden="true" />}
         </div>
       )}
     </div>

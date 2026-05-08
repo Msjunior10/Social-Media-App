@@ -132,6 +132,19 @@
   padding: 6px 16px 18px;
 }
 
+.wall-load-more {
+  padding: 12px 4px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: var(--app-muted);
+}
+
+.wall-sentinel {
+  height: 1px;
+}
+
 .post-card {
   position: relative;
   overflow: hidden;

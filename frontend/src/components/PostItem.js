@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { postsApi } from '../services/postsApi';
 import { ApiError, ErrorCodes } from '../utils/ApiError';
+import MentionTextarea from './MentionTextarea';
 import './PostItem.css';
 
 function PostItem({
@@ -386,14 +387,16 @@ function PostItem({
           {showComments && (
             <div className="post-comments-section">
               <div className="post-comment-form">
-                <textarea
+                <MentionTextarea
                   className="post-comment-textarea"
                   value={commentMessage}
                   onChange={(event) => setCommentMessage(event.target.value)}
                   placeholder="Write a comment..."
-                  rows="3"
+                  rows={3}
                   disabled={isSubmitting}
                   maxLength={500}
+                  excludeUserId={currentUserId}
+                  overlayClassName="post-comment-textarea"
                 />
                 <div className="post-comment-form-footer">
                   <span className="post-edit-meta">{commentMessage.length} / 500 characters</span>

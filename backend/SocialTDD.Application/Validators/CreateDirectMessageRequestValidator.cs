@@ -23,16 +23,12 @@ public class CreateDirectMessageRequestValidator : AbstractValidator<CreateDirec
 
         // Validera Message
         RuleFor(x => x.Message)
-            .NotNull()
-            .WithMessage("Meddelande är obligatoriskt.")
-            .Must(message => !string.IsNullOrWhiteSpace(message))
-            .WithMessage("Meddelande får inte vara tomt eller bara innehålla mellanslag.")
-            .MinimumLength(MinMessageLength)
-            .WithMessage($"Meddelande måste vara minst {MinMessageLength} tecken.")
             .MaximumLength(MaxMessageLength)
-            .WithMessage($"Meddelande får inte vara längre än {MaxMessageLength} tecken.")
-            .Must(message => message != null && message.Trim().Length >= MinMessageLength)
-            .WithMessage($"Meddelande måste vara minst {MinMessageLength} tecken efter borttagning av mellanslag.");
+            .WithMessage($"Meddelande får inte vara längre än {MaxMessageLength} tecken.");
+
+        RuleFor(x => x)
+            .Must(request => !string.IsNullOrWhiteSpace(request.Message) || !string.IsNullOrWhiteSpace(request.MediaUrl))
+            .WithMessage("Direktmeddelandet måste innehålla text eller media.");
     }
 }
 

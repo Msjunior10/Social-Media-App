@@ -97,6 +97,7 @@ logs/
 
 ## Runtime uploaded media
 backend/SocialTDD.Api/wwwroot/uploads/posts/
+backend/SocialTDD.Api/wwwroot/uploads/directmessages/
 
 ## Test results and coverage
 TestResults/
