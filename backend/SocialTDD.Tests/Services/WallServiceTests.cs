@@ -25,6 +25,12 @@ public class WallServiceTests
         _wallService = new WallService(_mockFollowRepository.Object, _mockPostRepository.Object);
     }
 
+    private void SetupWallPosts(List<Post> posts)
+    {
+        _mockPostRepository.Setup(r => r.GetAllPostsPageAsync(1, int.MaxValue)).ReturnsAsync(posts);
+        _mockPostRepository.Setup(r => r.CountAllPostsAsync()).ReturnsAsync(posts.Count);
+    }
+
     [Fact]
     public async Task GetWallAsync_LegacyQuotedPost_IsReturnedAsRegularPost()
     {
@@ -50,7 +56,7 @@ public class WallServiceTests
         };
 
         _mockPostRepository.Setup(r => r.UserExistsAsync(userId)).ReturnsAsync(true);
-        _mockPostRepository.Setup(r => r.GetAllPostsAsync()).ReturnsAsync(new List<Post> { quotedPost });
+        SetupWallPosts(new List<Post> { quotedPost });
 
         var result = await _wallService.GetWallAsync(userId, userId);
 
@@ -92,7 +98,7 @@ public class WallServiceTests
         };
 
         _mockPostRepository.Setup(r => r.UserExistsAsync(userId)).ReturnsAsync(true);
-        _mockPostRepository.Setup(r => r.GetAllPostsAsync()).ReturnsAsync(posts);
+        SetupWallPosts(posts);
 
         var result = await _wallService.GetWallAsync(userId, userId);
 
@@ -107,13 +113,13 @@ public class WallServiceTests
         var userId = Guid.NewGuid();
 
         _mockPostRepository.Setup(r => r.UserExistsAsync(userId)).ReturnsAsync(true);
-        _mockPostRepository.Setup(r => r.GetAllPostsAsync()).ReturnsAsync(new List<Post>());
+        SetupWallPosts(new List<Post>());
 
         var result = await _wallService.GetWallAsync(userId, userId);
 
         result.Should().NotBeNull();
         result.Should().BeEmpty();
-        _mockPostRepository.Verify(r => r.GetAllPostsAsync(), Times.Once);
+        _mockPostRepository.Verify(r => r.GetAllPostsPageAsync(1, int.MaxValue), Times.Once);
     }
 
     [Fact]
@@ -157,7 +163,7 @@ public class WallServiceTests
         };
 
         _mockPostRepository.Setup(r => r.UserExistsAsync(userId)).ReturnsAsync(true);
-        _mockPostRepository.Setup(r => r.GetAllPostsAsync()).ReturnsAsync(new List<Post> { oldestPost, middlePost, newestPost });
+        SetupWallPosts(new List<Post> { oldestPost, middlePost, newestPost });
 
         var result = await _wallService.GetWallAsync(userId, userId);
 
@@ -177,6 +183,6 @@ public class WallServiceTests
 
         exception.Message.Should().Contain("finns inte");
         _mockFollowRepository.Verify(r => r.GetFollowingAsync(It.IsAny<Guid>()), Times.Never);
-        _mockPostRepository.Verify(r => r.GetAllPostsAsync(), Times.Never);
+        _mockPostRepository.Verify(r => r.GetAllPostsPageAsync(It.IsAny<int>(), It.IsAny<int>()), Times.Never);
     }
 }

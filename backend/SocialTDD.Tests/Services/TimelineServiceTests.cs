@@ -24,6 +24,12 @@ public class TimelineServiceTests
         _timelineService = new TimelineService(_mockRepository.Object);
     }
 
+    private void SetupTimelinePosts(Guid userId, List<Post> posts)
+    {
+        _mockRepository.Setup(r => r.GetTimelinePostsPageAsync(userId, 1, int.MaxValue)).ReturnsAsync(posts);
+        _mockRepository.Setup(r => r.CountTimelinePostsAsync(userId)).ReturnsAsync(posts.Count);
+    }
+
     [Fact]
     public async Task GetTimelineAsync_LegacyQuotedPost_IsReturnedAsRegularPost()
     {
@@ -49,7 +55,7 @@ public class TimelineServiceTests
         };
 
         _mockRepository.Setup(r => r.UserExistsAsync(userId)).ReturnsAsync(true);
-        _mockRepository.Setup(r => r.GetTimelinePostsAsync(userId)).ReturnsAsync(new List<Post> { quotedPost });
+        SetupTimelinePosts(userId, new List<Post> { quotedPost });
 
         var result = await _timelineService.GetTimelineAsync(userId, userId);
 
@@ -102,7 +108,7 @@ public class TimelineServiceTests
         };
 
         _mockRepository.Setup(r => r.UserExistsAsync(userId)).ReturnsAsync(true);
-        _mockRepository.Setup(r => r.GetTimelinePostsAsync(userId)).ReturnsAsync(posts);
+        SetupTimelinePosts(userId, posts);
 
         // Act
         var result = await _timelineService.GetTimelineAsync(userId, userId);
@@ -127,7 +133,7 @@ public class TimelineServiceTests
         // Arrange
         var userId = Guid.NewGuid();
         _mockRepository.Setup(r => r.UserExistsAsync(userId)).ReturnsAsync(true);
-        _mockRepository.Setup(r => r.GetTimelinePostsAsync(userId)).ReturnsAsync(new List<Post>());
+        SetupTimelinePosts(userId, new List<Post>());
 
         // Act
         var result = await _timelineService.GetTimelineAsync(userId, userId);
@@ -149,7 +155,7 @@ public class TimelineServiceTests
             async () => await _timelineService.GetTimelineAsync(userId, userId));
         
         exception.Message.Should().Contain("finns inte");
-        _mockRepository.Verify(r => r.GetTimelinePostsAsync(It.IsAny<Guid>()), Times.Never);
+        _mockRepository.Verify(r => r.GetTimelinePostsPageAsync(It.IsAny<Guid>(), It.IsAny<int>(), It.IsAny<int>()), Times.Never);
     }
 
     [Fact]
@@ -184,7 +190,7 @@ public class TimelineServiceTests
         };
 
         _mockRepository.Setup(r => r.UserExistsAsync(userId)).ReturnsAsync(true);
-        _mockRepository.Setup(r => r.GetTimelinePostsAsync(userId)).ReturnsAsync(posts);
+        SetupTimelinePosts(userId, posts);
 
         // Act
         var result = await _timelineService.GetTimelineAsync(userId, userId);
@@ -229,7 +235,7 @@ public class TimelineServiceTests
         };
 
         _mockRepository.Setup(r => r.UserExistsAsync(timelineOwnerId)).ReturnsAsync(true);
-        _mockRepository.Setup(r => r.GetTimelinePostsAsync(timelineOwnerId)).ReturnsAsync(posts);
+        SetupTimelinePosts(timelineOwnerId, posts);
 
         // Act
         var result = await _timelineService.GetTimelineAsync(timelineOwnerId, viewingUserId);
@@ -272,7 +278,7 @@ public class TimelineServiceTests
         };
 
         _mockRepository.Setup(r => r.UserExistsAsync(userId)).ReturnsAsync(true);
-        _mockRepository.Setup(r => r.GetTimelinePostsAsync(userId)).ReturnsAsync(posts);
+        SetupTimelinePosts(userId, posts);
 
         // Act
         var result = await _timelineService.GetTimelineAsync(userId, userId);
@@ -307,7 +313,7 @@ public class TimelineServiceTests
         };
 
         _mockRepository.Setup(r => r.UserExistsAsync(userId)).ReturnsAsync(true);
-        _mockRepository.Setup(r => r.GetTimelinePostsAsync(userId)).ReturnsAsync(posts);
+        SetupTimelinePosts(userId, posts);
 
         // Act
         var result = await _timelineService.GetTimelineAsync(userId, userId);
@@ -318,6 +324,6 @@ public class TimelineServiceTests
         result.Should().OnlyContain(p => p.Message == "Ett publikt inlägg");
         // Verifiera att TimelineService endast använder PostRepository
         // DirectMessages är separerade och visas inte här
-        _mockRepository.Verify(r => r.GetTimelinePostsAsync(userId), Times.Once);
+        _mockRepository.Verify(r => r.GetTimelinePostsPageAsync(userId, 1, int.MaxValue), Times.Once);
     }
 }
