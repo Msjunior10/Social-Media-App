@@ -1,42 +1,51 @@
-# Socially
+# Postra
 
-Socialt nätverk byggt med Test-Driven Development (TDD) och Clean Code-principer.
+Socialt nätverk byggt med Test-Driven Development (TDD), Clean Code-principer och vidareutvecklat till en mer komplett social plattform med moderna funktioner, bättre säkerhet och ett uppdaterat gränssnitt.
 
 ## 📋 Projektöversikt
 
-Detta projekt är en kompletteringsuppgift för kursen och implementerar en social nätverksapplikation med fokus på:
+Detta projekt började som en kurs- och kompletteringsuppgift men har därefter byggts ut betydligt. Den nuvarande appen heter **Postra** och innehåller både klassiska sociala funktioner och senare tillägg som mediauppladdning, realtidsnotiser, sparade inlägg, reposts, kommentarer, förbättrade direktmeddelanden och responsivt theme-system.
+
+Projektet fokuserar på:
 - Test-Driven Development (TDD)
-- Clean Code-principer (Robert C. Martin)
-- Verifiering & testmetoder
-- Versionshantering & projektarbete
+- Clean Code-principer och tydlig lagerindelning
+- Verifiering, testmetoder och dokumenterad kvalitet
+- Säker autentisering och skyddad API-kommunikation
+- Fortsatt produktutveckling i ett verkligare fullstack-flöde
 
 ## 🏗️ Teknisk Stack
 
-- **Front-end**: React
+- **Front-end**: React 18, React Router, SignalR-klient
 - **Back-end**: .NET 9.0 Web API
-- **Databas**: SQL Server (Entity Framework Core)
-- **Versionshantering**: Git + Git Flow
+- **Databas**: SQL Server med Entity Framework Core
+- **Validering**: FluentValidation
+- **Realtid**: SignalR
+- **Autentisering**: JWT + BCrypt för lösenordshashning
+- **Testning**: xUnit, Moq, FluentAssertions
+- **Versionshantering**: Git + GitHub
 - **CI/CD**: GitHub Actions
 
 ## 📦 Projektstruktur
 
-```
+```text
 SocialTDD/
 ├── backend/
-│   ├── SocialTDD.Api/              # Web API controllers, Program.cs
-│   ├── SocialTDD.Application/      # Business logic, services, DTOs, validators
-│   ├── SocialTDD.Domain/           # Domain entities (User, Post, Follow, DirectMessage)
-│   ├── SocialTDD.Infrastructure/   # Data access, repositories, EF Core migrations
-│   └── SocialTDD.Tests/            # Unit tests för alla services
-├── frontend/                       # React application
+│   ├── SocialTDD.Api/              # Web API controllers, Program.cs, Swagger, auth, SignalR
+│   ├── SocialTDD.Application/      # Business logic, services, DTOs, validators, interfaces
+│   ├── SocialTDD.Domain/           # Domain entities och affärsmodeller
+│   ├── SocialTDD.Infrastructure/   # Repositories, EF Core, migrations, persistence
+│   └── SocialTDD.Tests/            # Unit tests för services och centrala flöden
+├── frontend/                       # React-applikationen för Postra
 │   ├── src/
-│   │   ├── components/            # React-komponenter
-│   │   ├── contexts/              # React contexts (AuthContext)
-│   │   ├── services/               # API-anrop
+│   │   ├── components/             # UI-komponenter för feed, profiler, DM, notiser m.m.
+│   │   ├── contexts/               # AuthContext, ThemeContext
+│   │   ├── services/               # API-anrop och SignalR/realtime-klienter
 │   │   └── utils/                  # Hjälpfunktioner
 │   └── public/                     # Statiska filer
-├── CoverageReport/                 # Test coverage-rapporter (genereras)
-└── .github/workflows/              # CI/CD pipelines
+├── CoverageReport/                 # Coverage-rapporter (genereras)
+├── STATIC_CODE_ANALYSIS.md         # Dokumenterad statisk kodanalys
+├── TEST_COVERAGE.md                # Dokumenterad coverage
+└── SocialTDD.sln
 ```
 
 ## 🚀 Setup
@@ -44,85 +53,105 @@ SocialTDD/
 ### Förutsättningar
 
 - **.NET 9.0 SDK** - [Ladda ner här](https://dotnet.microsoft.com/download)
-- **Node.js** (v16 eller senare) - [Ladda ner här](https://nodejs.org/)
-- **SQL Server LocalDB** - Inkluderas med Visual Studio eller installera separat
-- **Git** - För versionshantering
+- **Node.js** (18 eller senare rekommenderas) - [Ladda ner här](https://nodejs.org/)
+- **npm**
+- **SQL Server LocalDB** eller annan SQL Server-instans
+- **Git**
 
 ### Starta Projektet
 
 #### Backend
 
 1. **Restore dependencies** (från projektets rot):
-   ```bash
-   dotnet restore
-   ```
-   > **OBS:** Kommandot körs från projektets rot-katalog och restore:ar alla .NET-projekt automatiskt.
+	```bash
+	dotnet restore
+	```
+	> **OBS:** Kommandot körs från projektets rot-katalog och restore:ar alla .NET-projekt automatiskt.
 
-2. **Konfigurera databas** i `backend/SocialTDD.Api/appsettings.json`:
-   ```json
-   {
-     "ConnectionStrings": {
-       "DefaultConnection": "Server=(localdb)\\mssqllocaldb;Database=SocialTDD;Trusted_Connection=true;MultipleActiveResultSets=true"
-     }
-   }
-   ```
-   > **OBS:** SQL Server LocalDB måste vara installerat och igång.
+2. **Konfigurera backend** i `backend/SocialTDD.Api/appsettings.json` och/eller `backend/SocialTDD.Api/appsettings.Development.json`.
+	Kontrollera särskilt:
+	```json
+	{
+	  "ConnectionStrings": {
+		 "DefaultConnection": "Server=(localdb)\\mssqllocaldb;Database=SocialTDD;Trusted_Connection=true;MultipleActiveResultSets=true"
+	  },
+	  "Jwt": {
+		 "Issuer": "...",
+		 "Audience": "..."
+	  },
+	  "Cors": {
+		 "AllowedOrigins": ["http://localhost:3000"]
+	  }
+	}
+	```
+	> **OBS:** `Jwt:Secret` ska sättas via user secrets eller miljövariabler, inte via en osäker hårdkodad standardhemlighet.
 
-3. **Kör migrations** för att skapa databasen:
-   ```bash
-   dotnet ef database update --project backend/SocialTDD.Infrastructure --startup-project backend/SocialTDD.Api
-   ```
-   > **OBS:** Kommandot körs från projektets rot-katalog.
+3. **Kör migrations** för att skapa eller uppdatera databasen:
+	```bash
+	dotnet ef database update --project backend/SocialTDD.Infrastructure --startup-project backend/SocialTDD.Api
+	```
 
 4. **Starta API:**
-   ```bash
-   dotnet run --project backend/SocialTDD.Api
-   ```
-   > **OBS:** Kommandot körs från projektets rot-katalog. `dotnet run` kommer automatiskt att restore:a dependencies om det behövs.
+	```bash
+	dotnet run --project backend/SocialTDD.Api
+	```
+
+	API:et körs normalt på `http://localhost:5000`
    
-   API:et körs på http://localhost:5000
-   Swagger UI finns på http://localhost:5000/swagger
+	Swagger UI finns på `http://localhost:5000/swagger`
    
-   > **Tips:** För att starta både backend och frontend samtidigt kan du använda två separata terminalfönster eller ett terminalverktyg som stödjer flera sessions.
+	SignalR-hubben för notiser finns på `http://localhost:5000/hubs/notifications`
 
 #### Frontend
 
 1. **Installera dependencies:**
-   ```bash
-   cd frontend
-   npm install
-   ```
+	```bash
+	npm --prefix frontend install
+	```
 
 2. **Starta utvecklingsserver:**
-   ```bash
-   npm start
-   ```
-   
-   Frontend öppnas automatiskt på http://localhost:3000
+	```bash
+	npm --prefix frontend start
+	```
+
+	Frontend öppnas normalt på `http://localhost:3000`
+
+3. **Alternativ: starta båda från repo-roten**
+	```bash
+	npm start
+	```
 
 ### Felsökning
 
 **Problem med databas:**
-- Kontrollera att SQL Server LocalDB är installerat och igång
+- Kontrollera att SQL Server LocalDB eller din SQL Server-instans är igång
 - Verifiera connection string i `appsettings.json`
-- Kör migrations igen om databasen saknas
+- Kör migrations igen om databasen saknas eller är inaktuell
+
+**Problem med JWT / auth:**
+- Kontrollera att `Jwt:Secret` är satt korrekt via user secrets eller environment variables
+- Kontrollera att issuer och audience matchar backend-konfigurationen
 
 **Problem med portar:**
-- Backend-port 5000: Ändra i `launchSettings.json` om porten är upptagen
-- Frontend-port 3000: React frågar automatiskt om porten är upptagen
+- Backend-port 5000 kan vara upptagen av en tidigare process
+- Frontend-port 3000 kan automatiskt bytas om den redan används
 
 ## 🧪 Testning
 
 ### Backend-tester
 
 ```bash
-dotnet test
+dotnet test SocialTDD.sln --no-restore
 ```
 
-**Testresultat:**
-- ✅ 72 tester passerar
-- ❌ 0 tester misslyckades
-- ⏱️ Total tid: ~1 sekund
+**Senaste lokala testresultat (11 maj 2026):**
+- ✅ **96 tester passerar**
+- ❌ **0 tester misslyckas**
+- ⏭️ **0 tester hoppades över**
+- ⏱️ **Total tid: cirka 17 sekunder**
+- 📦 **Totalt antal tester: 96**
+
+Den senaste backend-testkörningen i arbetsomgången passerade fullt ut efter att de föråldrade testerna för timeline- och wall-flöden uppdaterades till den nuvarande paginerade implementationen.
 
 ### Coverage-rapport
 
@@ -144,15 +173,25 @@ Se [TEST_COVERAGE.md](TEST_COVERAGE.md) för detaljerad dokumentation.
 ### Frontend-tester
 
 ```bash
-cd frontend
-npm test
+npm --prefix frontend test
 ```
+
+### Frontend-build
+
+```bash
+npm --prefix frontend run build
+```
+
+Den senaste frontend-builden i denna arbetsomgång kompilerade korrekt.
 
 ## 📊 Statisk Kodanalys
 
 Projektet använder .NET analyzers för statisk kodanalys. Se [STATIC_CODE_ANALYSIS.md](STATIC_CODE_ANALYSIS.md) för detaljerad dokumentation.
 
-**Status**: ✅ Inga varningar eller fel
+**Senast dokumenterad analysstatus:**
+- ✅ **0 warnings**
+- ✅ **0 errors**
+- ✅ **.NET analyzers aktiverade i build**
 
 ## 📚 Dokumentation
 
@@ -161,12 +200,19 @@ Projektet använder .NET analyzers för statisk kodanalys. Se [STATIC_CODE_ANALY
 
 ### Ytterligare dokumentation
 
-- **Swagger UI**: http://localhost:5000/swagger (när backend körs)
+- **Swagger UI**: `http://localhost:5000/swagger` (när backend körs)
 - **Coverage-rapport**: `./CoverageReport/index.html` (genereras efter testkörning)
 
 ## 🔐 Autentisering
 
-API:et använder JWT-autentisering. Endpoints är skyddade med `[Authorize]` attribut.
+API:et använder JWT-autentisering. Endpoints är skyddade med `[Authorize]` där autentisering krävs.
+
+Säkerhetsförbättringar som finns i nuvarande app:
+- JWT-secret måste konfigureras säkert
+- lösenord hash:as med BCrypt
+- CORS är explicit konfigurerat
+- mediauppladdningar valideras för filtyp och storlek
+- direktmeddelanden och skyddade resurser kräver autentisering
 
 ### API Endpoints
 
@@ -180,8 +226,15 @@ API:et använder JWT-autentisering. Endpoints är skyddade med `[Authorize]` att
 - `GET /api/user/search?query={query}` - Sök efter användare
 
 **Inlägg (kräver autentisering):**
-- `POST /api/posts` - Skapa nytt inlägg
+- `POST /api/posts` - Skapa nytt inlägg med text och valfri media
 - `GET /api/posts/timeline/{userId}` - Hämta tidslinje för användare
+- `POST /api/posts/{postId}/comments` - Skapa kommentar
+- `PUT /api/posts/{postId}/comments/{commentId}` - Redigera kommentar
+- `DELETE /api/posts/{postId}/comments/{commentId}` - Ta bort kommentar
+- `POST /api/posts/{postId}/bookmark` - Spara inlägg
+- `DELETE /api/posts/{postId}/bookmark` - Ta bort sparat inlägg
+- `POST /api/posts/{postId}/repost` - Reposta inlägg
+- `DELETE /api/posts/{postId}/repost` - Ta bort repost
 
 **Följare (kräver autentisering):**
 - `POST /api/follow` - Följ en användare
@@ -189,80 +242,115 @@ API:et använder JWT-autentisering. Endpoints är skyddade med `[Authorize]` att
 - `GET /api/follow/followers/{userId}` - Hämta följare
 - `GET /api/follow/following/{userId}` - Hämta följda användare
 
-**Vägg (kräver autentisering):**
+**Vägg och notifieringar (kräver autentisering):**
 - `GET /api/wall` - Hämta aggregat-flöde från följda användare
+- `GET /api/notifications` - Hämta notifikationer
+- `GET /api/notifications/unread-count` - Hämta antal olästa notiser
 
 **Direktmeddelanden (kräver autentisering):**
-- `POST /api/directmessages` - Skicka direktmeddelande
+- `POST /api/directmessages` - Skicka direktmeddelande med text eller media
 - `GET /api/directmessages/received` - Hämta mottagna meddelanden
+- `GET /api/directmessages/conversation/{otherUserId}` - Hämta konversation mellan två användare
 - `PUT /api/directmessages/{messageId}/read` - Markera meddelande som läst
 
 ### Swagger UI
 
 När backend körs kan du använda Swagger UI för att testa API:et:
-- Öppna http://localhost:5000/swagger i webbläsaren
+- Öppna `http://localhost:5000/swagger` i webbläsaren
 - Logga in via `/api/auth/login` för att få JWT token
-- Klicka på "Authorize" och ange token: `Bearer {din-token}`
+- Klicka på `Authorize` och ange token som `Bearer {din-token}`
 
 ## 📝 Funktionalitet
 
-Alla krav från uppgiftsbeskrivningen är implementerade:
+Det här är inte längre bara den ursprungliga "Socially"-appen. Följande funktionalitet är nu implementerad eller kraftigt utbyggd i Postra:
 
-1. ✅ **Posta inlägg** - Användare kan publicera meddelanden på andra användares tidslinjer
-   - Validering: avsändare, mottagare, meddelandelängd (1-500 tecken)
-   
-2. ✅ **Läsa tidslinje** - Användare kan se sina egna eller någon annans inlägg i kronologisk ordning
-   - Sorteras efter datum (nyast först)
-   
-3. ✅ **Följa användare** - Användare kan följa andra användare
-   - Lagras i relationstabell
-   - Ömsesidiga följ-relationer tillåtna
-   
-4. ✅ **Vägg (aggregat-flöde)** - Användare ser en samlad feed baserad på alla de följer
-   - Senaste inlägg visas överst
-   - Testad med enhetstester
-   
-5. ✅ **Direktmeddelanden (DM)** - Skicka och ta emot DM mellan två användare
-   - DM visas inte i vägg eller publika flöden
-   - Möjlighet att markera meddelanden som lästa
-   
-6. ✅ **Persistens** - All data sparas i SQL Server
-   - Data kvarstår efter session och restart
-   - Entity Framework Core migrations för databasschema
+1. ✅ **Autentisering och konton**
+	- Registrering och inloggning med JWT
+	- Stark lösenordspolicy
+	- Säker lösenordshashning med BCrypt
+
+2. ✅ **Profiler och användare**
+	- Offentliga profiler
+	- Sökning efter användare
+	- Uppdatering av profilinformation och profilbild
+
+3. ✅ **Timeline, wall och socialt nätverk**
+	- Personlig tidslinje
+	- Aggregat-wall från följda användare
+	- Följare/following-flöden
+	- Network-sida för upptäckt av användare
+
+4. ✅ **Inlägg med media**
+	- Skapa textinlägg
+	- Ladda upp bild eller video i inlägg
+	- Media renderas i feeden
+	- Filtyper och storlekar valideras
+
+5. ✅ **Interaktioner på inlägg**
+	- Likes
+	- Kommentarer
+	- Redigera och ta bort kommentarer
+	- Bookmarks/sparade inlägg
+	- Reposts
+
+6. ✅ **Hashtags och mentions**
+	- Hashtag-stöd i skapande och rendering
+	- Mention-flöden och notisrelaterad logik
+
+7. ✅ **Direktmeddelanden (DM)**
+	- Skicka och ta emot DM
+	- Stöd för text och media
+	- Konversationsvy
+	- Läskvittenser
+
+8. ✅ **Notifikationer och realtime**
+	- Notissida
+	- Oljästa notiser
+	- SignalR-baserade realtidsuppdateringar
+	- Toast-notiser i frontend
+
+9. ✅ **Modernare UI/UX**
+	- Postra-branding
+	- Light mode / dark mode
+	- Responsiv navigation
+	- Förbättrad sidebar och dashboard-layout
+	- Förbättrat auth-gränssnitt och visuella effekter
+
+10. ✅ **Persistens**
+	- All data sparas i SQL Server
+	- Entity Framework Core migrations används för databasschema
 
 ## 📊 Test Coverage
 
-- **72 tester** passerar
+Senast dokumenterad coverage enligt [TEST_COVERAGE.md](TEST_COVERAGE.md):
+
 - **Application Layer**: 95.6% coverage ✅
 - **Domain Layer**: 84.6% coverage ✅
+- **Line coverage**: 28.8%
 - **Branch coverage**: 74.4%
 - **Method coverage**: 59.8%
-- Coverage-rapporter genereras automatiskt i CI/CD
-- Se [TEST_COVERAGE.md](TEST_COVERAGE.md) för detaljerad dokumentation
+- Coverage-rapporter genereras automatiskt i CI/CD och lokalt via ReportGenerator
 
 ## 🛠️ Utveckling
 
 ### Bygga projektet
 
 ```bash
-# Bygg backend
-cd backend
-dotnet build
+# Bygg hela lösningen
+dotnet build SocialTDD.sln
 
 # Bygg frontend
-cd frontend
-npm run build
+npm --prefix frontend run build
 ```
 
 ### Kör alla tester
 
 ```bash
 # Backend-tester
-dotnet test
+dotnet test SocialTDD.sln --no-restore
 
 # Frontend-tester
-cd frontend
-npm test
+npm --prefix frontend test
 ```
 
 ### Generera coverage-rapport
@@ -278,4 +366,4 @@ reportgenerator -reports:"./TestResults/**/coverage.cobertura.xml" -targetdir:".
 
 ## 📄 Licens
 
-Detta projekt är en kursuppgift.
+Projektet används som skol- och utvecklingsprojekt. Ingen separat licens har lagts till i repot.
