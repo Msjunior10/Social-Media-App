@@ -403,30 +403,8 @@ function DefaultRightSidebar() {
   };
 
   return (
-    <div className="sidebar-stack">
-      <section className="sidebar-card">
-        <span className="sidebar-card-label">Today&apos;s focus</span>
-        <h3>Hi {username}</h3>
-        <p>{getFocusMessage()}</p>
-        <div className="sidebar-link-list sidebar-link-list-spaced">
-          <Link to="/profile" className="sidebar-link-item">Create or manage posts</Link>
-          <Link to="/saved" className="sidebar-link-item">Open saved posts</Link>
-          <Link to="/wall" className="sidebar-link-item">Find new profiles and posts</Link>
-          <Link to="/messages" className="sidebar-link-item">Open your messages</Link>
-        </div>
-      </section>
-
-      <section className="sidebar-card">
-        <span className="sidebar-card-label">Quick access</span>
-        <div className="sidebar-link-list">
-          <Link to="/wall" className="sidebar-link-item">Explore the feed</Link>
-          <Link to="/saved" className="sidebar-link-item">View saved posts</Link>
-          <Link to="/notifications" className="sidebar-link-item">Open notifications</Link>
-          <Link to="/profile" className="sidebar-link-item">Open your profile</Link>
-        </div>
-      </section>
-
-      <section className="sidebar-card">
+    <div className="sidebar-stack sidebar-stack-dashboard">
+      <section className="sidebar-card sidebar-card-overview">
         <span className="sidebar-card-label">Your activity</span>
         <h3>{username}&apos;s overview</h3>
         <div className="sidebar-stats-grid">
@@ -447,6 +425,28 @@ function DefaultRightSidebar() {
           Last active: <strong>{activityLoading ? 'Loading…' : formatLastActive(activity.lastActiveAt)}</strong>
         </p>
         <p className="sidebar-activity-tip">Publish from your profile to keep your feed active.</p>
+      </section>
+
+      <section className="sidebar-card sidebar-card-focus">
+        <span className="sidebar-card-label">Today&apos;s focus</span>
+        <h3>Hi {username}</h3>
+        <p>{getFocusMessage()}</p>
+        <div className="sidebar-link-list sidebar-link-list-spaced">
+          <Link to="/profile" className="sidebar-link-item">Manage posts</Link>
+          <Link to="/saved" className="sidebar-link-item">Saved posts</Link>
+          <Link to="/wall" className="sidebar-link-item">Explore feed</Link>
+          <Link to="/messages" className="sidebar-link-item">Messages</Link>
+        </div>
+      </section>
+
+      <section className="sidebar-card sidebar-card-quick-access">
+        <span className="sidebar-card-label">Quick access</span>
+        <div className="sidebar-link-list">
+          <Link to="/wall" className="sidebar-link-item">Explore the feed</Link>
+          <Link to="/saved" className="sidebar-link-item">View saved posts</Link>
+          <Link to="/notifications" className="sidebar-link-item">Open notifications</Link>
+          <Link to="/profile" className="sidebar-link-item">Open your profile</Link>
+        </div>
       </section>
     </div>
   );
