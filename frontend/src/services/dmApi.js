@@ -33,12 +33,15 @@ export const dmApi = {
   },
 
   // Skicka ett direktmeddelande
-  async sendDirectMessage(recipientId, message, mediaFile = null) {
+  async sendDirectMessage(recipientId, message, mediaFile = null, gifUrl = null) {
     const formData = new FormData();
     formData.append('recipientId', recipientId);
     formData.append('message', message ?? '');
     if (mediaFile) {
       formData.append('media', mediaFile);
+    }
+    if (gifUrl) {
+      formData.append('gifUrl', gifUrl);
     }
 
     const response = await authenticatedFetch(`${API_BASE_URL}/directmessages`, {

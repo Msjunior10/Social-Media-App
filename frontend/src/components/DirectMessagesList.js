@@ -141,6 +141,10 @@ function DirectMessagesList({ userId }) {
       return `${prefix}${isVideo ? 'Sent a video' : 'Sent a photo'}`;
     }
 
+    if (message.gifUrl) {
+      return `${prefix}Sent a GIF`;
+    }
+
     return prefix;
   };
 
@@ -205,7 +209,7 @@ function DirectMessagesList({ userId }) {
               const participantName = usernames[otherParticipantId] || otherParticipantId;
               const isActiveConversation = activeConversationUserId === otherParticipantId;
               const preview = getMessagePreview(latestMessage, latestMessage.senderId === userId);
-              const resolvedMediaUrl = dmApi.resolveMediaUrl(latestMessage.mediaUrl);
+              const resolvedMediaUrl = dmApi.resolveMediaUrl(latestMessage.mediaUrl || latestMessage.gifUrl);
               const hasMediaPreview = Boolean(resolvedMediaUrl);
 
               return (

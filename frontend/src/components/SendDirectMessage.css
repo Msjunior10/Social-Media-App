@@ -1,6 +1,6 @@
 .send-dm-container {
   position: relative;
-  overflow: hidden;
+  overflow: visible;
   margin: 0;
   padding: 24px;
   background: var(--app-card-gradient);
@@ -152,6 +152,43 @@
   background: rgba(255, 255, 255, 0.92);
 }
 
+.send-dm-inline-preview {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--app-border);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.send-dm-inline-preview-media {
+  width: 72px;
+  min-width: 72px;
+  height: 72px;
+  border-radius: 14px;
+  object-fit: cover;
+}
+
+.send-dm-inline-preview-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+  color: var(--app-muted);
+  font-size: 13px;
+}
+
+.send-dm-inline-preview-meta span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .send-dm-preview-media {
   width: 100%;
   max-height: 280px;
@@ -189,6 +226,11 @@
   border-color: rgba(148, 163, 184, 0.14);
 }
 
+:root[data-theme='dark'] .send-dm-inline-preview {
+  background: rgba(12, 15, 21, 0.92);
+  border-color: rgba(148, 163, 184, 0.14);
+}
+
 :root[data-theme='dark'] .send-dm-input::placeholder,
 :root[data-theme='dark'] .send-dm-textarea::placeholder {
   color: #a5b0c5;
@@ -208,6 +250,10 @@
   color: var(--app-muted);
   text-align: right;
   margin-top: 4px;
+}
+
+.send-dm-toolbar {
+  margin-top: 2px;
 }
 
 .character-count-error {

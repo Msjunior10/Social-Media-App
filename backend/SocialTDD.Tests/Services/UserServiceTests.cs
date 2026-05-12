@@ -207,6 +207,7 @@ public class UserServiceTests
         var userId = Guid.NewGuid();
         var request = new UpdateUserProfileRequest
         {
+            Email = "updated@example.com",
             Bio = "Jag gillar testdriven utveckling.",
             ProfileImageUrl = "https://example.com/avatar.jpg"
         };
@@ -228,14 +229,53 @@ public class UserServiceTests
         var result = await _userService.UpdateProfileAsync(userId, request);
 
         // Assert
+        result.Email.Should().Be(request.Email);
         result.Bio.Should().Be(request.Bio);
         result.ProfileImageUrl.Should().Be(request.ProfileImageUrl);
         result.LastActiveAt.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(5));
 
         _mockRepository.Verify(r => r.UpdateUserAsync(It.Is<User>(u =>
             u.Id == userId &&
+            u.Email == request.Email &&
             u.Bio == request.Bio &&
             u.ProfileImageUrl == request.ProfileImageUrl)), Times.Once);
+    }
+
+    [Fact]
+    public async Task UpdateProfileAsync_DuplicateEmail_ThrowsValidationException()
+    {
+        // Arrange
+        var userId = Guid.NewGuid();
+        var request = new UpdateUserProfileRequest
+        {
+            Email = "taken@example.com",
+            Bio = "Kort bio",
+            ProfileImageUrl = "https://example.com/avatar.jpg"
+        };
+
+        var existingUser = new User
+        {
+            Id = userId,
+            Username = "testuser",
+            Email = "current@example.com"
+        };
+
+        var otherUser = new User
+        {
+            Id = Guid.NewGuid(),
+            Username = "otheruser",
+            Email = request.Email
+        };
+
+        _mockRepository.Setup(r => r.GetByIdAsync(userId)).ReturnsAsync(existingUser);
+        _mockRepository.Setup(r => r.GetUserByEmailAsync(request.Email)).ReturnsAsync(otherUser);
+
+        // Act
+        Func<Task> act = () => _userService.UpdateProfileAsync(userId, request);
+
+        // Assert
+        await act.Should().ThrowAsync<ValidationException>();
+        _mockRepository.Verify(r => r.UpdateUserAsync(It.IsAny<User>()), Times.Never);
     }
 
     [Fact]
@@ -244,6 +284,7 @@ public class UserServiceTests
         // Arrange
         var request = new UpdateUserProfileRequest
         {
+            Email = "test@example.com",
             Bio = "Kort bio",
             ProfileImageUrl = "invalid-url"
         };

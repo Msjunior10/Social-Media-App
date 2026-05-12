@@ -5,6 +5,7 @@ public class CreatePostRequest
     public Guid SenderId { get; set; }
     public string Message { get; set; } = string.Empty;
     public string? ImageUrl { get; set; }
+    public string? GifUrl { get; set; }
 }
 
 

@@ -6,4 +6,5 @@ public class CreatePostFormRequest
 {
     public string Message { get; set; } = string.Empty;
     public IFormFile? Image { get; set; }
+    public string? GifUrl { get; set; }
 }

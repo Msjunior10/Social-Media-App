@@ -57,6 +57,7 @@ public class PostService : IPostService
             RecipientId = request.SenderId,
             Message = request.Message,
             ImageUrl = string.IsNullOrWhiteSpace(request.ImageUrl) ? null : request.ImageUrl.Trim(),
+            GifUrl = string.IsNullOrWhiteSpace(request.GifUrl) ? null : request.GifUrl.Trim(),
             CreatedAt = DateTime.UtcNow
         };
 
@@ -195,6 +196,7 @@ public class PostService : IPostService
                 OriginalPostId = targetPost.Id,
                 Message = string.Empty,
                 ImageUrl = null,
+                GifUrl = null,
                 CreatedAt = DateTime.UtcNow
             });
 
@@ -398,6 +400,7 @@ public class PostService : IPostService
             RecipientId = p.RecipientId,
             Message = p.Message,
             ImageUrl = p.ImageUrl,
+            GifUrl = p.GifUrl,
             CreatedAt = p.CreatedAt,
             TargetPostId = p.OriginalPostId.HasValue && string.IsNullOrWhiteSpace(p.Message)
                 ? p.OriginalPostId.Value
@@ -439,6 +442,7 @@ public class PostService : IPostService
             RecipientId = post.RecipientId,
             Message = post.Message,
             ImageUrl = post.ImageUrl,
+            GifUrl = post.GifUrl,
             CreatedAt = post.CreatedAt,
             TargetPostId = targetPost.Id,
             LikeCount = await _postRepository.GetLikeCountAsync(targetPost.Id),
@@ -451,6 +455,7 @@ public class PostService : IPostService
             OriginalSenderId = post.OriginalPost?.SenderId,
             OriginalMessage = post.OriginalPost?.Message,
             OriginalImageUrl = post.OriginalPost?.ImageUrl,
+            OriginalGifUrl = post.OriginalPost?.GifUrl,
             OriginalCreatedAt = post.OriginalPost?.CreatedAt,
             Comments = comments.Select(c => new PostCommentResponse
             {

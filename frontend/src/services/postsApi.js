@@ -67,11 +67,14 @@ export const postsApi = {
   },
 
   // Skapa ett nytt inlägg
-  async createPost(message, mediaFile = null) {
+  async createPost(message, mediaFile = null, gifUrl = null) {
     const formData = new FormData();
     formData.append('message', message);
     if (mediaFile) {
       formData.append('image', mediaFile);
+    }
+    if (gifUrl) {
+      formData.append('gifUrl', gifUrl);
     }
 
     const response = await authenticatedFetch(`${API_BASE_URL}/posts`, {

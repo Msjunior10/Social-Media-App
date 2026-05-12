@@ -17,6 +17,7 @@ function UserProfile({ userId, username, isEditable = false, refreshKey = 0 }) {
     followingCount: 0,
   });
   const [formData, setFormData] = useState({
+    email: '',
     bio: '',
     profileImageUrl: '',
   });
@@ -87,6 +88,7 @@ function UserProfile({ userId, username, isEditable = false, refreshKey = 0 }) {
           followingCount: Array.isArray(following) ? following.length : 0,
         });
         setFormData({
+          email: userData.email || '',
           bio: userData.bio || '',
           profileImageUrl: userData.profileImageUrl || '',
         });
@@ -138,22 +140,10 @@ function UserProfile({ userId, username, isEditable = false, refreshKey = 0 }) {
   ];
 
   const completedChecklistItems = profileChecklist.filter((item) => item.done).length;
-  const completionPercent = Math.round((completedChecklistItems / profileChecklist.length) * 100);
   const joinedDaysAgo = user.createdAt
     ? Math.max(1, Math.floor((Date.now() - new Date(user.createdAt).getTime()) / (1000 * 60 * 60 * 24)))
     : null;
-  const isPublicProfile = !isEditable;
-  const publicProfileHighlight = (() => {
-    if (stats.postsCount >= 8 && stats.followersCount >= 5) {
-      return 'This profile is active and already building real momentum on Postra.';
-    }
-
-    if (stats.postsCount > 0) {
-      return 'Posts are already live here, so this profile has started building a visible presence.';
-    }
-
-    return 'This profile is still getting started. Follow now to catch the first updates early.';
-  })();
+  const profileHandle = `@${String(user.username || '').toLowerCase().replace(/\s+/g, '')}`;
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -168,6 +158,7 @@ function UserProfile({ userId, username, isEditable = false, refreshKey = 0 }) {
     setError(null);
     setSuccessMessage('');
     setFormData({
+      email: user.email || '',
       bio: user.bio || '',
       profileImageUrl: user.profileImageUrl || '',
     });
@@ -182,12 +173,14 @@ function UserProfile({ userId, username, isEditable = false, refreshKey = 0 }) {
       setSuccessMessage('');
 
       const updatedUser = await userApi.updateCurrentUserProfile({
+        email: formData.email.trim(),
         bio: formData.bio,
         profileImageUrl: formData.profileImageUrl.trim() || null,
       });
 
       setUser(updatedUser);
       setFormData({
+        email: updatedUser.email || '',
         bio: updatedUser.bio || '',
         profileImageUrl: updatedUser.profileImageUrl || '',
       });
@@ -220,16 +213,24 @@ function UserProfile({ userId, username, isEditable = false, refreshKey = 0 }) {
         <div className="user-profile-identity">
           <div className="user-profile-kicker">{isEditable ? 'My profile' : 'Public profile'}</div>
           <h3 className="user-profile-username">{user.username}</h3>
-          {isEditable ? (
-            <p className="user-profile-email">{user.email}</p>
-          ) : (
-            <p className="user-profile-public-badge">Open member profile on Postra</p>
-          )}
+          <div className="user-profile-handle-row">
+            <span className="user-profile-handle">{profileHandle}</span>
+            {isEditable && <span className="user-profile-account-pill">Editable account</span>}
+          </div>
+          {isEditable && user.email && <p className="user-profile-email">{user.email}</p>}
+          {!isEditable && <p className="user-profile-public-badge">Member profile</p>}
           {user.lastActiveAt && (
             <p className="user-profile-last-active">
               Last active: {formatDateTime(user.lastActiveAt)}
             </p>
           )}
+          <p className="user-profile-summary">
+            {user.bio?.trim()
+              ? user.bio
+              : isEditable
+                ? 'Add a short bio and profile image to make your profile feel complete.'
+                : 'No bio has been added yet.'}
+          </p>
           <div className="user-profile-stat-row">
             <div className="user-profile-stat-pill">
               <strong>{stats.postsCount}</strong>
@@ -272,43 +273,7 @@ function UserProfile({ userId, username, isEditable = false, refreshKey = 0 }) {
         </div>
       )}
 
-      {isPublicProfile && (
-        <div className="user-profile-public-spotlight">
-          <div className="user-profile-public-copy">
-            <span className="user-profile-label">Profile spotlight</span>
-            <h4>{user.username}&apos;s public presence</h4>
-            <p>{publicProfileHighlight}</p>
-          </div>
-          <div className="user-profile-public-grid">
-            <div className="user-profile-public-card">
-              <strong>{stats.postsCount}</strong>
-              <span>Posts shared</span>
-            </div>
-            <div className="user-profile-public-card">
-              <strong>{stats.followersCount}</strong>
-              <span>Followers</span>
-            </div>
-            <div className="user-profile-public-card">
-              <strong>{joinedDaysAgo || 0}</strong>
-              <span>Days on Postra</span>
-            </div>
-          </div>
-        </div>
-      )}
-
       <div className="user-profile-details">
-        {isEditable && (
-          <div className="user-profile-detail user-profile-detail-column user-profile-detail-accent">
-            <span className="user-profile-label">Profile strength:</span>
-            <div className="user-profile-strength-header">
-              <strong>{completionPercent}% complete</strong>
-              <span>{completedChecklistItems}/{profileChecklist.length} milestones</span>
-            </div>
-            <div className="user-profile-strength-bar" aria-hidden="true">
-              <span style={{ width: `${completionPercent}%` }}></span>
-            </div>
-          </div>
-        )}
         {isEditable && (
           <div className="user-profile-detail">
             <span className="user-profile-label">Email:</span>
@@ -333,14 +298,6 @@ function UserProfile({ userId, username, isEditable = false, refreshKey = 0 }) {
             {user.bio || 'No bio yet.'}
           </span>
         </div>
-        {isPublicProfile && (
-          <div className="user-profile-detail user-profile-detail-column">
-            <span className="user-profile-label">Audience snapshot:</span>
-            <span className="user-profile-value">
-              Following {stats.followingCount} account{stats.followingCount === 1 ? '' : 's'} and showing up with {stats.postsCount} public post{stats.postsCount === 1 ? '' : 's'} so far.
-            </span>
-          </div>
-        )}
         {user.profileImageUrl && (
           <div className="user-profile-detail user-profile-detail-column">
             <span className="user-profile-label">Profile image:</span>
@@ -359,8 +316,8 @@ function UserProfile({ userId, username, isEditable = false, refreshKey = 0 }) {
       {isEditable && (
         <div className="user-profile-checklist">
           <div className="user-profile-checklist-header">
-            <h4>Recommended next steps</h4>
-            <span>{completionPercent}% complete</span>
+            <h4>Complete your profile</h4>
+            <span>{completedChecklistItems}/{profileChecklist.length}</span>
           </div>
           <div className="user-profile-checklist-items">
             {profileChecklist.map((item) => (
@@ -375,31 +332,58 @@ function UserProfile({ userId, username, isEditable = false, refreshKey = 0 }) {
 
       {isEditable && isEditing && (
         <form className="user-profile-form" onSubmit={handleSubmit}>
-          <div className="user-profile-form-field">
-            <label htmlFor="profileImageUrl">Profile image (URL)</label>
-            <input
-              id="profileImageUrl"
-              name="profileImageUrl"
-              type="url"
-              value={formData.profileImageUrl}
-              onChange={handleChange}
-              placeholder="https://example.com/my-image.jpg"
-            />
+          <div className="user-profile-form-section">
+            <div className="user-profile-form-section-header">
+              <h4>Contact and identity</h4>
+              <p>Keep your profile reachable and consistent with the rest of the app.</p>
+            </div>
+            <div className="user-profile-form-grid">
+              <div className="user-profile-form-field">
+                <label htmlFor="email">Email</label>
+                <input
+                  id="email"
+                  name="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  placeholder="name@example.com"
+                  autoComplete="email"
+                />
+              </div>
+
+              <div className="user-profile-form-field">
+                <label htmlFor="profileImageUrl">Profile image (URL)</label>
+                <input
+                  id="profileImageUrl"
+                  name="profileImageUrl"
+                  type="url"
+                  value={formData.profileImageUrl}
+                  onChange={handleChange}
+                  placeholder="https://example.com/my-image.jpg"
+                />
+              </div>
+            </div>
           </div>
 
-          <div className="user-profile-form-field">
-            <label htmlFor="bio">Bio</label>
-            <textarea
-              id="bio"
-              name="bio"
-              rows="5"
-              maxLength="500"
-              value={formData.bio}
-              onChange={handleChange}
-              placeholder="Tell us a little about yourself..."
-            />
-            <div className="user-profile-character-count">
-              {formData.bio.length}/500 characters
+          <div className="user-profile-form-section">
+            <div className="user-profile-form-section-header">
+              <h4>Presentation</h4>
+              <p>Make the profile feel complete and more professional.</p>
+            </div>
+            <div className="user-profile-form-field">
+              <label htmlFor="bio">Bio</label>
+              <textarea
+                id="bio"
+                name="bio"
+                rows="5"
+                maxLength="500"
+                value={formData.bio}
+                onChange={handleChange}
+                placeholder="Tell us a little about yourself..."
+              />
+              <div className="user-profile-character-count">
+                {formData.bio.length}/500 characters
+              </div>
             </div>
           </div>
 

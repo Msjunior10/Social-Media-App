@@ -42,6 +42,7 @@ if (!builder.Environment.IsDevelopment() && allowedCorsOrigins.Length == 0)
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSignalR();
+builder.Services.AddHttpClient(nameof(SocialTDD.Api.Controllers.GifsController));
 builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;

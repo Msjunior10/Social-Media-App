@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import * as yup from 'yup';
 import { postsApi } from '../services/postsApi';
 import { ApiError, ErrorCodes } from '../utils/ApiError';
+import ComposerToolbar from './ComposerToolbar';
 import MentionTextarea from './MentionTextarea';
 import './CreatePost.css';
 
@@ -31,8 +32,10 @@ const postSchema = yup.object().shape({
 });
 
 function CreatePost({ senderId, onPostCreated, compact = false }) {
+  const messageInputRef = useRef(null);
   const [message, setMessage] = useState('');
   const [selectedMedia, setSelectedMedia] = useState(null);
+  const [selectedGif, setSelectedGif] = useState(null);
   const [mediaPreviewUrl, setMediaPreviewUrl] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -119,11 +122,12 @@ function CreatePost({ senderId, onPostCreated, compact = false }) {
       setError(null);
       setSuccess(false);
 
-      await postsApi.createPost(message.trim(), selectedMedia);
+      await postsApi.createPost(message.trim(), selectedMedia, selectedGif?.mediaUrl || null);
 
       setSuccess(true);
       setMessage('');
       setSelectedMedia(null);
+      setSelectedGif(null);
       setTouched({});
 
       if (onPostCreated) {
@@ -176,8 +180,26 @@ function CreatePost({ senderId, onPostCreated, compact = false }) {
     }
   };
 
-  const handleImageChange = (event) => {
-    const file = event.target.files?.[0] || null;
+  const insertEmoji = (emoji) => {
+    const textarea = messageInputRef.current;
+    const start = textarea?.selectionStart ?? message.length;
+    const end = textarea?.selectionEnd ?? message.length;
+    const nextMessage = `${message.slice(0, start)}${emoji}${message.slice(end)}`;
+
+    setMessage(nextMessage);
+    setTouched((prev) => ({ ...prev, message: true }));
+    setError(null);
+
+    window.requestAnimationFrame(() => {
+      if (textarea) {
+        const caret = start + emoji.length;
+        textarea.focus();
+        textarea.setSelectionRange(caret, caret);
+      }
+    });
+  };
+
+  const handleSelectedMediaFile = (file) => {
     setValidationErrors((prev) => ({ ...prev, image: null }));
 
     if (!file) {
@@ -200,8 +222,23 @@ function CreatePost({ senderId, onPostCreated, compact = false }) {
     setSelectedMedia(file);
   };
 
+  const handleGifSelect = (gif) => {
+    setSelectedGif(gif);
+    setValidationErrors((prev) => ({ ...prev, image: null }));
+    setError(null);
+  };
+
+  const handleImageChange = (event) => {
+    handleSelectedMediaFile(event.target.files?.[0] || null);
+  };
+
   const handleRemoveImage = () => {
     setSelectedMedia(null);
+    setValidationErrors((prev) => ({ ...prev, image: null }));
+  };
+
+  const handleRemoveGif = () => {
+    setSelectedGif(null);
     setValidationErrors((prev) => ({ ...prev, image: null }));
   };
 
@@ -244,7 +281,29 @@ function CreatePost({ senderId, onPostCreated, compact = false }) {
             maxLength={MAX_MESSAGE_LENGTH}
             excludeUserId={senderId}
             overlayClassName="create-post-textarea"
+            inputRef={messageInputRef}
           />
+          <ComposerToolbar
+            className="create-post-toolbar"
+            disabled={loading}
+            onEmojiSelect={insertEmoji}
+            onGifSelect={handleGifSelect}
+          />
+          {selectedGif && (
+            <div className="create-post-inline-preview">
+              <img
+                src={selectedGif.previewUrl || selectedGif.mediaUrl}
+                alt={selectedGif.altText || 'Selected GIF preview'}
+                className="create-post-inline-preview-media"
+              />
+              <div className="create-post-inline-preview-meta">
+                <span>{selectedGif.title || 'Selected GIF'}</span>
+                <button type="button" className="create-post-remove-image" onClick={handleRemoveGif} disabled={loading}>
+                  Remove GIF
+                </button>
+              </div>
+            </div>
+          )}
           <div className="create-post-character-count">
             <span className={message.length > MAX_MESSAGE_LENGTH ? 'character-count-error' : ''}>
               {message.length} / {MAX_MESSAGE_LENGTH} characters
@@ -280,7 +339,7 @@ function CreatePost({ senderId, onPostCreated, compact = false }) {
                 <video src={mediaPreviewUrl} className="create-post-preview-media" controls muted />
               ) : (
                 <img src={mediaPreviewUrl} alt="Selected post preview" className="create-post-preview-media" />
-                ))}
+              ))}
               <div className="create-post-image-meta">
                 <span>{selectedMedia.name}</span>
                 <button type="button" className="create-post-remove-image" onClick={handleRemoveImage} disabled={loading}>

@@ -61,6 +61,7 @@ public class TimelineService : ITimelineService
                 RecipientId = post.RecipientId,
                 Message = post.Message,
                 ImageUrl = post.ImageUrl,
+                GifUrl = post.GifUrl,
                 CreatedAt = post.CreatedAt,
                 TargetPostId = targetPost.Id,
                 LikeCount = await _postRepository.GetLikeCountAsync(targetPost.Id),
@@ -73,6 +74,7 @@ public class TimelineService : ITimelineService
                 OriginalSenderId = post.OriginalPost?.SenderId,
                 OriginalMessage = post.OriginalPost?.Message,
                 OriginalImageUrl = post.OriginalPost?.ImageUrl,
+                OriginalGifUrl = post.OriginalPost?.GifUrl,
                 OriginalCreatedAt = post.OriginalPost?.CreatedAt,
                 Comments = comments.Select(c => new PostCommentResponse
                 {

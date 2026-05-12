@@ -288,6 +288,9 @@
 }
 
 .app-theme-toggle {
+  --prime-glow-duration: 34s;
+  --prime-glow-direction: reverse;
+  --prime-glow-delay: -6s;
   position: fixed;
   top: 18px;
   right: 18px;
@@ -313,7 +316,9 @@
   box-shadow: var(--app-shadow-soft), inset 0 1px 0 rgba(255, 255, 255, 0.82), 0 8px 24px rgba(80, 66, 130, 0.1);
   backdrop-filter: blur(12px);
   transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease, border-color 0.2s ease;
-  animation: appPrimeGlow 34s linear infinite;
+  animation: appPrimeGlow var(--prime-glow-duration) linear infinite;
+  animation-direction: var(--prime-glow-direction);
+  animation-delay: var(--prime-glow-delay);
 }
 
 .app-theme-toggle:hover {
@@ -850,6 +855,9 @@
 .sidebar-card-overview,
 .sidebar-card-focus,
 .sidebar-card-quick-access {
+  --prime-glow-duration: 34s;
+  --prime-glow-direction: normal;
+  --prime-glow-delay: 0s;
   border: 2px solid transparent;
   background:
     var(--app-panel-highlight) padding-box,
@@ -863,8 +871,28 @@
     inset 0 1px 0 rgba(255, 255, 255, 0.82),
     inset 0 -1px 0 rgba(173, 188, 220, 0.16),
     0 14px 34px rgba(83, 54, 148, 0.08);
-  animation: appPrimeGlow 34s linear infinite;
+  animation: appPrimeGlow var(--prime-glow-duration) linear infinite;
+  animation-direction: var(--prime-glow-direction);
+  animation-delay: var(--prime-glow-delay);
   opacity: 0.95;
+}
+
+.sidebar-card-overview {
+  --prime-glow-duration: 32s;
+  --prime-glow-direction: normal;
+  --prime-glow-delay: -3s;
+}
+
+.sidebar-card-focus {
+  --prime-glow-duration: 38s;
+  --prime-glow-direction: reverse;
+  --prime-glow-delay: -15s;
+}
+
+.sidebar-card-quick-access {
+  --prime-glow-duration: 29s;
+  --prime-glow-direction: alternate-reverse;
+  --prime-glow-delay: -9s;
 }
 
 .sidebar-card-overview::before,
@@ -933,7 +961,9 @@
   mask-composite: exclude;
   pointer-events: none;
   z-index: 0;
-  animation: appPrimeGlow 34s linear infinite;
+  animation: appPrimeGlow var(--prime-glow-duration, 34s) linear infinite;
+  animation-direction: var(--prime-glow-direction, normal);
+  animation-delay: var(--prime-glow-delay, 0s);
   opacity: 0.95;
 }
 

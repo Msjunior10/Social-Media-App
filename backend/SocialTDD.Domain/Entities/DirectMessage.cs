@@ -7,6 +7,7 @@ public class DirectMessage
     public Guid RecipientId { get; set; }
     public string Message { get; set; } = string.Empty;
     public string? MediaUrl { get; set; }
+    public string? GifUrl { get; set; }
     public DateTime CreatedAt { get; set; }
     public bool IsRead { get; set; }
     

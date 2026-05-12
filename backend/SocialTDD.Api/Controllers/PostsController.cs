@@ -13,6 +13,18 @@ namespace SocialTDD.Api.Controllers;
 [Authorize]
 public class PostsController : ControllerBase
 {
+    private static readonly string[] AllowedExternalGifHosts =
+    {
+        "giphy.com",
+        "media.giphy.com",
+        "media0.giphy.com",
+        "media1.giphy.com",
+        "media2.giphy.com",
+        "media3.giphy.com",
+        "media4.giphy.com",
+        "i.giphy.com"
+    };
+
     private static readonly HashSet<string> AllowedMediaExtensions = new(StringComparer.OrdinalIgnoreCase)
     {
         ".jpg", ".jpeg", ".png", ".gif", ".webp", ".mp4", ".webm", ".ogg"
@@ -48,7 +60,7 @@ public class PostsController : ControllerBase
                 return BadRequest(new ErrorResponse(ErrorCodes.VALIDATION_ERROR, "Request body saknas."));
             }
             
-            _logger.LogInformation("Request body: Message length={MessageLength}, HasMedia={HasMedia}", requestDto.Message?.Length ?? 0, requestDto.Image != null);
+            _logger.LogInformation("Request body: Message length={MessageLength}, HasMedia={HasMedia}, HasGifUrl={HasGifUrl}", requestDto.Message?.Length ?? 0, requestDto.Image != null, !string.IsNullOrWhiteSpace(requestDto.GifUrl));
             
             // Hämta UserId från JWT token
             var userId = User.GetUserId();
@@ -70,16 +82,29 @@ public class PostsController : ControllerBase
                 }
             }
 
+            if (!string.IsNullOrWhiteSpace(requestDto.GifUrl))
+            {
+                var gifUrlValidationError = ValidateExternalGifUrl(requestDto.GifUrl);
+                if (gifUrlValidationError != null)
+                {
+                    return BadRequest(new ErrorResponse(ErrorCodes.VALIDATION_ERROR, gifUrlValidationError));
+                }
+            }
+
             var imageUrl = requestDto.Image != null
                 ? await SavePostMediaAsync(requestDto.Image)
                 : null;
+            var gifUrl = string.IsNullOrWhiteSpace(requestDto.GifUrl)
+                ? null
+                : requestDto.GifUrl.Trim();
             
             // Mappa från DTO till Request och sätt SenderId från token för säkerhet
             var authenticatedRequest = new CreatePostRequest
             {
                 SenderId = userId,
                 Message = requestDto.Message,
-                ImageUrl = imageUrl
+                ImageUrl = imageUrl,
+                GifUrl = gifUrl
             };
             
             var result = await _postService.CreatePostAsync(authenticatedRequest);
@@ -507,6 +532,32 @@ public class PostsController : ControllerBase
             AllowedMediaExtensions,
             MaxMediaSizeBytes,
             "Endast JPG, PNG, GIF, WEBP, MP4, WEBM och OGG är tillåtna.");
+    }
+
+    private static string? ValidateExternalGifUrl(string? gifUrl)
+    {
+        if (string.IsNullOrWhiteSpace(gifUrl))
+        {
+            return null;
+        }
+
+        if (!Uri.TryCreate(gifUrl, UriKind.Absolute, out var uri))
+        {
+            return "The selected GIF URL is invalid.";
+        }
+
+        if (!string.Equals(uri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase))
+        {
+            return "The selected GIF URL must use HTTPS.";
+        }
+
+        var isAllowedHost = AllowedExternalGifHosts.Any(host => string.Equals(uri.Host, host, StringComparison.OrdinalIgnoreCase));
+        if (!isAllowedHost)
+        {
+            return "Only trusted GIPHY URLs are allowed for GIF sharing.";
+        }
+
+        return null;
     }
 
     private async Task<string> SavePostMediaAsync(IFormFile media)

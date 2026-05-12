@@ -58,6 +58,7 @@ public class DirectMessageService : IDirectMessageService
             RecipientId = request.RecipientId,
             Message = request.Message,
             MediaUrl = request.MediaUrl,
+            GifUrl = request.GifUrl,
             CreatedAt = DateTime.UtcNow,
             IsRead = false
         };
@@ -73,6 +74,7 @@ public class DirectMessageService : IDirectMessageService
             RecipientId = createdMessage.RecipientId,
             Message = createdMessage.Message,
             MediaUrl = createdMessage.MediaUrl,
+            GifUrl = createdMessage.GifUrl,
             CreatedAt = createdMessage.CreatedAt,
             IsRead = createdMessage.IsRead
         };
@@ -101,6 +103,7 @@ public class DirectMessageService : IDirectMessageService
                 RecipientId = m.RecipientId,
                 Message = m.Message,
                 MediaUrl = m.MediaUrl,
+                GifUrl = m.GifUrl,
                 CreatedAt = m.CreatedAt,
                 IsRead = m.IsRead
             })
@@ -127,6 +130,7 @@ public class DirectMessageService : IDirectMessageService
             RecipientId = m.RecipientId,
             Message = m.Message,
             MediaUrl = m.MediaUrl,
+            GifUrl = m.GifUrl,
             CreatedAt = m.CreatedAt,
             IsRead = m.IsRead
         }).ToList();
@@ -155,6 +159,7 @@ public class DirectMessageService : IDirectMessageService
             RecipientId = m.RecipientId,
             Message = m.Message,
             MediaUrl = m.MediaUrl,
+            GifUrl = m.GifUrl,
             CreatedAt = m.CreatedAt,
             IsRead = m.IsRead
         }).ToList();

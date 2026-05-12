@@ -7,4 +7,5 @@ public class CreateDirectMessageFormRequest
     public Guid RecipientId { get; set; }
     public string? Message { get; set; }
     public IFormFile? Media { get; set; }
+    public string? GifUrl { get; set; }
 }

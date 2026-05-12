@@ -1,0 +1,336 @@
+.composer-toolbar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  overflow: visible;
+}
+
+.composer-toolbar-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+  padding: 8px 14px;
+  border: 1px solid rgba(var(--app-accent-rgb), 0.18);
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(242, 247, 255, 0.9));
+  color: var(--app-text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: var(--app-shadow-soft);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.composer-toolbar-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  border-color: rgba(var(--app-accent-rgb), 0.28);
+  box-shadow: var(--app-shadow-medium);
+}
+
+.composer-toolbar-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.composer-toolbar-file-input {
+  display: none;
+}
+
+.composer-emoji-panel {
+  position: absolute;
+  bottom: calc(100% + 12px);
+  left: 0;
+  z-index: 40;
+  width: min(320px, calc(100vw - 24px));
+  padding: 14px;
+  border: 1px solid rgba(66, 83, 125, 0.42);
+  border-radius: 20px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.995), rgba(244, 248, 255, 0.99), rgba(231, 238, 250, 0.97));
+  box-shadow: 0 24px 58px rgba(15, 23, 42, 0.22), 0 10px 24px rgba(15, 23, 42, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(12px);
+  max-height: min(360px, calc(100vh - 140px));
+  overflow-y: auto;
+  transform-origin: bottom left;
+}
+
+.composer-emoji-panel .EmojiPickerReact {
+  --epr-bg-color: transparent;
+  --epr-category-label-bg-color: transparent;
+  --epr-hover-bg-color: rgba(var(--app-accent-rgb), 0.12);
+  --epr-focus-bg-color: rgba(var(--app-accent-rgb), 0.16);
+  --epr-search-border-color: rgba(var(--app-accent-rgb), 0.2);
+  --epr-search-input-bg-color: rgba(255, 255, 255, 0.78);
+  --epr-text-color: var(--app-text);
+  --epr-picker-border-color: transparent;
+  --epr-category-navigation-button-size: 30px;
+  border: none;
+  box-shadow: none;
+}
+
+.composer-emoji-panel .epr-search-container input {
+  border-radius: 14px;
+}
+
+.composer-emoji-panel .epr-body {
+  scrollbar-width: thin;
+}
+
+.composer-gif-panel {
+  position: absolute;
+  bottom: calc(100% + 12px);
+  left: 0;
+  z-index: 40;
+  width: min(420px, calc(100vw - 24px));
+  padding: 14px;
+  border: 1px solid rgba(66, 83, 125, 0.42);
+  border-radius: 22px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.995), rgba(244, 248, 255, 0.99), rgba(231, 238, 250, 0.97));
+  box-shadow: 0 26px 64px rgba(15, 23, 42, 0.24), 0 10px 26px rgba(15, 23, 42, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(12px);
+  transform-origin: bottom left;
+}
+
+.composer-gif-header {
+  margin-bottom: 12px;
+}
+
+.composer-gif-search-shell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 13px;
+  border: 1px solid rgba(var(--app-accent-rgb), 0.2);
+  border-radius: 16px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.78), rgba(var(--app-accent-rgb), 0.06));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72);
+}
+
+.composer-gif-search-prefix {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 40px;
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: var(--app-gradient-strong);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+}
+
+.composer-gif-search-input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  color: var(--app-text);
+  font: inherit;
+  font-size: 14px;
+}
+
+.composer-gif-search-input:focus {
+  outline: none;
+}
+
+.composer-gif-topics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.composer-gif-topic {
+  border: 1px solid rgba(var(--app-accent-rgb), 0.18);
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.86), rgba(var(--app-accent-rgb), 0.1));
+  color: var(--app-text);
+  padding: 7px 10px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.composer-gif-topic:hover:not(:disabled) {
+  border-color: rgba(var(--app-accent-rgb), 0.3);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(var(--app-accent-rgb), 0.15));
+}
+
+.composer-gif-results {
+  max-height: min(380px, calc(100vh - 220px));
+  overflow-y: auto;
+}
+
+.composer-gif-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.composer-gif-card {
+  padding: 0;
+  border: 1px solid rgba(var(--app-accent-rgb), 0.18);
+  border-radius: 16px;
+  overflow: hidden;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(var(--app-accent-rgb), 0.06));
+  cursor: pointer;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+
+.composer-gif-card:hover:not(:disabled) {
+  transform: translateY(-1px);
+  border-color: rgba(var(--app-accent-rgb), 0.22);
+  box-shadow: var(--app-shadow-soft);
+}
+
+.composer-gif-card-image {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1.2 / 1;
+  object-fit: cover;
+}
+
+.composer-gif-state {
+  padding: 18px 10px;
+  color: var(--app-text);
+  text-align: center;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.composer-gif-state-error {
+  color: var(--app-danger);
+}
+
+.composer-gif-attribution {
+  margin-top: 10px;
+  color: var(--app-muted);
+  font-size: 11px;
+  font-weight: 700;
+  text-align: right;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+:root[data-theme='dark'] .composer-toolbar-button {
+  background: rgba(12, 15, 21, 0.92);
+  color: var(--app-text);
+  border-color: rgba(148, 163, 184, 0.16);
+}
+
+:root[data-theme='dark'] .composer-emoji-panel {
+  border-color: rgba(148, 163, 184, 0.26);
+  background: linear-gradient(180deg, rgba(10, 14, 21, 0.995), rgba(16, 22, 34, 0.99), rgba(21, 29, 44, 0.97));
+  box-shadow: 0 26px 70px rgba(0, 0, 0, 0.52), 0 10px 24px rgba(0, 0, 0, 0.34), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+:root[data-theme='dark'] .composer-gif-panel {
+  border-color: rgba(148, 163, 184, 0.26);
+  background: linear-gradient(180deg, rgba(10, 14, 21, 0.995), rgba(16, 22, 34, 0.99), rgba(21, 29, 44, 0.97));
+  box-shadow: 0 28px 74px rgba(0, 0, 0, 0.56), 0 10px 26px rgba(0, 0, 0, 0.34), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+:root[data-theme='dark'] .composer-gif-search-shell {
+  background: linear-gradient(180deg, rgba(22, 30, 44, 0.95), rgba(124, 198, 255, 0.08));
+  border-color: rgba(148, 163, 184, 0.22);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+:root[data-theme='dark'] .composer-gif-search-input,
+:root[data-theme='dark'] .composer-gif-topic {
+  color: var(--app-text);
+}
+
+:root[data-theme='dark'] .composer-gif-topic,
+:root[data-theme='dark'] .composer-gif-card {
+  background: linear-gradient(180deg, rgba(22, 30, 44, 0.92), rgba(124, 198, 255, 0.1));
+  border-color: rgba(148, 163, 184, 0.2);
+}
+
+:root[data-theme='dark'] .composer-emoji-panel .EmojiPickerReact {
+  --epr-bg-color: transparent;
+  --epr-category-label-bg-color: transparent;
+  --epr-hover-bg-color: rgba(124, 198, 255, 0.12);
+  --epr-focus-bg-color: rgba(124, 198, 255, 0.16);
+  --epr-search-input-bg-color: rgba(22, 30, 44, 0.95);
+  --epr-search-border-color: rgba(148, 163, 184, 0.22);
+  --epr-text-color: var(--app-text);
+}
+
+@media (max-width: 480px) {
+  .composer-toolbar {
+    gap: 8px;
+  }
+
+  .composer-toolbar-button {
+    min-height: 36px;
+    padding: 8px 12px;
+    font-size: 12px;
+  }
+
+  .composer-emoji-panel {
+    left: 50%;
+    width: min(280px, calc(100vw - 16px));
+    padding: 10px;
+    transform: translateX(-50%);
+    max-height: min(300px, calc(100vh - 120px));
+  }
+
+  .composer-gif-panel {
+    left: 50%;
+    width: min(360px, calc(100vw - 16px));
+    padding: 10px;
+    transform: translateX(-50%);
+  }
+
+  .composer-gif-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .composer-emoji-panel .EmojiPickerReact {
+    --epr-emoji-size: 22px;
+  }
+}
+
+@media (max-width: 900px), (max-height: 900px) {
+  .composer-emoji-panel,
+  .composer-gif-panel {
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  .composer-emoji-panel {
+    width: min(320px, calc(100vw - 20px));
+    max-height: min(320px, calc(100vh - 120px));
+  }
+
+  .composer-gif-panel {
+    width: min(400px, calc(100vw - 20px));
+  }
+
+  .composer-gif-results {
+    max-height: min(300px, calc(100vh - 180px));
+  }
+}
+
+@media (max-height: 700px) {
+  .composer-emoji-panel,
+  .composer-gif-panel {
+    bottom: calc(100% + 8px);
+  }
+
+  .composer-emoji-panel {
+    max-height: min(260px, calc(100vh - 110px));
+  }
+
+  .composer-gif-results {
+    max-height: min(220px, calc(100vh - 170px));
+  }
+}

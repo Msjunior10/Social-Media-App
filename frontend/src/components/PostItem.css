@@ -139,6 +139,14 @@
   flex-wrap: wrap;
 }
 
+.post-social-action,
+.post-manage-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
 .post-actions {
   display: flex;
   gap: 8px;
@@ -147,6 +155,10 @@
 }
 
 .post-action-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   border: 1px solid transparent;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(241, 246, 255, 0.76));
   color: var(--app-muted);
@@ -155,8 +167,34 @@
   cursor: pointer;
   font-size: 13px;
   font-weight: 600;
+  white-space: nowrap;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.62), 0 4px 14px rgba(148, 163, 184, 0.08);
   transition: all 0.2s ease;
+}
+
+.post-action-icon {
+  flex-shrink: 0;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.post-action-label {
+  line-height: 1;
+}
+
+.post-action-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: rgba(var(--app-accent-rgb), 0.12);
+  color: var(--app-accent);
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1;
 }
 
 .post-action-button:hover:not(:disabled) {
@@ -173,6 +211,11 @@
 :root[data-theme='dark'] .post-action-button {
   background: color-mix(in srgb, var(--app-surface-elevated) 72%, transparent);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+:root[data-theme='dark'] .post-action-count {
+  background: rgba(124, 198, 255, 0.16);
+  color: #dceeff;
 }
 
 :root[data-theme='dark'] .post-meta-chip {
@@ -213,6 +256,90 @@
 .post-action-danger:hover:not(:disabled) {
   background: var(--app-danger-soft);
   color: var(--app-danger);
+}
+
+.post-action-like {
+  color: #d94675;
+}
+
+.post-action-reply,
+.post-action-edit {
+  color: #2563eb;
+}
+
+.post-action-repost {
+  color: var(--app-repost);
+}
+
+.post-action-save {
+  color: var(--app-bookmark);
+}
+
+.post-action-delete {
+  color: var(--app-danger);
+}
+
+.post-action-like .post-action-count {
+  background: rgba(217, 70, 117, 0.14);
+  color: #be185d;
+}
+
+.post-action-reply .post-action-count,
+.post-action-edit .post-action-count {
+  background: rgba(37, 99, 235, 0.14);
+  color: #1d4ed8;
+}
+
+.post-action-repost .post-action-count {
+  background: var(--app-repost-soft);
+  color: var(--app-repost);
+}
+
+.post-action-save .post-action-count {
+  background: var(--app-bookmark-soft);
+  color: var(--app-bookmark);
+}
+
+:root[data-theme='dark'] .post-action-like {
+  color: #fb7185;
+}
+
+:root[data-theme='dark'] .post-action-reply,
+:root[data-theme='dark'] .post-action-edit {
+  color: #7cc6ff;
+}
+
+:root[data-theme='dark'] .post-action-save {
+  color: #d8b4fe;
+}
+
+:root[data-theme='dark'] .post-action-repost {
+  color: #7ce7c9;
+}
+
+:root[data-theme='dark'] .post-action-delete {
+  color: #fda4af;
+}
+
+:root[data-theme='dark'] .post-action-like .post-action-count {
+  background: rgba(251, 113, 133, 0.16);
+  color: #fecdd3;
+}
+
+:root[data-theme='dark'] .post-action-reply .post-action-count,
+:root[data-theme='dark'] .post-action-edit .post-action-count {
+  background: rgba(124, 198, 255, 0.16);
+  color: #dceeff;
+}
+
+:root[data-theme='dark'] .post-action-save .post-action-count {
+  background: rgba(216, 180, 254, 0.16);
+  color: #f3e8ff;
+}
+
+:root[data-theme='dark'] .post-action-repost .post-action-count {
+  background: rgba(124, 231, 201, 0.16);
+  color: #ccfbf1;
 }
 
 .post-action-liked {
@@ -434,6 +561,9 @@
 }
 
 .post-comment-delete-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   border: none;
   background: transparent;
   color: var(--app-danger);
@@ -456,6 +586,9 @@
 
 .post-comment-edit-button,
 .post-comment-cancel-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   border: none;
   background: transparent;
   color: var(--app-accent);
@@ -497,10 +630,24 @@
     font-size: 16px;
   }
 
+  .post-social-bar {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 2px;
+    align-items: center;
+  }
+
   .post-actions,
   .post-edit-actions {
     justify-content: stretch;
     flex-direction: column;
+  }
+
+  .post-actions {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 4px;
   }
 
   .post-header {
@@ -518,6 +665,157 @@
     width: 100%;
     justify-content: center;
     text-align: center;
+    min-width: 0;
+    padding: 10px 12px;
+    font-size: 12px;
+  }
+
+  .post-social-action {
+    width: auto;
+    min-height: 34px;
+    padding: 6px 4px;
+    gap: 4px;
+    justify-content: center;
+    border: none;
+    border-radius: 999px;
+    background: transparent;
+    box-shadow: none;
+    color: var(--app-muted);
+  }
+
+  .post-social-action.post-action-like {
+    color: #d94675;
+  }
+
+  .post-social-action.post-action-reply {
+    color: #2563eb;
+  }
+
+  .post-social-action.post-action-repost {
+    color: var(--app-repost);
+  }
+
+  .post-social-action.post-action-save {
+    color: var(--app-bookmark);
+  }
+
+  .post-manage-action.post-action-edit {
+    color: #2563eb;
+  }
+
+  .post-manage-action.post-action-delete {
+    color: var(--app-danger);
+  }
+
+  .post-manage-action {
+    width: auto;
+    padding: 6px 8px;
+    border: none;
+    border-radius: 999px;
+    background: transparent;
+    box-shadow: none;
+    justify-content: flex-start;
+  }
+
+  .post-social-action .post-action-label {
+    display: none;
+  }
+
+  .post-manage-action .post-action-label {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .post-social-action .post-action-icon {
+    font-size: 16px;
+  }
+
+  .post-social-action .post-action-count {
+    min-width: 0;
+    height: auto;
+    padding: 0;
+    margin-left: 0;
+    border-radius: 0;
+    background: transparent;
+    color: currentColor;
+    font-size: 12px;
+    font-weight: 700;
+  }
+
+  .post-social-action:hover:not(:disabled) {
+    background: rgba(var(--app-accent-rgb), 0.08);
+    color: var(--app-accent);
+    transform: none;
+    box-shadow: none;
+  }
+
+  .post-manage-action:hover:not(:disabled) {
+    background: rgba(var(--app-accent-rgb), 0.08);
+    box-shadow: none;
+    transform: none;
+  }
+
+  .post-action-danger.post-manage-action:hover:not(:disabled) {
+    background: var(--app-danger-soft);
+  }
+
+  :root[data-theme='dark'] .post-social-action {
+    background: transparent;
+    box-shadow: none;
+  }
+
+  :root[data-theme='dark'] .post-social-action.post-action-like {
+    color: #fb7185;
+  }
+
+  :root[data-theme='dark'] .post-social-action.post-action-reply,
+  :root[data-theme='dark'] .post-manage-action.post-action-edit {
+    color: #7cc6ff;
+  }
+
+  :root[data-theme='dark'] .post-social-action.post-action-repost {
+    color: #7ce7c9;
+  }
+
+  :root[data-theme='dark'] .post-social-action.post-action-save {
+    color: #d8b4fe;
+  }
+
+  :root[data-theme='dark'] .post-manage-action.post-action-delete {
+    color: #fda4af;
+  }
+
+  :root[data-theme='dark'] .post-social-action .post-action-count {
+    background: transparent;
+    color: currentColor;
+  }
+
+  :root[data-theme='dark'] .post-social-action:hover:not(:disabled) {
+    background: rgba(124, 198, 255, 0.1);
+  }
+
+  :root[data-theme='dark'] .post-manage-action {
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .post-edit-actions {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+  }
+
+  .post-edit-actions .post-action-button,
+  .post-edit-actions .post-action-primary,
+  .post-edit-actions .post-action-danger {
+    width: auto;
+  }
+
+  .post-comment-form-footer .post-action-button {
+    width: auto;
+    align-self: flex-end;
   }
 
   .post-comment-form-footer,
@@ -536,10 +834,31 @@
     gap: 8px;
   }
 
+  .post-social-bar {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0;
+  }
+
   .post-avatar {
     width: 34px;
     height: 34px;
     font-size: 14px;
+  }
+
+  .post-social-action {
+    min-height: 32px;
+    padding: 6px 2px;
+    gap: 3px;
+  }
+
+  .post-social-action .post-action-icon {
+    font-size: 15px;
+  }
+
+  .post-social-action .post-action-count,
+  .post-manage-action .post-action-label,
+  .post-manage-action .post-action-icon {
+    font-size: 11px;
   }
 
   .post-message,

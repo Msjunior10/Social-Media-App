@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import * as yup from 'yup';
 import { dmApi } from '../services/dmApi';
 import { ApiError, ErrorCodes } from '../utils/ApiError';
+import ComposerToolbar from './ComposerToolbar';
 import UserSearch from './UserSearch';
 import './SendDirectMessage.css';
 
@@ -39,10 +40,12 @@ const directMessageSchema = yup.object().shape({
 });
 
 function SendDirectMessage({ senderId, onMessageSent }) {
+  const messageInputRef = useRef(null);
   const [recipientId, setRecipientId] = useState('');
   const [selectedUser, setSelectedUser] = useState(null);
   const [message, setMessage] = useState('');
   const [selectedMedia, setSelectedMedia] = useState(null);
+  const [selectedGif, setSelectedGif] = useState(null);
   const [mediaPreviewUrl, setMediaPreviewUrl] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -126,7 +129,7 @@ function SendDirectMessage({ senderId, onMessageSent }) {
         }
       }
 
-      if (!message.trim() && !selectedMedia) {
+      if (!message.trim() && !selectedMedia && !selectedGif) {
         setValidationErrors({ message: 'The message must contain text or media.' });
         setError('Validation error. Please check your input.');
         return false;
@@ -174,11 +177,12 @@ function SendDirectMessage({ senderId, onMessageSent }) {
       setError(null);
       setSuccess(false);
 
-      await dmApi.sendDirectMessage(recipientId.trim(), message.trim(), selectedMedia);
+      await dmApi.sendDirectMessage(recipientId.trim(), message.trim(), selectedMedia, selectedGif?.mediaUrl || null);
 
       setSuccess(true);
       setMessage('');
       setSelectedMedia(null);
+      setSelectedGif(null);
       setRecipientId('');
       setSelectedUser(null);
       setTouched({});
@@ -239,8 +243,26 @@ function SendDirectMessage({ senderId, onMessageSent }) {
     }
   };
 
-  const handleMediaChange = (event) => {
-    const file = event.target.files?.[0] || null;
+  const insertEmoji = (emoji) => {
+    const textarea = messageInputRef.current;
+    const start = textarea?.selectionStart ?? message.length;
+    const end = textarea?.selectionEnd ?? message.length;
+    const nextMessage = `${message.slice(0, start)}${emoji}${message.slice(end)}`;
+
+    setMessage(nextMessage);
+    setTouched(prev => ({ ...prev, message: true }));
+    setError(null);
+
+    window.requestAnimationFrame(() => {
+      if (textarea) {
+        const caret = start + emoji.length;
+        textarea.focus();
+        textarea.setSelectionRange(caret, caret);
+      }
+    });
+  };
+
+  const handleSelectedMediaFile = (file) => {
     setValidationErrors((prev) => ({ ...prev, media: null, message: null }));
 
     if (!file) {
@@ -263,8 +285,23 @@ function SendDirectMessage({ senderId, onMessageSent }) {
     setSelectedMedia(file);
   };
 
+  const handleGifSelect = (gif) => {
+    setSelectedGif(gif);
+    setValidationErrors((prev) => ({ ...prev, media: null, message: null }));
+    setError(null);
+  };
+
+  const handleMediaChange = (event) => {
+    handleSelectedMediaFile(event.target.files?.[0] || null);
+  };
+
   const handleRemoveMedia = () => {
     setSelectedMedia(null);
+    setValidationErrors((prev) => ({ ...prev, media: null }));
+  };
+
+  const handleRemoveGif = () => {
+    setSelectedGif(null);
     setValidationErrors((prev) => ({ ...prev, media: null }));
   };
 
@@ -323,6 +360,7 @@ function SendDirectMessage({ senderId, onMessageSent }) {
             Message or media <span className="required-asterisk">*</span>
           </label>
           <textarea
+            ref={messageInputRef}
             id="message"
             name="message"
             value={message}
@@ -336,6 +374,25 @@ function SendDirectMessage({ senderId, onMessageSent }) {
             disabled={loading}
             required
           />
+          <ComposerToolbar
+            className="send-dm-toolbar"
+            disabled={loading}
+            onEmojiSelect={insertEmoji}
+            onGifSelect={handleGifSelect}
+          />
+          {selectedGif && (
+            <div className="send-dm-inline-preview">
+              <img
+                src={selectedGif.previewUrl || selectedGif.mediaUrl}
+                alt={selectedGif.altText || 'Selected GIF preview'}
+                className="send-dm-inline-preview-media"
+              />
+              <div className="send-dm-inline-preview-meta">
+                <span>{selectedGif.title || 'Selected GIF'}</span>
+                <button type="button" className="send-dm-remove-media" onClick={handleRemoveGif} disabled={loading}>Remove GIF</button>
+              </div>
+            </div>
+          )}
           <div className="send-dm-character-count">
             <span className={message.length > MAX_MESSAGE_LENGTH ? 'character-count-error' : ''}>
               {message.length} / {MAX_MESSAGE_LENGTH} characters
@@ -382,7 +439,7 @@ function SendDirectMessage({ senderId, onMessageSent }) {
         <button
           type="submit"
           className="send-dm-button"
-          disabled={loading || !senderId || !recipientId || (!message.trim() && !selectedMedia)}
+          disabled={loading || !senderId || !recipientId || (!message.trim() && !selectedMedia && !selectedGif)}
         >
           {loading ? 'Sending...' : 'Send message'}
         </button>

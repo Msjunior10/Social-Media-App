@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { postsApi } from '../services/postsApi';
 import { ApiError, ErrorCodes } from '../utils/ApiError';
+import ConfirmationDialog from './ConfirmationDialog';
 import MentionTextarea from './MentionTextarea';
 import './PostItem.css';
 
@@ -33,8 +34,10 @@ function PostItem({
   const [editingCommentMessage, setEditingCommentMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [actionError, setActionError] = useState(null);
+  const [confirmationState, setConfirmationState] = useState({ type: null, commentId: null });
   const isOwner = useMemo(() => currentUserId && currentUserId === post.senderId, [currentUserId, post.senderId]);
   const targetPostId = post.targetPostId || post.originalPostId || post.id;
+  const managedPostId = post.id;
   const isRepostEntry = Boolean(post.isRepost);
   const canEditPost = isOwner && !isRepostEntry;
   const canRemoveRepost = isOwner && isRepostEntry;
@@ -72,7 +75,7 @@ function PostItem({
   const originalHandle = originalSenderName ? `@${String(originalSenderName).toLowerCase().replace(/\s+/g, '')}` : null;
   const originalInitial = String(originalSenderName || '').charAt(0).toUpperCase();
   const currentUserName = usernames[currentUserId] || currentUserId;
-  const hasMedia = Boolean(post.imageUrl || post.originalImageUrl);
+  const hasMedia = Boolean(post.imageUrl || post.gifUrl || post.originalImageUrl || post.originalGifUrl);
   const replyCount = commentsState.length;
   const likeCount = interactionState.likeCount;
   const repostCount = interactionState.repostCount;
@@ -151,7 +154,7 @@ function PostItem({
     try {
       setIsSubmitting(true);
       setActionError(null);
-      await postsApi.updatePost(targetPostId, editedMessage.trim());
+      await postsApi.updatePost(managedPostId, editedMessage.trim());
       setIsEditing(false);
       if (onPostChanged) {
         await onPostChanged();
@@ -164,15 +167,23 @@ function PostItem({
   };
 
   const handleDelete = async () => {
-    const confirmed = window.confirm('Do you really want to delete this post?');
-    if (!confirmed) {
+    setConfirmationState({ type: 'post', commentId: null });
+  };
+
+  const handleRemoveRepostRequest = () => {
+    setConfirmationState({ type: 'repost', commentId: null });
+  };
+
+  const handleConfirmDelete = async () => {
+    if (confirmationState.type !== 'post') {
       return;
     }
 
     try {
       setIsSubmitting(true);
       setActionError(null);
-      await postsApi.deletePost(targetPostId);
+      await postsApi.deletePost(managedPostId);
+      setConfirmationState({ type: null, commentId: null });
       if (onPostChanged) {
         await onPostChanged();
       }
@@ -289,18 +300,42 @@ function PostItem({
   };
 
   const handleDeleteComment = async (commentId) => {
-    const confirmed = window.confirm('Do you really want to delete this comment?');
-    if (!confirmed) {
+    setConfirmationState({ type: 'comment', commentId });
+  };
+
+  const handleConfirmDeleteComment = async () => {
+    if (confirmationState.type !== 'comment' || !confirmationState.commentId) {
       return;
     }
 
     try {
       setIsSubmitting(true);
       setActionError(null);
-      await postsApi.deleteComment(targetPostId, commentId);
-      setCommentsState((current) => current.filter((comment) => comment.id !== commentId));
+      await postsApi.deleteComment(targetPostId, confirmationState.commentId);
+      setCommentsState((current) => current.filter((comment) => comment.id !== confirmationState.commentId));
+      setConfirmationState({ type: null, commentId: null });
     } catch (error) {
       setActionError(getFriendlyError(error, 'Could not delete the comment.'));
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleConfirmRemoveRepost = async () => {
+    if (confirmationState.type !== 'repost') {
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      setActionError(null);
+      await postsApi.removeRepost(targetPostId);
+      setConfirmationState({ type: null, commentId: null });
+      if (onPostChanged) {
+        await onPostChanged();
+      }
+    } catch (error) {
+      setActionError(getFriendlyError(error, 'Could not remove the repost.'));
     } finally {
       setIsSubmitting(false);
     }
@@ -360,8 +395,9 @@ function PostItem({
   });
 
   return (
-    <div id={postDomId} className={`${containerClassName} ${isHighlighted ? 'post-item-highlighted' : ''}`.trim()}>
-      <div className="post-layout">
+    <>
+      <div id={postDomId} className={`${containerClassName} ${isHighlighted ? 'post-item-highlighted' : ''}`.trim()}>
+        <div className="post-layout">
         <div className="post-avatar" aria-hidden="true">{senderInitial}</div>
         <div className="post-content">
           <div className="post-header">
@@ -398,7 +434,8 @@ function PostItem({
                   onClick={handleSaveEdit}
                   disabled={isSubmitting || !editedMessage.trim()}
                 >
-                  {isSubmitting ? 'Saving...' : 'Save'}
+                  <span className="post-action-icon" aria-hidden="true">💾</span>
+                  <span className="post-action-label">{isSubmitting ? 'Saving...' : 'Save'}</span>
                 </button>
                 <button
                   type="button"
@@ -406,7 +443,8 @@ function PostItem({
                   onClick={handleCancelEdit}
                   disabled={isSubmitting}
                 >
-                  Cancel
+                  <span className="post-action-icon" aria-hidden="true">↩</span>
+                  <span className="post-action-label">Cancel</span>
                 </button>
               </div>
             </div>
@@ -425,46 +463,55 @@ function PostItem({
               </div>
               <div className="post-message">{renderFormattedText(post.originalMessage)}</div>
               {renderPostMedia(post.originalImageUrl, 'Reposted content preview')}
+              {renderPostMedia(post.originalGifUrl, 'Reposted GIF preview')}
             </div>
           ) : (
             <div className="post-message">{renderFormattedText(post.message)}</div>
           )}
 
           {!isRepostEntry && renderPostMedia(post.imageUrl, 'Post attachment preview')}
+          {!isRepostEntry && renderPostMedia(post.gifUrl, 'Post GIF preview')}
 
           {recipientContent}
 
           <div className="post-social-bar">
             <button
               type="button"
-              className={`post-action-button ${interactionState.isLikedByCurrentUser ? 'post-action-liked' : ''}`}
+              className={`post-action-button post-social-action post-action-like ${interactionState.isLikedByCurrentUser ? 'post-action-liked' : ''}`}
               onClick={handleToggleLike}
               disabled={isSubmitting}
             >
-              {interactionState.isLikedByCurrentUser ? '♥ Liked' : '♥ Like'} ({interactionState.likeCount})
+              <span className="post-action-icon" aria-hidden="true">♥</span>
+              <span className="post-action-label">{interactionState.isLikedByCurrentUser ? 'Liked' : 'Like'}</span>
+              <span className="post-action-count">{interactionState.likeCount}</span>
             </button>
             <button
               type="button"
-              className="post-action-button"
+              className="post-action-button post-social-action post-action-reply"
               onClick={() => setShowComments((prev) => !prev)}
             >
-              💬 Replies ({commentsState.length})
+              <span className="post-action-icon" aria-hidden="true">💬</span>
+              <span className="post-action-label">Replies</span>
+              <span className="post-action-count">{commentsState.length}</span>
             </button>
             <button
               type="button"
-              className={`post-action-button ${interactionState.isRepostedByCurrentUser ? 'post-action-reposted' : ''}`}
+              className={`post-action-button post-social-action post-action-repost ${interactionState.isRepostedByCurrentUser ? 'post-action-reposted' : ''}`}
               onClick={handleToggleRepost}
               disabled={isSubmitting}
             >
-              {interactionState.isRepostedByCurrentUser ? '↻ Reposted' : '↻ Repost'} ({interactionState.repostCount})
+              <span className="post-action-icon" aria-hidden="true">↻</span>
+              <span className="post-action-label">{interactionState.isRepostedByCurrentUser ? 'Reposted' : 'Repost'}</span>
+              <span className="post-action-count">{interactionState.repostCount}</span>
             </button>
             <button
               type="button"
-              className={`post-action-button ${interactionState.isBookmarkedByCurrentUser ? 'post-action-bookmarked' : ''}`}
+              className={`post-action-button post-social-action post-action-save ${interactionState.isBookmarkedByCurrentUser ? 'post-action-bookmarked' : ''}`}
               onClick={handleToggleBookmark}
               disabled={isSubmitting}
             >
-              {interactionState.isBookmarkedByCurrentUser ? '★ Saved' : '☆ Save'}
+              <span className="post-action-icon" aria-hidden="true">{interactionState.isBookmarkedByCurrentUser ? '★' : '☆'}</span>
+              <span className="post-action-label">{interactionState.isBookmarkedByCurrentUser ? 'Saved' : 'Save'}</span>
             </button>
           </div>
 
@@ -490,7 +537,8 @@ function PostItem({
                     onClick={handleAddComment}
                     disabled={isSubmitting || !commentMessage.trim()}
                   >
-                    Reply
+                    <span className="post-action-icon" aria-hidden="true">💬</span>
+                    <span className="post-action-label">Reply</span>
                   </button>
                 </div>
               </div>
@@ -516,7 +564,7 @@ function PostItem({
                                   onClick={() => handleSaveCommentEdit(comment.id)}
                                   disabled={isSubmitting || !editingCommentMessage.trim()}
                                 >
-                                  Save
+                                  💾 Save
                                 </button>
                                 <button
                                   type="button"
@@ -524,7 +572,7 @@ function PostItem({
                                   onClick={handleCancelCommentEdit}
                                   disabled={isSubmitting}
                                 >
-                                  Cancel
+                                  ↩ Cancel
                                 </button>
                               </>
                             ) : (
@@ -535,7 +583,7 @@ function PostItem({
                                   onClick={() => handleStartCommentEdit(comment)}
                                   disabled={isSubmitting}
                                 >
-                                  Edit
+                                  ✎ Edit
                                 </button>
                                 <button
                                   type="button"
@@ -543,7 +591,7 @@ function PostItem({
                                   onClick={() => handleDeleteComment(comment.id)}
                                   disabled={isSubmitting}
                                 >
-                                  Delete
+                                  🗑 Delete
                                 </button>
                               </>
                             )}
@@ -576,19 +624,21 @@ function PostItem({
             <div className="post-actions">
               <button
                 type="button"
-                className="post-action-button"
+                className="post-action-button post-manage-action post-action-edit"
                 onClick={handleStartEdit}
                 disabled={isSubmitting}
               >
-                Edit
+                <span className="post-action-icon" aria-hidden="true">✎</span>
+                <span className="post-action-label">Edit</span>
               </button>
               <button
                 type="button"
-                className="post-action-button post-action-danger"
+                className="post-action-button post-action-danger post-manage-action post-action-delete"
                 onClick={handleDelete}
                 disabled={isSubmitting}
               >
-                {isSubmitting ? 'Deleting...' : 'Delete'}
+                <span className="post-action-icon" aria-hidden="true">🗑</span>
+                <span className="post-action-label">{isSubmitting ? 'Deleting...' : 'Delete'}</span>
               </button>
             </div>
           )}
@@ -597,11 +647,12 @@ function PostItem({
             <div className="post-actions">
               <button
                 type="button"
-                className="post-action-button post-action-danger"
-                onClick={handleToggleRepost}
+                className="post-action-button post-action-danger post-manage-action post-action-delete"
+                onClick={handleRemoveRepostRequest}
                 disabled={isSubmitting}
               >
-                {isSubmitting ? 'Deleting...' : '🗑 Remove repost'}
+                <span className="post-action-icon" aria-hidden="true">🗑</span>
+                <span className="post-action-label">{isSubmitting ? 'Deleting...' : 'Remove repost'}</span>
               </button>
             </div>
           )}
@@ -609,7 +660,41 @@ function PostItem({
           {actionError && <div className="post-action-error">{actionError}</div>}
         </div>
       </div>
-    </div>
+      </div>
+      <ConfirmationDialog
+        isOpen={confirmationState.type === 'post'}
+        title="Delete post?"
+        description="This removes the post from your profile and timeline. This action cannot be undone."
+        confirmLabel="Delete post"
+        cancelLabel="Keep post"
+        tone="danger"
+        isBusy={isSubmitting}
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setConfirmationState({ type: null, commentId: null })}
+      />
+      <ConfirmationDialog
+        isOpen={confirmationState.type === 'comment'}
+        title="Delete comment?"
+        description="This removes the reply from the post thread. This action cannot be undone."
+        confirmLabel="Delete comment"
+        cancelLabel="Keep comment"
+        tone="danger"
+        isBusy={isSubmitting}
+        onConfirm={handleConfirmDeleteComment}
+        onCancel={() => setConfirmationState({ type: null, commentId: null })}
+      />
+      <ConfirmationDialog
+        isOpen={confirmationState.type === 'repost'}
+        title="Remove repost?"
+        description="This removes your repost from the feed and your profile. The original post will remain."
+        confirmLabel="Remove repost"
+        cancelLabel="Keep repost"
+        tone="danger"
+        isBusy={isSubmitting}
+        onConfirm={handleConfirmRemoveRepost}
+        onCancel={() => setConfirmationState({ type: null, commentId: null })}
+      />
+    </>
   );
 }
 

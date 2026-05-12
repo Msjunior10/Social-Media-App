@@ -8,6 +8,7 @@ public class Post
     public Guid? OriginalPostId { get; set; }
     public string Message { get; set; } = string.Empty;
     public string? ImageUrl { get; set; }
+    public string? GifUrl { get; set; }
     public DateTime CreatedAt { get; set; }
     
     // Navigation properties

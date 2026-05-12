@@ -1,6 +1,6 @@
 .dm-conversation-shell {
   position: relative;
-  overflow: hidden;
+  overflow: visible;
   padding: 24px;
   border-radius: 24px;
   border: 1px solid var(--app-border);
@@ -262,6 +262,46 @@
   color: var(--app-text);
 }
 
+.dm-conversation-toolbar {
+  margin-top: -2px;
+}
+
+.dm-conversation-inline-preview {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 16px;
+  border: 1px solid var(--app-border);
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.dm-conversation-inline-preview-media {
+  width: 72px;
+  min-width: 72px;
+  height: 72px;
+  border-radius: 14px;
+  object-fit: cover;
+}
+
+.dm-conversation-inline-preview-meta {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--app-muted);
+  font-size: 13px;
+}
+
+.dm-conversation-inline-preview-meta span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .dm-conversation-file-input::file-selector-button {
   margin-right: 12px;
   padding: 8px 12px;
@@ -366,6 +406,11 @@
 
 :root[data-theme='dark'] .dm-conversation-file-input,
 :root[data-theme='dark'] .dm-conversation-preview {
+  background: rgba(12, 15, 21, 0.92);
+  border-color: rgba(148, 163, 184, 0.14);
+}
+
+:root[data-theme='dark'] .dm-conversation-inline-preview {
   background: rgba(12, 15, 21, 0.92);
   border-color: rgba(148, 163, 184, 0.14);
 }

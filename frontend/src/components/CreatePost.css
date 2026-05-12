@@ -167,6 +167,44 @@
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.84), 0 14px 32px rgba(80, 66, 130, 0.06);
 }
 
+.create-post-inline-preview {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: 16px;
+  border: 1px solid rgba(var(--app-accent-rgb), 0.16);
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.create-post-inline-preview-media {
+  width: 72px;
+  min-width: 72px;
+  height: 72px;
+  border-radius: 14px;
+  object-fit: cover;
+  border: 1px solid var(--app-border);
+}
+
+.create-post-inline-preview-meta {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--app-muted);
+  font-size: 13px;
+}
+
+.create-post-inline-preview-meta span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 :root[data-theme='dark'] .create-post-container {
   background-color: var(--app-surface);
   background-image: linear-gradient(180deg, rgba(49, 88, 242, 0.03), rgba(255, 255, 255, 0));
@@ -189,6 +227,11 @@
 :root[data-theme='dark'] .create-post-file-input,
 :root[data-theme='dark'] .create-post-image-preview {
   background: rgba(8, 11, 18, 0.86);
+}
+
+:root[data-theme='dark'] .create-post-inline-preview {
+  background: rgba(8, 11, 18, 0.86);
+  border-color: rgba(34, 211, 238, 0.16);
 }
 
 :root[data-theme='dark'] .create-post-file-input {
@@ -247,6 +290,10 @@
   text-align: right;
   margin-top: 2px;
   padding-top: 2px;
+}
+
+.create-post-toolbar {
+  margin-top: 2px;
 }
 
 .character-count-error {

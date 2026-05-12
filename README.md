@@ -85,6 +85,7 @@ SocialTDD/
 	}
 	```
 	> **OBS:** `Jwt:Secret` ska sättas via user secrets eller miljövariabler, inte via en osäker hårdkodad standardhemlighet.
+	> **OBS:** Global GIF-sökning använder en backend-proxy. Sätt därför `Giphy:ApiKey` via user secrets eller miljövariabler på serversidan, inte i frontend.
 
 3. **Kör migrations** för att skapa eller uppdatera databasen:
 	```bash
@@ -109,14 +110,20 @@ SocialTDD/
 	npm --prefix frontend install
 	```
 
-2. **Starta utvecklingsserver:**
+2. **Frontend kräver ingen egen GIF-nyckel.**
+	```bash
+	copy frontend\.env.example frontend\.env
+	```
+	Filen finns nu bara som lokal frontend-mall. Själva GIF-sökningen hämtas via backend.
+
+3. **Starta utvecklingsserver:**
 	```bash
 	npm --prefix frontend start
 	```
 
 	Frontend öppnas normalt på `http://localhost:3000`
 
-3. **Alternativ: starta båda från repo-roten**
+4. **Alternativ: starta båda från repo-roten**
 	```bash
 	npm start
 	```
@@ -135,6 +142,11 @@ SocialTDD/
 **Problem med portar:**
 - Backend-port 5000 kan vara upptagen av en tidigare process
 - Frontend-port 3000 kan automatiskt bytas om den redan används
+
+**Problem med GIF-sökning:**
+- Kontrollera att backend har `Giphy:ApiKey` satt via user secrets eller environment variables
+- Starta om backend efter att du lagt till eller ändrat serverns GIPHY-nyckel
+- Om servernyckeln saknas visas GIF-knappen fortfarande, men sökpanelen kan inte ladda globala GIF-resultat
 
 ## 🧪 Testning
 

@@ -7,6 +7,7 @@ public class PostResponse
     public Guid RecipientId { get; set; }
     public string Message { get; set; } = string.Empty;
     public string? ImageUrl { get; set; }
+    public string? GifUrl { get; set; }
     public DateTime CreatedAt { get; set; }
     public Guid TargetPostId { get; set; }
     public int LikeCount { get; set; }
@@ -19,6 +20,7 @@ public class PostResponse
     public Guid? OriginalSenderId { get; set; }
     public string? OriginalMessage { get; set; }
     public string? OriginalImageUrl { get; set; }
+    public string? OriginalGifUrl { get; set; }
     public DateTime? OriginalCreatedAt { get; set; }
     public List<PostCommentResponse> Comments { get; set; } = new();
 }

@@ -58,6 +58,7 @@ function MentionTextarea({
   name,
   excludeUserId = null,
   overlayClassName = '',
+  inputRef = null,
 }) {
   const textareaRef = useRef(null);
   const overlayRef = useRef(null);
@@ -213,6 +214,21 @@ function MentionTextarea({
     return `@${user.username}`;
   };
 
+  const setTextareaRef = (node) => {
+    textareaRef.current = node;
+
+    if (!inputRef) {
+      return;
+    }
+
+    if (typeof inputRef === 'function') {
+      inputRef(node);
+      return;
+    }
+
+    inputRef.current = node;
+  };
+
   return (
     <div className="mention-textarea-shell">
       <div
@@ -227,7 +243,7 @@ function MentionTextarea({
       </div>
 
       <textarea
-        ref={textareaRef}
+        ref={setTextareaRef}
         id={id}
         name={name}
         value={value}

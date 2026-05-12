@@ -27,7 +27,10 @@ public class CreateDirectMessageRequestValidator : AbstractValidator<CreateDirec
             .WithMessage($"Meddelande får inte vara längre än {MaxMessageLength} tecken.");
 
         RuleFor(x => x)
-            .Must(request => !string.IsNullOrWhiteSpace(request.Message) || !string.IsNullOrWhiteSpace(request.MediaUrl))
+            .Must(request =>
+                !string.IsNullOrWhiteSpace(request.Message)
+                || !string.IsNullOrWhiteSpace(request.MediaUrl)
+                || !string.IsNullOrWhiteSpace(request.GifUrl))
             .WithMessage("Direktmeddelandet måste innehålla text eller media.");
     }
 }

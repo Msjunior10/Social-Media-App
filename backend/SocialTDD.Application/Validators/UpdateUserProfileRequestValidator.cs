@@ -7,6 +7,14 @@ public class UpdateUserProfileRequestValidator : AbstractValidator<UpdateUserPro
 {
     public UpdateUserProfileRequestValidator()
     {
+        RuleFor(x => x.Email)
+            .NotEmpty()
+            .WithMessage("E-post är obligatorisk.")
+            .MaximumLength(255)
+            .WithMessage("E-post får inte vara längre än 255 tecken.")
+            .EmailAddress()
+            .WithMessage("E-post måste vara en giltig e-postadress.");
+
         RuleFor(x => x.Bio)
             .MaximumLength(500)
             .WithMessage("Bio får inte vara längre än 500 tecken.");

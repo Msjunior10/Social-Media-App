@@ -194,6 +194,17 @@ public class UserService : IUserService
         var user = await _userRepository.GetByIdAsync(userId)
             ?? throw new ArgumentException("Användaren hittades inte.", nameof(userId));
 
+        var normalizedEmail = request.Email.Trim();
+        var existingUserWithEmail = await _userRepository.GetUserByEmailAsync(normalizedEmail);
+        if (existingUserWithEmail != null && existingUserWithEmail.Id != userId)
+        {
+            throw new ValidationException(new[]
+            {
+                new FluentValidation.Results.ValidationFailure(nameof(request.Email), "E-postadressen används redan av ett annat konto.")
+            });
+        }
+
+        user.Email = normalizedEmail;
         user.Bio = request.Bio?.Trim() ?? string.Empty;
         user.ProfileImageUrl = string.IsNullOrWhiteSpace(request.ProfileImageUrl)
             ? null

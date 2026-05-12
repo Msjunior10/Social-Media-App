@@ -1,5 +1,6 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import ComposerToolbar from './ComposerToolbar';
 import { dmApi } from '../services/dmApi';
 import { userApi } from '../services/userApi';
 import './DirectMessageConversation.css';
@@ -17,10 +18,12 @@ const ALLOWED_MEDIA_TYPES = [
 
 function DirectMessageConversation({ userId, otherUserId, onConversationUpdated }) {
   const navigate = useNavigate();
+  const draftInputRef = useRef(null);
   const [messages, setMessages] = useState([]);
   const [otherUser, setOtherUser] = useState(null);
   const [draft, setDraft] = useState('');
   const [selectedMedia, setSelectedMedia] = useState(null);
+  const [selectedGif, setSelectedGif] = useState(null);
   const [mediaPreviewUrl, setMediaPreviewUrl] = useState('');
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
@@ -104,17 +107,18 @@ function DirectMessageConversation({ userId, otherUserId, onConversationUpdated 
     event.preventDefault();
 
     const trimmedDraft = draft.trim();
-    if (!trimmedDraft && !selectedMedia) {
+    if (!trimmedDraft && !selectedMedia && !selectedGif) {
       return;
     }
 
     try {
       setSending(true);
       setError(null);
-      const createdMessage = await dmApi.sendDirectMessage(otherUserId, trimmedDraft, selectedMedia);
+      const createdMessage = await dmApi.sendDirectMessage(otherUserId, trimmedDraft, selectedMedia, selectedGif?.mediaUrl || null);
       setMessages((previousMessages) => [...previousMessages, createdMessage]);
       setDraft('');
       setSelectedMedia(null);
+      setSelectedGif(null);
       onConversationUpdated?.();
     } catch (err) {
       setError(err.message || 'Could not send the message.');
@@ -146,8 +150,10 @@ function DirectMessageConversation({ userId, otherUserId, onConversationUpdated 
   };
 
   const handleMediaChange = (event) => {
-    const file = event.target.files?.[0] || null;
+    handleSelectedMediaFile(event.target.files?.[0] || null);
+  };
 
+  const handleSelectedMediaFile = (file) => {
     if (!file) {
       setSelectedMedia(null);
       return;
@@ -169,7 +175,36 @@ function DirectMessageConversation({ userId, otherUserId, onConversationUpdated 
     setSelectedMedia(file);
   };
 
-  const handleRemoveMedia = () => setSelectedMedia(null);
+  const handleGifSelect = (gif) => {
+    setSelectedGif(gif);
+    setError(null);
+  };
+
+  const insertEmoji = (emoji) => {
+    const textarea = draftInputRef.current;
+    const start = textarea?.selectionStart ?? draft.length;
+    const end = textarea?.selectionEnd ?? draft.length;
+    const nextDraft = `${draft.slice(0, start)}${emoji}${draft.slice(end)}`;
+
+    setDraft(nextDraft);
+    setError(null);
+
+    window.requestAnimationFrame(() => {
+      if (textarea) {
+        const caret = start + emoji.length;
+        textarea.focus();
+        textarea.setSelectionRange(caret, caret);
+      }
+    });
+  };
+
+  const handleRemoveMedia = () => {
+    setSelectedMedia(null);
+  };
+
+  const handleRemoveGif = () => {
+    setSelectedGif(null);
+  };
 
   const getDownloadName = (message) => {
     const resolvedUrl = dmApi.resolveMediaUrl(message.mediaUrl);
@@ -220,6 +255,7 @@ function DirectMessageConversation({ userId, otherUserId, onConversationUpdated 
               messages.map((message) => {
                 const isOwnMessage = message.senderId === userId;
                 const resolvedMediaUrl = dmApi.resolveMediaUrl(message.mediaUrl);
+                const resolvedGifUrl = dmApi.resolveMediaUrl(message.gifUrl);
 
                 return (
                   <article
@@ -252,6 +288,21 @@ function DirectMessageConversation({ userId, otherUserId, onConversationUpdated 
                         </div>
                       </div>
                     )}
+                    {resolvedGifUrl && (
+                      <div className="dm-bubble-media-wrap">
+                        <img src={resolvedGifUrl} alt="Shared GIF" className="dm-bubble-media" />
+                        <div className="dm-bubble-media-actions">
+                          <a
+                            href={resolvedGifUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="dm-bubble-media-link"
+                          >
+                            Open GIF
+                          </a>
+                        </div>
+                      </div>
+                    )}
                     {message.message && <div className="dm-bubble-body">{message.message}</div>}
                     <div className="dm-bubble-meta">
                       <span>{isOwnMessage ? 'You' : conversationTitle}</span>
@@ -266,6 +317,7 @@ function DirectMessageConversation({ userId, otherUserId, onConversationUpdated 
           <form className="dm-conversation-form" onSubmit={handleSubmit}>
             <label className="dm-conversation-label" htmlFor="dm-reply-message">Reply</label>
             <textarea
+              ref={draftInputRef}
               id="dm-reply-message"
               className="dm-conversation-input"
               placeholder={`Write back to ${conversationTitle}...`}
@@ -275,6 +327,25 @@ function DirectMessageConversation({ userId, otherUserId, onConversationUpdated 
               maxLength="500"
               disabled={sending}
             />
+            <ComposerToolbar
+              className="dm-conversation-toolbar"
+              disabled={sending}
+              onEmojiSelect={insertEmoji}
+              onGifSelect={handleGifSelect}
+            />
+            {selectedGif && (
+              <div className="dm-conversation-inline-preview">
+                <img
+                  src={selectedGif.previewUrl || selectedGif.mediaUrl}
+                  alt={selectedGif.altText || 'Selected GIF preview'}
+                  className="dm-conversation-inline-preview-media"
+                />
+                <div className="dm-conversation-inline-preview-meta">
+                  <span>{selectedGif.title || 'Selected GIF'}</span>
+                  <button type="button" className="dm-conversation-remove-media" onClick={handleRemoveGif} disabled={sending}>Remove GIF</button>
+                </div>
+              </div>
+            )}
             <input
               id="dm-reply-media"
               type="file"
@@ -301,7 +372,7 @@ function DirectMessageConversation({ userId, otherUserId, onConversationUpdated 
               <button
                 type="submit"
                 className="dm-conversation-submit"
-                disabled={sending || (!draft.trim() && !selectedMedia)}
+                disabled={sending || (!draft.trim() && !selectedMedia && !selectedGif)}
               >
                 {sending ? 'Sending...' : 'Send reply'}
               </button>

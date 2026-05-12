@@ -13,6 +13,18 @@ namespace SocialTDD.Api.Controllers;
 [Authorize]
 public class DirectMessagesController : ControllerBase
 {
+    private static readonly string[] AllowedExternalGifHosts =
+    {
+        "giphy.com",
+        "media.giphy.com",
+        "media0.giphy.com",
+        "media1.giphy.com",
+        "media2.giphy.com",
+        "media3.giphy.com",
+        "media4.giphy.com",
+        "i.giphy.com"
+    };
+
     private static readonly HashSet<string> AllowedMediaExtensions = new(StringComparer.OrdinalIgnoreCase)
     {
         ".jpg", ".jpeg", ".png", ".gif", ".webp", ".mp4", ".webm", ".ogg"
@@ -46,8 +58,8 @@ public class DirectMessagesController : ControllerBase
                 return BadRequest(new ErrorResponse(ErrorCodes.VALIDATION_ERROR, "Request body saknas."));
             }
             
-            _logger.LogInformation("Request body: RecipientId={RecipientId}, Message length={MessageLength}, HasMedia={HasMedia}", 
-                request.RecipientId, request.Message?.Length ?? 0, request.Media != null);
+            _logger.LogInformation("Request body: RecipientId={RecipientId}, Message length={MessageLength}, HasMedia={HasMedia}, HasGifUrl={HasGifUrl}", 
+                request.RecipientId, request.Message?.Length ?? 0, request.Media != null, !string.IsNullOrWhiteSpace(request.GifUrl));
             
             // Hämta SenderId från JWT token
             var senderId = User.GetUserId();
@@ -69,9 +81,21 @@ public class DirectMessagesController : ControllerBase
                 }
             }
 
+            if (!string.IsNullOrWhiteSpace(request.GifUrl))
+            {
+                var gifUrlValidationError = ValidateExternalGifUrl(request.GifUrl);
+                if (gifUrlValidationError != null)
+                {
+                    return BadRequest(new ErrorResponse(ErrorCodes.VALIDATION_ERROR, gifUrlValidationError));
+                }
+            }
+
             var mediaUrl = request.Media != null
                 ? await SaveDirectMessageMediaAsync(request.Media)
                 : null;
+            var gifUrl = string.IsNullOrWhiteSpace(request.GifUrl)
+                ? null
+                : request.GifUrl.Trim();
             
             // Sätt SenderId från token för säkerhet
             var authenticatedRequest = new CreateDirectMessageRequest
@@ -79,7 +103,8 @@ public class DirectMessagesController : ControllerBase
                 SenderId = senderId,
                 RecipientId = request.RecipientId,
                 Message = request.Message ?? string.Empty,
-                MediaUrl = mediaUrl
+                MediaUrl = mediaUrl,
+                GifUrl = gifUrl
             };
             
             var result = await _directMessageService.SendDirectMessageAsync(authenticatedRequest);
@@ -224,6 +249,32 @@ public class DirectMessagesController : ControllerBase
             AllowedMediaExtensions,
             MaxMediaSizeBytes,
             "Endast JPG, PNG, GIF, WEBP, MP4, WEBM och OGG stöds i direktmeddelanden.");
+    }
+
+    private static string? ValidateExternalGifUrl(string? gifUrl)
+    {
+        if (string.IsNullOrWhiteSpace(gifUrl))
+        {
+            return null;
+        }
+
+        if (!Uri.TryCreate(gifUrl, UriKind.Absolute, out var uri))
+        {
+            return "The selected GIF URL is invalid.";
+        }
+
+        if (!string.Equals(uri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase))
+        {
+            return "The selected GIF URL must use HTTPS.";
+        }
+
+        var isAllowedHost = AllowedExternalGifHosts.Any(host => string.Equals(uri.Host, host, StringComparison.OrdinalIgnoreCase));
+        if (!isAllowedHost)
+        {
+            return "Only trusted GIPHY URLs are allowed for GIF sharing.";
+        }
+
+        return null;
     }
 
     private async Task<string> SaveDirectMessageMediaAsync(IFormFile media)
