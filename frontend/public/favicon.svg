@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Postra favicon">
+  <defs>
+    <linearGradient id="postraGlow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ff004d" />
+      <stop offset="16%" stop-color="#ff7a00" />
+      <stop offset="32%" stop-color="#ffd400" />
+      <stop offset="48%" stop-color="#5bff00" />
+      <stop offset="64%" stop-color="#00d5ff" />
+      <stop offset="80%" stop-color="#355bff" />
+      <stop offset="100%" stop-color="#b100ff" />
+    </linearGradient>
+    <linearGradient id="postraSurface" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" />
+      <stop offset="100%" stop-color="#eef2ff" />
+    </linearGradient>
+  </defs>
+  <rect x="4" y="4" width="56" height="56" rx="16" fill="url(#postraGlow)" />
+  <rect x="8" y="8" width="48" height="48" rx="13" fill="url(#postraSurface)" />
+  <path d="M24 18h12.8c8.1 0 13.2 4.6 13.2 11.7 0 7.5-5.7 12.1-14.2 12.1H31V50h-7V18zm7 6v11.8h5.1c4.3 0 6.9-2.1 6.9-5.9 0-3.8-2.6-5.9-6.9-5.9H31z" fill="#2f3640" />
+</svg>

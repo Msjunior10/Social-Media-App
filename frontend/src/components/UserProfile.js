@@ -55,7 +55,9 @@ function UserProfile({ userId, username, isEditable = false, refreshKey = 0 }) {
         setIsEditing(false);
         let userData;
         
-        if (userId) {
+        if (isEditable) {
+          userData = await userApi.getCurrentUser();
+        } else if (userId) {
           userData = await userApi.getUserById(userId);
         } else if (username) {
           userData = await userApi.getUserByUsername(username);
@@ -99,10 +101,10 @@ function UserProfile({ userId, username, isEditable = false, refreshKey = 0 }) {
       }
     };
 
-    if (userId || username) {
+    if (isEditable || userId || username) {
       fetchUser();
     }
-  }, [userId, username, refreshKey]);
+  }, [userId, username, isEditable, refreshKey]);
 
   if (loading) {
     return <div className="user-profile-loading">Loading profile...</div>;
@@ -275,7 +277,7 @@ function UserProfile({ userId, username, isEditable = false, refreshKey = 0 }) {
 
       <div className="user-profile-details">
         {isEditable && (
-          <div className="user-profile-detail">
+          <div className="user-profile-detail user-profile-detail-email">
             <span className="user-profile-label">Email:</span>
             <span className="user-profile-value">{user.email}</span>
           </div>

@@ -3,6 +3,29 @@ import React, { createContext, useContext, useEffect, useMemo, useState } from '
 const ThemeContext = createContext(null);
 const THEME_STORAGE_KEY = 'postra-theme';
 
+const getFaviconHref = (theme) => {
+  const publicUrl = process.env.PUBLIC_URL || '';
+  const fileName = theme === 'dark' ? 'favicon-dark.svg' : 'favicon.svg';
+  return `${publicUrl}/${fileName}`;
+};
+
+const syncFaviconWithTheme = (theme) => {
+  if (typeof document === 'undefined') {
+    return;
+  }
+
+  let faviconLink = document.querySelector("link[rel='icon']");
+
+  if (!faviconLink) {
+    faviconLink = document.createElement('link');
+    faviconLink.setAttribute('rel', 'icon');
+    faviconLink.setAttribute('type', 'image/svg+xml');
+    document.head.appendChild(faviconLink);
+  }
+
+  faviconLink.setAttribute('href', getFaviconHref(theme));
+};
+
 const getInitialTheme = () => {
   if (typeof window === 'undefined') {
     return 'light';
@@ -23,6 +46,7 @@ export const ThemeProvider = ({ children }) => {
     document.documentElement.setAttribute('data-theme', theme);
     document.documentElement.style.colorScheme = theme;
     window.localStorage.setItem(THEME_STORAGE_KEY, theme);
+    syncFaviconWithTheme(theme);
   }, [theme]);
 
   useEffect(() => {
