@@ -16,6 +16,10 @@ public class ApplicationDbContext : DbContext
     public DbSet<PostComment> PostComments { get; set; }
     public DbSet<User> Users { get; set; }
     public DbSet<DirectMessage> DirectMessages { get; set; }
+    public DbSet<Conversation> Conversations { get; set; }
+    public DbSet<ConversationMember> ConversationMembers { get; set; }
+    public DbSet<ConversationMessage> ConversationMessages { get; set; }
+    public DbSet<CallSession> CallSessions { get; set; }
     public DbSet<Follow> Follows { get; set; }
     public DbSet<Notification> Notifications { get; set; }
 
@@ -135,6 +139,85 @@ public class ApplicationDbContext : DbContext
                 .WithMany()
                 .HasForeignKey(e => e.RecipientId)
                 .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<Conversation>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Title).IsRequired().HasMaxLength(200);
+            entity.Property(e => e.CreatedAt).IsRequired();
+            entity.Property(e => e.IsGroup).IsRequired();
+
+            entity.HasOne(e => e.CreatedByUser)
+                .WithMany()
+                .HasForeignKey(e => e.CreatedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasMany(e => e.Members)
+                .WithOne(e => e.Conversation)
+                .HasForeignKey(e => e.ConversationId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasMany(e => e.Messages)
+                .WithOne(e => e.Conversation)
+                .HasForeignKey(e => e.ConversationId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasMany(e => e.CallSessions)
+                .WithOne(e => e.Conversation)
+                .HasForeignKey(e => e.ConversationId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(e => e.CreatedByUserId);
+            entity.HasIndex(e => new { e.IsGroup, e.CreatedAt });
+        });
+
+        modelBuilder.Entity<ConversationMember>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.JoinedAt).IsRequired();
+
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasIndex(e => new { e.ConversationId, e.UserId }).IsUnique();
+            entity.HasIndex(e => new { e.UserId, e.JoinedAt });
+        });
+
+        modelBuilder.Entity<ConversationMessage>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Message).IsRequired().HasMaxLength(500);
+            entity.Property(e => e.MediaUrl).HasMaxLength(2048);
+            entity.Property(e => e.GifUrl).HasMaxLength(2048);
+            entity.Property(e => e.CreatedAt).IsRequired();
+            entity.Property(e => e.IsSystemMessage).IsRequired().HasDefaultValue(false);
+
+            entity.HasOne(e => e.Sender)
+                .WithMany()
+                .HasForeignKey(e => e.SenderId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasIndex(e => new { e.ConversationId, e.CreatedAt });
+            entity.HasIndex(e => e.SenderId);
+        });
+
+        modelBuilder.Entity<CallSession>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.CallType).IsRequired().HasMaxLength(50);
+            entity.Property(e => e.Status).IsRequired().HasMaxLength(50);
+            entity.Property(e => e.StartedAt).IsRequired();
+
+            entity.HasOne(e => e.StartedByUser)
+                .WithMany()
+                .HasForeignKey(e => e.StartedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasIndex(e => new { e.ConversationId, e.StartedAt });
+            entity.HasIndex(e => e.Status);
         });
 
         modelBuilder.Entity<Follow>(entity =>
