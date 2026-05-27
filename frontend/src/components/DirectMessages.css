@@ -47,6 +47,29 @@
   line-height: 1.6;
 }
 
+.direct-messages-view-toggle {
+  margin-top: 16px;
+  display: inline-flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.direct-messages-view-btn {
+  border: 1px solid var(--app-border);
+  border-radius: 999px;
+  padding: 8px 14px;
+  background: var(--app-surface);
+  color: var(--app-text);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.direct-messages-view-btn.active {
+  border-color: rgba(var(--app-accent-rgb), 0.5);
+  background: rgba(var(--app-accent-rgb), 0.12);
+  color: var(--app-accent-strong);
+}
+
 .direct-messages-grid {
   display: grid;
   grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr);
@@ -64,6 +87,10 @@
 .direct-messages-sidebar,
 .direct-messages-main {
   min-width: 0;
+}
+
+.direct-messages-main-full {
+  width: 100%;
 }
 
 .direct-messages-home-panel {

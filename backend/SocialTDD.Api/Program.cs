@@ -144,6 +144,7 @@ builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
 // Add Services
 builder.Services.AddScoped<IPostService, PostService>();
 builder.Services.AddScoped<IDirectMessageService, DirectMessageService>();
+builder.Services.AddScoped<IConversationService, ConversationService>();
 builder.Services.AddScoped<ITimelineService, TimelineService>();
 builder.Services.AddScoped<IFollowService, FollowService>();
 builder.Services.AddScoped<IWallService, WallService>();
