@@ -1,5 +1,6 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { conversationApi } from '../services/conversationApi';
+import { callSignalingRealtime } from '../services/callSignalingRealtime';
 import { userApi } from '../services/userApi';
 import './GroupConversations.css';
 
@@ -15,12 +16,26 @@ function GroupConversations({ currentUserId }) {
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [isSending, setIsSending] = useState(false);
+  const [isSignalingActionPending, setIsSignalingActionPending] = useState(false);
+  const [isSignalingConnected, setIsSignalingConnected] = useState(false);
+  const [callState, setCallState] = useState({
+    isActive: false,
+    callType: '',
+    startedByUserId: null,
+  });
+  const [callEvents, setCallEvents] = useState([]);
   const [error, setError] = useState('');
+  const activeConversationIdRef = useRef('');
+  const selectedConversationIdRef = useRef('');
 
   const selectedConversation = useMemo(
     () => conversations.find((conversation) => conversation.id === selectedConversationId) || null,
     [conversations, selectedConversationId]
   );
+
+  useEffect(() => {
+    selectedConversationIdRef.current = selectedConversationId;
+  }, [selectedConversationId]);
 
   useEffect(() => {
     let isMounted = true;
@@ -101,6 +116,132 @@ function GroupConversations({ currentUserId }) {
     };
   }, [selectedConversationId]);
 
+  useEffect(() => {
+    let isMounted = true;
+
+    const unsubscribe = callSignalingRealtime.subscribe((event) => {
+      if (!isMounted) {
+        return;
+      }
+
+      const payloadConversationId = event?.payload?.conversationId;
+      if (payloadConversationId && payloadConversationId !== selectedConversationIdRef.current) {
+        return;
+      }
+
+      const timestamp = new Date().toLocaleTimeString();
+      const nextEventLabel = (() => {
+        switch (event.type) {
+          case 'connected':
+            setIsSignalingConnected(true);
+            return 'Call signaling connected';
+          case 'disconnected':
+            setIsSignalingConnected(false);
+            return 'Call signaling disconnected';
+          case 'call-started':
+            setCallState({
+              isActive: true,
+              callType: event?.payload?.callType || 'voice',
+              startedByUserId: event?.payload?.startedByUserId || null,
+            });
+            return `Call started (${event?.payload?.callType || 'voice'})`;
+          case 'call-ended':
+            setCallState({
+              isActive: false,
+              callType: '',
+              startedByUserId: null,
+            });
+            return 'Call ended';
+          case 'participant-joined':
+            return `Participant joined: ${event?.payload?.userId || 'unknown'}`;
+          case 'participant-left':
+            return `Participant left: ${event?.payload?.userId || 'unknown'}`;
+          case 'offer-received':
+            return `Offer received from ${event?.payload?.fromUserId || 'unknown'}`;
+          case 'answer-received':
+            return `Answer received from ${event?.payload?.fromUserId || 'unknown'}`;
+          case 'ice-candidate-received':
+            return `ICE candidate received from ${event?.payload?.fromUserId || 'unknown'}`;
+          case 'reconnected':
+            setIsSignalingConnected(true);
+            return 'Call signaling reconnected';
+          default:
+            return null;
+        }
+      })();
+
+      if (!nextEventLabel) {
+        return;
+      }
+
+      setCallEvents((previousEvents) => {
+        const nextEvents = [`${timestamp} - ${nextEventLabel}`, ...previousEvents];
+        return nextEvents.slice(0, 10);
+      });
+    });
+
+    callSignalingRealtime.connect().catch((connectError) => {
+      if (!isMounted) {
+        return;
+      }
+
+      setIsSignalingConnected(false);
+      setError(connectError?.message || 'Could not connect to call signaling hub.');
+    });
+
+    return () => {
+      isMounted = false;
+      unsubscribe();
+    };
+  }, []);
+
+  useEffect(() => {
+    const joinConversation = async () => {
+      try {
+        setError('');
+      const previousConversationId = activeConversationIdRef.current;
+
+      if (previousConversationId && previousConversationId !== selectedConversationId) {
+        await callSignalingRealtime.leaveConversation(previousConversationId);
+      }
+
+      if (selectedConversationId) {
+        await callSignalingRealtime.joinConversation(selectedConversationId);
+      }
+
+      activeConversationIdRef.current = selectedConversationId;
+      setCallState({
+        isActive: false,
+        callType: '',
+        startedByUserId: null,
+      });
+      setCallEvents([]);
+      } catch (joinError) {
+        setError(joinError?.message || 'Could not join call signaling for this conversation.');
+      }
+    };
+
+    joinConversation();
+  }, [selectedConversationId]);
+
+  useEffect(() => {
+    return () => {
+      const activeConversationId = activeConversationIdRef.current;
+      if (activeConversationId) {
+        callSignalingRealtime.leaveConversation(activeConversationId).catch(() => {
+          // Ignore cleanup errors to avoid noisy unmount warnings.
+        });
+      }
+
+      callSignalingRealtime.disconnect().catch(() => {
+        // Ignore cleanup errors to avoid noisy unmount warnings.
+      });
+      activeConversationIdRef.current = '';
+      selectedConversationIdRef.current = '';
+      setIsSignalingConnected(false);
+    };
+  }, []);
+
   const toggleMember = (memberId) => {
     setSelectedMemberIds((previousIds) => {
       if (previousIds.includes(memberId)) {
@@ -149,6 +290,38 @@ function GroupConversations({ currentUserId }) {
       setError(sendError?.message || 'Could not send message to the group conversation.');
     } finally {
       setIsSending(false);
+    }
+  };
+
+  const handleStartCall = async (callType) => {
+    if (!selectedConversationId) {
+      return;
+    }
+
+    try {
+      setError('');
+      setIsSignalingActionPending(true);
+      await callSignalingRealtime.startCall(selectedConversationId, callType);
+    } catch (signalingError) {
+      setError(signalingError?.message || 'Could not start call signaling.');
+    } finally {
+      setIsSignalingActionPending(false);
+    }
+  };
+
+  const handleEndCall = async () => {
+    if (!selectedConversationId) {
+      return;
+    }
+
+    try {
+      setError('');
+      setIsSignalingActionPending(true);
+      await callSignalingRealtime.endCall(selectedConversationId);
+    } catch (signalingError) {
+      setError(signalingError?.message || 'Could not end call signaling.');
+    } finally {
+      setIsSignalingActionPending(false);
     }
   };
 
@@ -231,6 +404,53 @@ function GroupConversations({ currentUserId }) {
         )}
 
         {error && <p className="group-conversations-error">{error}</p>}
+
+        <div className="group-conversations-signaling">
+          <div className="group-conversations-signaling-header">
+            <h4>Call signaling (Day 4 MVP)</h4>
+            <span className={`group-conversations-signaling-status ${callState.isActive ? 'active' : ''}`}>
+              {callState.isActive ? `Active ${callState.callType} signaling` : 'Idle'}
+            </span>
+          </div>
+          <p className={`group-conversations-signaling-connection ${isSignalingConnected ? 'connected' : 'disconnected'}`}>
+            {isSignalingConnected ? 'Hub connection: connected' : 'Hub connection: disconnected'}
+          </p>
+
+          <div className="group-conversations-signaling-actions">
+            <button
+              type="button"
+              className="group-conversations-secondary-btn"
+              disabled={!selectedConversationId || isSignalingActionPending || callState.isActive || !isSignalingConnected}
+              onClick={() => handleStartCall('voice')}
+            >
+              Start voice signaling
+            </button>
+            <button
+              type="button"
+              className="group-conversations-secondary-btn"
+              disabled={!selectedConversationId || isSignalingActionPending || callState.isActive || !isSignalingConnected}
+              onClick={() => handleStartCall('video')}
+            >
+              Start video signaling
+            </button>
+            <button
+              type="button"
+              className="group-conversations-secondary-btn danger"
+              disabled={!selectedConversationId || isSignalingActionPending || !callState.isActive}
+              onClick={handleEndCall}
+            >
+              End signaling
+            </button>
+          </div>
+
+          {callEvents.length > 0 && (
+            <ul className="group-conversations-signaling-log">
+              {callEvents.map((eventText) => (
+                <li key={eventText}>{eventText}</li>
+              ))}
+            </ul>
+          )}
+        </div>
 
         <div className="group-conversations-messages">
           {!selectedConversation ? (

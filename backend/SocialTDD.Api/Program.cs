@@ -121,7 +121,8 @@ builder.Services.AddAuthentication(options =>
             var accessToken = context.Request.Query["access_token"];
             var path = context.HttpContext.Request.Path;
 
-            if (!string.IsNullOrWhiteSpace(accessToken) && path.StartsWithSegments("/hubs/notifications"))
+            if (!string.IsNullOrWhiteSpace(accessToken) &&
+                (path.StartsWithSegments("/hubs/notifications") || path.StartsWithSegments("/hubs/calls")))
             {
                 context.Token = accessToken;
             }
@@ -200,6 +201,7 @@ app.UseMiddleware<UpdateLastActivityMiddleware>();
 app.UseAuthorization();
 app.MapControllers();
 app.MapHub<NotificationHub>("/hubs/notifications");
+app.MapHub<CallSignalingHub>("/hubs/calls");
 
 app.Run();
 

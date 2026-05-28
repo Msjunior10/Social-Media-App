@@ -132,6 +132,92 @@
   min-height: 520px;
 }
 
+.group-conversations-signaling {
+  margin-top: 14px;
+  padding: 12px;
+  border: 1px solid var(--app-border);
+  border-radius: 12px;
+  background: rgba(var(--app-accent-rgb), 0.06);
+}
+
+.group-conversations-signaling-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.group-conversations-signaling-header h4 {
+  margin: 0;
+  color: var(--app-text);
+  font-size: 15px;
+}
+
+.group-conversations-signaling-status {
+  border: 1px solid var(--app-border);
+  border-radius: 999px;
+  padding: 4px 9px;
+  font-size: 12px;
+  color: var(--app-muted);
+  background: var(--app-surface);
+}
+
+.group-conversations-signaling-status.active {
+  border-color: rgba(var(--app-accent-rgb), 0.45);
+  color: var(--app-accent-strong);
+  background: rgba(var(--app-accent-rgb), 0.12);
+}
+
+.group-conversations-signaling-actions {
+  margin-top: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.group-conversations-signaling-connection {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: var(--app-muted);
+}
+
+.group-conversations-signaling-connection.connected {
+  color: #0f8a4b;
+}
+
+.group-conversations-signaling-connection.disconnected {
+  color: #b42318;
+}
+
+.group-conversations-secondary-btn {
+  border: 1px solid var(--app-border);
+  border-radius: 10px;
+  padding: 8px 12px;
+  background: var(--app-surface);
+  color: var(--app-text);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.group-conversations-secondary-btn.danger {
+  border-color: rgba(180, 35, 24, 0.35);
+  color: #b42318;
+}
+
+.group-conversations-secondary-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.group-conversations-signaling-log {
+  margin: 10px 0 0;
+  padding-left: 18px;
+  color: var(--app-muted);
+  font-size: 12px;
+  max-height: 116px;
+  overflow: auto;
+}
+
 .group-conversations-messages {
   margin-top: 14px;
   border: 1px solid var(--app-border);
