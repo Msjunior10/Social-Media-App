@@ -37,4 +37,13 @@ internal sealed class NullNotificationService : INotificationService
 
     public Task CreateDirectMessageNotificationAsync(Guid recipientUserId, Guid actorUserId, Guid directMessageId)
         => Task.CompletedTask;
+
+    public Task CreateGroupConversationNotificationAsync(Guid recipientUserId, Guid actorUserId)
+        => Task.CompletedTask;
+
+    public Task CreateGroupMessageNotificationAsync(Guid recipientUserId, Guid actorUserId, Guid conversationId)
+        => Task.CompletedTask;
+
+    public Task CreateCallStartedNotificationAsync(Guid recipientUserId, Guid actorUserId, Guid conversationId)
+        => Task.CompletedTask;
 }

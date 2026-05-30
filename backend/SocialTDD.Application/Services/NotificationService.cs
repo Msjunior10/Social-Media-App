@@ -13,6 +13,9 @@ public class NotificationService : INotificationService
     private const string CommentMentionType = "comment_mention";
     private const string PostRepostType = "post_repost";
     private const string DirectMessageType = "direct_message";
+    private const string GroupConversationType = "group_conversation";
+    private const string GroupMessageType = "group_message";
+    private const string CallStartedType = "call_started";
 
     private readonly INotificationRepository _notificationRepository;
     private readonly INotificationRealtimePublisher _realtimePublisher;
@@ -75,40 +78,55 @@ public class NotificationService : INotificationService
 
     public Task CreateFollowNotificationAsync(Guid recipientUserId, Guid actorUserId)
     {
-        return CreateNotificationAsync(recipientUserId, actorUserId, FollowType, null, null);
+        return CreateNotificationAsync(recipientUserId, actorUserId, FollowType, null, null, null);
     }
 
     public Task CreatePostLikeNotificationAsync(Guid recipientUserId, Guid actorUserId, Guid postId)
     {
-        return CreateNotificationAsync(recipientUserId, actorUserId, PostLikeType, postId, null);
+        return CreateNotificationAsync(recipientUserId, actorUserId, PostLikeType, postId, null, null);
     }
 
     public Task CreatePostCommentNotificationAsync(Guid recipientUserId, Guid actorUserId, Guid postId)
     {
-        return CreateNotificationAsync(recipientUserId, actorUserId, PostCommentType, postId, null);
+        return CreateNotificationAsync(recipientUserId, actorUserId, PostCommentType, postId, null, null);
     }
 
     public Task CreatePostMentionNotificationAsync(Guid recipientUserId, Guid actorUserId, Guid postId)
     {
-        return CreateNotificationAsync(recipientUserId, actorUserId, PostMentionType, postId, null);
+        return CreateNotificationAsync(recipientUserId, actorUserId, PostMentionType, postId, null, null);
     }
 
     public Task CreateCommentMentionNotificationAsync(Guid recipientUserId, Guid actorUserId, Guid postId)
     {
-        return CreateNotificationAsync(recipientUserId, actorUserId, CommentMentionType, postId, null);
+        return CreateNotificationAsync(recipientUserId, actorUserId, CommentMentionType, postId, null, null);
     }
 
     public Task CreatePostRepostNotificationAsync(Guid recipientUserId, Guid actorUserId, Guid postId)
     {
-        return CreateNotificationAsync(recipientUserId, actorUserId, PostRepostType, postId, null);
+        return CreateNotificationAsync(recipientUserId, actorUserId, PostRepostType, postId, null, null);
     }
 
     public Task CreateDirectMessageNotificationAsync(Guid recipientUserId, Guid actorUserId, Guid directMessageId)
     {
-        return CreateNotificationAsync(recipientUserId, actorUserId, DirectMessageType, null, directMessageId);
+        return CreateNotificationAsync(recipientUserId, actorUserId, DirectMessageType, null, directMessageId, null);
     }
 
-    private async Task CreateNotificationAsync(Guid recipientUserId, Guid actorUserId, string type, Guid? postId, Guid? directMessageId)
+    public Task CreateGroupConversationNotificationAsync(Guid recipientUserId, Guid actorUserId)
+    {
+        return CreateNotificationAsync(recipientUserId, actorUserId, GroupConversationType, null, null, null);
+    }
+
+    public Task CreateGroupMessageNotificationAsync(Guid recipientUserId, Guid actorUserId, Guid conversationId)
+    {
+        return CreateNotificationAsync(recipientUserId, actorUserId, GroupMessageType, null, null, conversationId);
+    }
+
+    public Task CreateCallStartedNotificationAsync(Guid recipientUserId, Guid actorUserId, Guid conversationId)
+    {
+        return CreateNotificationAsync(recipientUserId, actorUserId, CallStartedType, null, null, conversationId);
+    }
+
+    private async Task CreateNotificationAsync(Guid recipientUserId, Guid actorUserId, string type, Guid? postId, Guid? directMessageId, Guid? conversationId)
     {
         if (recipientUserId == actorUserId)
         {
@@ -130,6 +148,7 @@ public class NotificationService : INotificationService
             Type = type,
             PostId = postId,
             DirectMessageId = directMessageId,
+            ConversationId = conversationId,
             IsRead = false,
             CreatedAt = DateTime.UtcNow
         };
@@ -156,6 +175,7 @@ public class NotificationService : INotificationService
             ActorUsername = actorUsername,
             PostId = notification.PostId,
             DirectMessageId = notification.DirectMessageId,
+            ConversationId = notification.ConversationId,
             Message = BuildMessage(notification.Type, actorUsername),
             IsRead = notification.IsRead,
             CreatedAt = notification.CreatedAt
@@ -175,6 +195,9 @@ public class NotificationService : INotificationService
             CommentMentionType => $"{safeActor} nämnde dig i en kommentar.",
             PostRepostType => $"{safeActor} återpublicerade ditt inlägg.",
             DirectMessageType => $"{safeActor} skickade ett direktmeddelande.",
+            GroupConversationType => $"{safeActor} lade till dig i en gruppkonversation.",
+            GroupMessageType => $"{safeActor} skickade ett meddelande i en gruppkonversation.",
+            CallStartedType => $"{safeActor} startade ett gruppsamtal.",
             _ => $"{safeActor} har ny aktivitet för dig."
         };
     }

@@ -8,8 +8,8 @@
     radial-gradient(circle at top right, rgba(var(--app-accent-rgb), 0.12), transparent 28%),
     var(--app-card-gradient);
   box-shadow: var(--app-shadow-soft);
-  min-height: 620px;
-  height: min(78vh, 860px);
+  min-height: 800px;
+  height: min(92vh, 1080px);
   display: flex;
   flex-direction: column;
   gap: 18px;
@@ -125,6 +125,47 @@
   background: var(--app-danger-soft);
   color: var(--app-danger);
   border: 1px solid var(--app-danger-border);
+}
+
+.dm-conversation-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dm-conversation-toolbar-button {
+  min-height: 38px;
+}
+
+.dm-conversation-toolbar-button-danger {
+  border-color: rgba(220, 38, 38, 0.3);
+  color: var(--app-danger);
+}
+
+.dm-conversation-secondary-danger {
+  border-color: rgba(220, 38, 38, 0.3);
+  color: var(--app-danger);
+}
+
+.dm-conversation-btn-icon {
+  font-size: 14px;
+  line-height: 1;
+}
+
+.dm-conversation-signaling-meta {
+  margin: 0;
+  font-size: 13px;
+  color: var(--app-muted);
+}
+
+.dm-conversation-signaling-log {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: var(--app-muted);
+  font-size: 12px;
 }
 
 .dm-conversation-stream {

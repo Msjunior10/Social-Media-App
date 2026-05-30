@@ -3,7 +3,7 @@ import EmojiPicker, { Theme } from 'emoji-picker-react';
 import { gifApi } from '../services/gifApi';
 import './ComposerToolbar.css';
 
-function ComposerToolbar({ disabled = false, onEmojiSelect, onGifSelect, className = '' }) {
+function ComposerToolbar({ disabled = false, onEmojiSelect, onGifSelect, className = '', children = null }) {
   const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false);
   const [isGifPickerOpen, setIsGifPickerOpen] = useState(false);
   const [gifQuery, setGifQuery] = useState('');
@@ -131,6 +131,8 @@ function ComposerToolbar({ disabled = false, onEmojiSelect, onGifSelect, classNa
       >
         <span>GIF</span>
       </button>
+
+      {children}
 
       {isEmojiPickerOpen && (
         <div className="composer-emoji-panel" role="dialog" aria-label="Emoji picker">

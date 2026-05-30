@@ -8,6 +8,7 @@ public class Notification
     public string Type { get; set; } = string.Empty;
     public Guid? PostId { get; set; }
     public Guid? DirectMessageId { get; set; }
+    public Guid? ConversationId { get; set; }
     public bool IsRead { get; set; }
     public DateTime CreatedAt { get; set; }
 

@@ -16,10 +16,12 @@ public class CallSignalingHub : Hub
     public const string ParticipantLeftMethod = "participantLeft";
 
     private readonly IConversationRepository _conversationRepository;
+    private readonly INotificationService _notificationService;
 
-    public CallSignalingHub(IConversationRepository conversationRepository)
+    public CallSignalingHub(IConversationRepository conversationRepository, INotificationService notificationService)
     {
         _conversationRepository = conversationRepository;
+        _notificationService = notificationService;
     }
 
     public async Task JoinConversation(Guid conversationId)
@@ -63,6 +65,12 @@ public class CallSignalingHub : Hub
         var currentUserId = GetCurrentUserId();
         await EnsureConversationMembershipAsync(conversationId, currentUserId);
 
+        var activeCallSession = await _conversationRepository.GetActiveCallSessionAsync(conversationId);
+        if (activeCallSession != null)
+        {
+            throw new HubException("A call is already active in this conversation.");
+        }
+
         var normalizedCallType = string.IsNullOrWhiteSpace(callType)
             ? "voice"
             : callType.Trim().ToLowerInvariant();
@@ -72,6 +80,35 @@ public class CallSignalingHub : Hub
             throw new HubException("Call type must be either 'voice' or 'video'.");
         }
 
+        var startedAt = DateTime.UtcNow;
+
+        await _conversationRepository.CreateCallSessionAsync(new Domain.Entities.CallSession
+        {
+            Id = Guid.NewGuid(),
+            ConversationId = conversationId,
+            StartedByUserId = currentUserId,
+            CallType = normalizedCallType,
+            Status = "active",
+            StartedAt = startedAt,
+            EndedAt = null,
+        });
+
+        var conversation = await _conversationRepository.GetConversationByIdAsync(conversationId);
+        var starterUsername = conversation?.Members
+            .FirstOrDefault(member => member.UserId == currentUserId)
+            ?.User
+            ?.Username ?? "Unknown user";
+
+        await _conversationRepository.CreateMessageAsync(new Domain.Entities.ConversationMessage
+        {
+            Id = Guid.NewGuid(),
+            ConversationId = conversationId,
+            SenderId = currentUserId,
+            Message = $"{starterUsername} startade ett röstsamtal ({startedAt:yyyy-MM-dd HH:mm:ss} UTC).",
+            CreatedAt = startedAt,
+            IsSystemMessage = true,
+        });
+
         await Clients.Group(GetConversationGroup(conversationId)).SendAsync(
             CallStartedMethod,
             new
@@ -79,8 +116,18 @@ public class CallSignalingHub : Hub
                 conversationId,
                 callType = normalizedCallType,
                 startedByUserId = currentUserId,
-                startedAt = DateTime.UtcNow
+                startedAt
             });
+
+        if (conversation != null)
+        {
+            foreach (var memberId in conversation.Members
+                         .Select(member => member.UserId)
+                         .Where(memberId => memberId != currentUserId))
+            {
+                await _notificationService.CreateCallStartedNotificationAsync(memberId, currentUserId, conversationId);
+            }
+        }
     }
 
     public async Task EndCall(Guid conversationId)
@@ -88,13 +135,39 @@ public class CallSignalingHub : Hub
         var currentUserId = GetCurrentUserId();
         await EnsureConversationMembershipAsync(conversationId, currentUserId);
 
+        var endedAt = DateTime.UtcNow;
+        var activeCallSession = await _conversationRepository.GetActiveCallSessionAsync(conversationId);
+        if (activeCallSession != null)
+        {
+            activeCallSession.Status = "ended";
+            activeCallSession.EndedAt = endedAt;
+            await _conversationRepository.UpdateCallSessionAsync(activeCallSession);
+
+            var conversation = await _conversationRepository.GetConversationByIdAsync(conversationId);
+            var endedByUsername = conversation?.Members
+                .FirstOrDefault(member => member.UserId == currentUserId)
+                ?.User
+                ?.Username ?? "Unknown user";
+
+            var duration = endedAt - activeCallSession.StartedAt;
+            await _conversationRepository.CreateMessageAsync(new Domain.Entities.ConversationMessage
+            {
+                Id = Guid.NewGuid(),
+                ConversationId = conversationId,
+                SenderId = currentUserId,
+                Message = $"{endedByUsername} avslutade röstsamtalet. Längd: {FormatDuration(duration)}. Start: {activeCallSession.StartedAt:yyyy-MM-dd HH:mm:ss} UTC.",
+                CreatedAt = endedAt,
+                IsSystemMessage = true,
+            });
+        }
+
         await Clients.Group(GetConversationGroup(conversationId)).SendAsync(
             CallEndedMethod,
             new
             {
                 conversationId,
                 endedByUserId = currentUserId,
-                endedAt = DateTime.UtcNow
+                endedAt
             });
     }
 
@@ -181,6 +254,16 @@ public class CallSignalingHub : Hub
         {
             throw new HubException("User is not a member of this conversation.");
         }
+    }
+
+    private static string FormatDuration(TimeSpan duration)
+    {
+        if (duration.TotalHours >= 1)
+        {
+            return $"{(int)duration.TotalHours:00}:{duration.Minutes:00}:{duration.Seconds:00}";
+        }
+
+        return $"{duration.Minutes:00}:{duration.Seconds:00}";
     }
 
     public static string GetConversationGroup(Guid conversationId) => $"calls:conversation:{conversationId}";

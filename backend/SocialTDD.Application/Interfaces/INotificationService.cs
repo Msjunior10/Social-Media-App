@@ -15,4 +15,7 @@ public interface INotificationService
     Task CreateCommentMentionNotificationAsync(Guid recipientUserId, Guid actorUserId, Guid postId);
     Task CreatePostRepostNotificationAsync(Guid recipientUserId, Guid actorUserId, Guid postId);
     Task CreateDirectMessageNotificationAsync(Guid recipientUserId, Guid actorUserId, Guid directMessageId);
+    Task CreateGroupConversationNotificationAsync(Guid recipientUserId, Guid actorUserId);
+    Task CreateGroupMessageNotificationAsync(Guid recipientUserId, Guid actorUserId, Guid conversationId);
+    Task CreateCallStartedNotificationAsync(Guid recipientUserId, Guid actorUserId, Guid conversationId);
 }

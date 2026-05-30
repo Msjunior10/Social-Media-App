@@ -245,6 +245,7 @@ public class ApplicationDbContext : DbContext
             entity.Property(e => e.Type).IsRequired().HasMaxLength(50);
             entity.Property(e => e.CreatedAt).IsRequired();
             entity.Property(e => e.IsRead).IsRequired().HasDefaultValue(false);
+            entity.Property(e => e.ConversationId);
 
             entity.HasOne(e => e.User)
                 .WithMany()

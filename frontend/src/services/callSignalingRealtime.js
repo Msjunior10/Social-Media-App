@@ -80,8 +80,12 @@ const ensureConnection = async () => {
     connection = buildConnection();
   }
 
-  if (connection.state === signalR.HubConnectionState.Connected || connection.state === signalR.HubConnectionState.Connecting) {
+  if (connection.state === signalR.HubConnectionState.Connected) {
     return connection;
+  }
+
+  if (connection.state === signalR.HubConnectionState.Connecting && startPromise) {
+    return await startPromise;
   }
 
   if (!startPromise) {
@@ -129,7 +133,6 @@ export const callSignalingRealtime = {
 
   subscribe(listener) {
     listeners.add(listener);
-    ensureConnection();
 
     return () => {
       listeners.delete(listener);

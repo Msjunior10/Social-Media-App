@@ -8,6 +8,11 @@ export const conversationApi = {
     return await handleApiResponse(response);
   },
 
+  async getOrCreateDirectConversation(otherUserId) {
+    const response = await authenticatedFetch(`${API_BASE_URL}/conversations/direct/${otherUserId}`);
+    return await handleApiResponse(response);
+  },
+
   async createConversation(title, memberIds) {
     const response = await authenticatedFetch(`${API_BASE_URL}/conversations`, {
       method: 'POST',
@@ -22,10 +27,21 @@ export const conversationApi = {
     return await handleApiResponse(response);
   },
 
-  async sendMessage(conversationId, message) {
+  async sendMessage(conversationId, message, mediaFile = null, gifUrl = null) {
+    const formData = new FormData();
+    formData.append('message', message ?? '');
+
+    if (mediaFile) {
+      formData.append('media', mediaFile);
+    }
+
+    if (gifUrl) {
+      formData.append('gifUrl', gifUrl);
+    }
+
     const response = await authenticatedFetch(`${API_BASE_URL}/conversations/${conversationId}/messages`, {
       method: 'POST',
-      body: JSON.stringify({ message }),
+      body: formData,
     });
 
     return await handleApiResponse(response);

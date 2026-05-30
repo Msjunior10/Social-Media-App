@@ -7,10 +7,12 @@ namespace SocialTDD.Application.Services;
 public class ConversationService : IConversationService
 {
     private readonly IConversationRepository _conversationRepository;
+    private readonly INotificationService _notificationService;
 
-    public ConversationService(IConversationRepository conversationRepository)
+    public ConversationService(IConversationRepository conversationRepository, INotificationService notificationService)
     {
         _conversationRepository = conversationRepository;
+        _notificationService = notificationService;
     }
 
     public async Task<ConversationResponse> CreateGroupConversationAsync(Guid currentUserId, CreateConversationRequest request)
@@ -67,6 +69,11 @@ public class ConversationService : IConversationService
         var createdConversation = await _conversationRepository.CreateConversationAsync(conversation);
         var hydratedConversation = await _conversationRepository.GetConversationByIdAsync(createdConversation.Id) ?? createdConversation;
 
+        foreach (var memberId in allMemberIds.Where(memberId => memberId != currentUserId))
+        {
+            await _notificationService.CreateGroupConversationNotificationAsync(memberId, currentUserId);
+        }
+
         return MapConversation(hydratedConversation);
     }
 
@@ -80,6 +87,68 @@ public class ConversationService : IConversationService
 
         var conversations = await _conversationRepository.GetConversationsForUserAsync(currentUserId);
         return conversations.Select(MapConversation).ToList();
+    }
+
+    public async Task<ConversationResponse> GetOrCreateDirectConversationAsync(Guid currentUserId, Guid otherUserId)
+    {
+        if (otherUserId == Guid.Empty)
+        {
+            throw new ArgumentException("Mottagare måste anges.", nameof(otherUserId));
+        }
+
+        if (otherUserId == currentUserId)
+        {
+            throw new ArgumentException("Du kan inte skapa en direktkonversation med dig själv.", nameof(otherUserId));
+        }
+
+        var currentUserExists = await _conversationRepository.UserExistsAsync(currentUserId);
+        if (!currentUserExists)
+        {
+            throw new ArgumentException($"Användare med ID {currentUserId} finns inte.", nameof(currentUserId));
+        }
+
+        var otherUserExists = await _conversationRepository.UserExistsAsync(otherUserId);
+        if (!otherUserExists)
+        {
+            throw new ArgumentException($"Användare med ID {otherUserId} finns inte.", nameof(otherUserId));
+        }
+
+        var existingConversation = await _conversationRepository.GetDirectConversationAsync(currentUserId, otherUserId);
+        if (existingConversation != null)
+        {
+            return MapConversation(existingConversation);
+        }
+
+        var createdAt = DateTime.UtcNow;
+        var directConversation = new Conversation
+        {
+            Id = Guid.NewGuid(),
+            CreatedByUserId = currentUserId,
+            Title = "Direct conversation",
+            IsGroup = false,
+            CreatedAt = createdAt,
+            Members = new List<ConversationMember>
+            {
+                new()
+                {
+                    Id = Guid.NewGuid(),
+                    ConversationId = Guid.Empty,
+                    UserId = currentUserId,
+                    JoinedAt = createdAt,
+                },
+                new()
+                {
+                    Id = Guid.NewGuid(),
+                    ConversationId = Guid.Empty,
+                    UserId = otherUserId,
+                    JoinedAt = createdAt,
+                }
+            }
+        };
+
+        var createdConversation = await _conversationRepository.CreateConversationAsync(directConversation);
+        var hydratedConversation = await _conversationRepository.GetConversationByIdAsync(createdConversation.Id) ?? createdConversation;
+        return MapConversation(hydratedConversation);
     }
 
     public async Task<List<ConversationMessageResponse>> GetMessagesAsync(Guid currentUserId, Guid conversationId)
@@ -102,7 +171,10 @@ public class ConversationService : IConversationService
         }
 
         var messageText = request.Message?.Trim() ?? string.Empty;
-        if (string.IsNullOrWhiteSpace(messageText))
+        var mediaUrl = string.IsNullOrWhiteSpace(request.MediaUrl) ? null : request.MediaUrl.Trim();
+        var gifUrl = string.IsNullOrWhiteSpace(request.GifUrl) ? null : request.GifUrl.Trim();
+
+        if (string.IsNullOrWhiteSpace(messageText) && string.IsNullOrWhiteSpace(mediaUrl) && string.IsNullOrWhiteSpace(gifUrl))
         {
             throw new ArgumentException("Meddelande får inte vara tomt.", nameof(request.Message));
         }
@@ -119,6 +191,8 @@ public class ConversationService : IConversationService
             ConversationId = conversationId,
             SenderId = currentUserId,
             Message = messageText,
+            MediaUrl = mediaUrl,
+            GifUrl = gifUrl,
             CreatedAt = DateTime.UtcNow,
             IsSystemMessage = false
         };
@@ -126,6 +200,17 @@ public class ConversationService : IConversationService
         var createdMessage = await _conversationRepository.CreateMessageAsync(message);
         var messages = await _conversationRepository.GetMessagesAsync(conversationId);
         var hydratedMessage = messages.FirstOrDefault(m => m.Id == createdMessage.Id) ?? createdMessage;
+
+        var conversation = await _conversationRepository.GetConversationByIdAsync(conversationId);
+        if (conversation?.IsGroup == true)
+        {
+            foreach (var memberId in conversation.Members
+                         .Select(member => member.UserId)
+                         .Where(memberId => memberId != currentUserId))
+            {
+                await _notificationService.CreateGroupMessageNotificationAsync(memberId, currentUserId, conversationId);
+            }
+        }
 
         return MapMessage(hydratedMessage);
     }

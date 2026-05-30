@@ -1,6 +1,6 @@
 .group-conversations-layout {
   display: grid;
-  grid-template-columns: minmax(300px, 380px) minmax(0, 1fr);
+  grid-template-columns: minmax(260px, 340px) minmax(0, 1fr);
   gap: 16px;
 }
 
@@ -96,6 +96,11 @@
 }
 
 .group-conversations-members {
+:root[data-theme='dark'] .group-conversations-file-input,
+:root[data-theme='dark'] .group-conversations-inline-preview {
+  background: rgba(12, 15, 21, 0.92);
+  border-color: rgba(148, 163, 184, 0.14);
+}
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -129,7 +134,8 @@
 .group-conversations-chat {
   display: flex;
   flex-direction: column;
-  min-height: 520px;
+  min-height: 820px;
+  height: min(92vh, 1120px);
 }
 
 .group-conversations-signaling {
@@ -193,10 +199,17 @@
   border: 1px solid var(--app-border);
   border-radius: 10px;
   padding: 8px 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   background: var(--app-surface);
   color: var(--app-text);
   font-weight: 600;
   cursor: pointer;
+}
+
+.group-conversations-btn-icon {
+  line-height: 1;
 }
 
 .group-conversations-secondary-btn.danger {
@@ -218,6 +231,20 @@
   overflow: auto;
 }
 
+.group-conversations-signaling-meta {
+  margin: 10px 0 0;
+  color: var(--app-muted);
+  font-size: 12px;
+}
+
+.group-conversations-audio-nodes {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+
 .group-conversations-messages {
   margin-top: 14px;
   border: 1px solid var(--app-border);
@@ -225,7 +252,7 @@
   background: var(--app-surface);
   padding: 12px;
   flex: 1;
-  min-height: 300px;
+  min-height: 320px;
   overflow: auto;
 }
 
@@ -264,11 +291,136 @@
   white-space: pre-wrap;
 }
 
+.group-conversations-message-media-wrap {
+  overflow: hidden;
+  border-radius: 12px;
+  margin-top: 8px;
+}
+
+.group-conversations-message-media {
+  display: block;
+  width: 100%;
+  max-height: 340px;
+  object-fit: cover;
+  border-radius: 12px;
+}
+
 .group-conversations-send-form {
   margin-top: 12px;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.group-conversations-message-input {
+  width: 100%;
+  resize: vertical;
+  min-height: 120px;
+  border: 1px solid var(--app-border);
+  border-radius: 10px;
+  padding: 12px;
+  background: var(--app-surface);
+  color: var(--app-text);
+  font: inherit;
+}
+
+.group-conversations-toolbar {
+  align-self: flex-start;
+}
+
+.group-conversations-composer-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
   gap: 8px;
+}
+
+.group-conversations-composer-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.group-conversations-file-input {
+  padding: 12px 14px;
+  border: 1px dashed rgba(var(--app-accent-rgb), 0.24);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--app-text);
+}
+
+:root[data-theme='dark'] .group-conversations-file-input {
+  background: rgba(12, 15, 21, 0.92);
+  border-color: rgba(148, 163, 184, 0.14);
+}
+
+.group-conversations-file-input::file-selector-button {
+  margin-right: 12px;
+  padding: 8px 12px;
+  border: none;
+  border-radius: 999px;
+  background: var(--app-gradient-strong);
+  color: #fff;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.group-conversations-inline-preview {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--app-border);
+  background: var(--app-surface);
+}
+
+.group-conversations-inline-preview-media {
+  width: 72px;
+  min-width: 72px;
+  height: 72px;
+  border-radius: 10px;
+  object-fit: cover;
+}
+
+.group-conversations-inline-preview-meta {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--app-muted);
+  font-size: 13px;
+}
+
+.group-conversations-inline-preview-meta span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.group-conversations-remove-media {
+  border: none;
+  background: transparent;
+  color: var(--app-danger);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.group-conversations-counter {
+  color: var(--app-muted);
+  font-size: 13px;
+  align-self: flex-end;
+}
+
+.group-conversations-send-btn {
+  align-self: flex-end;
+  min-width: 150px;
 }
 
 .group-conversations-empty {
@@ -287,6 +439,11 @@
   }
 
   .group-conversations-chat {
-    min-height: 420px;
+    min-height: 520px;
+  }
+
+  .group-conversations-send-btn {
+    width: 100%;
+    align-self: stretch;
   }
 }

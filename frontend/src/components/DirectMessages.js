@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import React, { useMemo, useState } from 'react';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import DirectMessagesList from './DirectMessagesList';
 import SendDirectMessage from './SendDirectMessage';
 import DirectMessageConversation from './DirectMessageConversation';
@@ -8,9 +8,17 @@ import './DirectMessages.css';
 
 function DirectMessages({ userId }) {
   const navigate = useNavigate();
+  const location = useLocation();
   const { userId: otherUserId } = useParams();
+  const searchParams = useMemo(() => new URLSearchParams(location.search), [location.search]);
+  const initialView = searchParams.get('view');
+  const initialConversationId = searchParams.get('conversationId') || '';
   const [refreshKey, setRefreshKey] = useState(0);
-  const [activeView, setActiveView] = useState(otherUserId ? 'direct' : 'group');
+  const [activeView, setActiveView] = useState(
+    initialView === 'group'
+      ? 'group'
+      : (otherUserId ? 'direct' : 'group')
+  );
 
   const handleConversationUpdated = () => {
     setRefreshKey((prev) => prev + 1);
@@ -38,7 +46,7 @@ function DirectMessages({ userId }) {
             className={`direct-messages-view-btn ${activeView === 'group' ? 'active' : ''}`}
             onClick={() => setActiveView('group')}
           >
-            Group conversations (MVP)
+            Group conversation
           </button>
         </div>
       </section>
@@ -83,7 +91,7 @@ function DirectMessages({ userId }) {
         </div>
       ) : (
         <section className="direct-messages-main direct-messages-main-full">
-          <GroupConversations currentUserId={userId} />
+          <GroupConversations currentUserId={userId} initialConversationId={initialConversationId} />
         </section>
       )}
     </div>

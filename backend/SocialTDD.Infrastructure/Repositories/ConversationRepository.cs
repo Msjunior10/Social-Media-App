@@ -21,6 +21,25 @@ public class ConversationRepository : IConversationRepository
         return conversation;
     }
 
+    public async Task<Conversation?> GetDirectConversationAsync(Guid firstUserId, Guid secondUserId)
+    {
+        return await _context.Conversations
+            .Include(conversation => conversation.CreatedByUser)
+            .Include(conversation => conversation.Members)
+                .ThenInclude(member => member.User)
+            .Include(conversation => conversation.Messages)
+                .ThenInclude(message => message.Sender)
+            .Include(conversation => conversation.CallSessions)
+            .Where(conversation =>
+                !conversation.IsGroup
+                && conversation.Members.Count == 2
+                && conversation.Members.Any(member => member.UserId == firstUserId)
+                && conversation.Members.Any(member => member.UserId == secondUserId))
+            .OrderByDescending(conversation => conversation.CreatedAt)
+            .AsSplitQuery()
+            .FirstOrDefaultAsync();
+    }
+
     public async Task<Conversation?> GetConversationByIdAsync(Guid conversationId)
     {
         return await _context.Conversations
@@ -35,12 +54,12 @@ public class ConversationRepository : IConversationRepository
 
     public async Task<IEnumerable<Conversation>> GetConversationsForUserAsync(Guid userId)
     {
-        return await _context.ConversationMembers
-            .Where(member => member.UserId == userId)
-            .Select(member => member.Conversation)
+        return await _context.Conversations
             .Include(conversation => conversation.CreatedByUser)
             .Include(conversation => conversation.Members)
                 .ThenInclude(member => member.User)
+            .Where(conversation => conversation.Members.Any(member => member.UserId == userId))
+            .AsSplitQuery()
             .OrderByDescending(conversation => conversation.CreatedAt)
             .ToListAsync();
     }
@@ -59,6 +78,27 @@ public class ConversationRepository : IConversationRepository
         _context.ConversationMessages.Add(message);
         await _context.SaveChangesAsync();
         return message;
+    }
+
+    public async Task<CallSession> CreateCallSessionAsync(CallSession callSession)
+    {
+        _context.CallSessions.Add(callSession);
+        await _context.SaveChangesAsync();
+        return callSession;
+    }
+
+    public async Task<CallSession?> GetActiveCallSessionAsync(Guid conversationId)
+    {
+        return await _context.CallSessions
+            .Where(callSession => callSession.ConversationId == conversationId && callSession.Status == "active")
+            .OrderByDescending(callSession => callSession.StartedAt)
+            .FirstOrDefaultAsync();
+    }
+
+    public async Task UpdateCallSessionAsync(CallSession callSession)
+    {
+        _context.CallSessions.Update(callSession);
+        await _context.SaveChangesAsync();
     }
 
     public async Task<bool> IsConversationMemberAsync(Guid conversationId, Guid userId)

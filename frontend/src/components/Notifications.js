@@ -121,6 +121,25 @@ function Notifications() {
     switch (notification.type) {
       case 'direct_message':
         return notification.actorId ? `/messages/${notification.actorId}` : '/messages';
+      case 'group_message': {
+        const searchParams = new URLSearchParams({ view: 'group' });
+        const conversationId = notification.conversationId || notification.directMessageId;
+        if (conversationId) {
+          searchParams.set('conversationId', conversationId);
+        }
+
+        return `/messages?${searchParams.toString()}`;
+      }
+      case 'call_started': {
+        const searchParams = new URLSearchParams({ view: 'group' });
+        if (notification.conversationId) {
+          searchParams.set('conversationId', notification.conversationId);
+        }
+
+        return `/messages?${searchParams.toString()}`;
+      }
+      case 'group_conversation':
+        return '/messages?view=group';
       case 'follow':
         return `/users/${notification.actorId}`;
       case 'post_like':
@@ -150,6 +169,12 @@ function Notifications() {
         return 'repost';
       case 'direct_message':
         return 'message';
+      case 'group_message':
+        return 'group message';
+      case 'call_started':
+        return 'call';
+      case 'group_conversation':
+        return 'group';
       default:
         return type.replaceAll('_', ' ');
     }
@@ -171,6 +196,12 @@ function Notifications() {
         return '⟳';
       case 'direct_message':
         return '✉';
+      case 'group_message':
+        return '👥';
+      case 'call_started':
+        return '📞';
+      case 'group_conversation':
+        return '👥';
       default:
         return '•';
     }
@@ -179,6 +210,9 @@ function Notifications() {
   const getNotificationActionLabel = (notification) => {
     switch (notification.type) {
       case 'direct_message':
+      case 'group_message':
+      case 'call_started':
+      case 'group_conversation':
         return 'Open thread';
       case 'follow':
         return 'View profile';
@@ -197,6 +231,10 @@ function Notifications() {
     switch (notification.type) {
       case 'direct_message':
         return 'Direct messages';
+      case 'group_message':
+      case 'call_started':
+      case 'group_conversation':
+        return 'Group conversation';
       case 'follow':
         return 'Profile';
       case 'post_like':
@@ -259,7 +297,7 @@ function Notifications() {
       case 'follows':
         return notifications.filter((notification) => notification.type === 'follow').length;
       case 'messages':
-        return notifications.filter((notification) => notification.type === 'direct_message').length;
+        return notifications.filter((notification) => ['direct_message', 'group_message', 'call_started', 'group_conversation'].includes(notification.type)).length;
       case 'all':
       default:
         return notifications.length;
@@ -275,7 +313,7 @@ function Notifications() {
       case 'follows':
         return notification.type === 'follow';
       case 'messages':
-        return notification.type === 'direct_message';
+        return ['direct_message', 'group_message', 'call_started', 'group_conversation'].includes(notification.type);
       default:
         return true;
     }

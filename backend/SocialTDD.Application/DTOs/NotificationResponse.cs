@@ -9,6 +9,7 @@ public class NotificationResponse
     public string ActorUsername { get; set; } = string.Empty;
     public Guid? PostId { get; set; }
     public Guid? DirectMessageId { get; set; }
+    public Guid? ConversationId { get; set; }
     public string Message { get; set; } = string.Empty;
     public bool IsRead { get; set; }
     public DateTime CreatedAt { get; set; }
