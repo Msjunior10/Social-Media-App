@@ -295,6 +295,22 @@ function DirectMessageConversation({ userId, otherUserId, onConversationUpdated 
   }, [callState.callType]);
 
   useEffect(() => {
+    const localVideoElement = localVideoRef.current;
+    const localStream = localStreamRef.current;
+    if (!localVideoElement || !localStream) {
+      return;
+    }
+
+    if (localVideoElement.srcObject !== localStream) {
+      localVideoElement.srcObject = localStream;
+    }
+
+    void localVideoElement.play().catch(() => {
+      // Ignore autoplay timing issues for self-preview.
+    });
+  }, [isVideoCallActive, callState.callType]);
+
+  useEffect(() => {
     if (!selectedMedia) {
       setMediaPreviewUrl('');
       return undefined;
