@@ -19,6 +19,7 @@ import PostItem from './components/PostItem';
 import UserSearch from './components/UserSearch';
 import UserProfile from './components/UserProfile';
 import NotificationToasts from './components/NotificationToasts';
+import IncomingCallOverlay from './components/IncomingCallOverlay';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 import { userApi } from './services/userApi';
 import { postsApi } from './services/postsApi';
@@ -42,6 +43,7 @@ function AppContent() {
     <div className="App">
       <ThemeToggleButton />
       <NotificationToasts />
+      <IncomingCallOverlay />
       <main className="App-main">
         <Routes>
           <Route path="/login" element={<AuthScene><Login /></AuthScene>} />

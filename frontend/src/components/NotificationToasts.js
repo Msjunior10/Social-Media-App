@@ -24,6 +24,7 @@ function NotificationToasts() {
 
     return currentPath === '/notifications'
       || (notification.type === 'direct_message' && currentPath.startsWith('/messages'))
+      || notification.type === 'call_started'
       || (notification.type === 'follow' && target === currentPath);
   }, [currentPath]);
 

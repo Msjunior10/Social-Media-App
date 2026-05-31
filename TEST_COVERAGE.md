@@ -28,18 +28,18 @@ Coverlet är konfigurerat i `SocialTDD.Tests.csproj`:
 
 ## Coverage-nivå
 
-### Senaste mätning (2025-01-11)
+### Senaste mätning (2026-05-31)
 
 **Testresultat:**
-- ✅ **72 tester passerade**
+- ✅ **103 tester passerade**
 - ❌ **0 tester misslyckades**
 - ⏭️ **0 tester hoppades över**
-- ⏱️ **Total tid: ~1 sekund**
+- ⏱️ **Total tid: ~26 sekunder**
 
 **Coverage-rapport:**
-- Coverage-fil genererad: `coverage.cobertura.xml`
-- Format: Cobertura XML
-- Rapportgenerering: ReportGenerator
+- Senaste verifierade testkörning: `dotnet test SocialTDD.sln --no-restore`
+- Senaste verifierade frontend-kompilering: `npm --prefix frontend run build`
+- Coverage-procenttalen nedan är fortfarande från senaste separata coverage-körning och har inte regenererats i denna dag 7-omgång.
 
 **Coverage-nivåer:**
 - **Line coverage**: 28.8% (417 av 1445 coverable lines)
@@ -91,6 +91,7 @@ SocialTDD.Tests/
 │   ├── PostServiceTests.cs          ✅ 9 tester
 │   ├── FollowServiceTests.cs        ✅ Tester för följ-logik
 │   ├── DirectMessageServiceTests.cs ✅ Tester för DM
+│   ├── ConversationServiceTests.cs  ✅ Tester för gruppkonversationer och meddelandeflöden
 │   ├── TimelineServiceTests.cs      ✅ Tester för tidslinje
 │   ├── WallServiceTests.cs         ✅ Tester för vägg
 │   └── UserServiceTests.cs          ✅ Tester för autentisering
@@ -173,6 +174,11 @@ Coverage genereras automatiskt i GitHub Actions workflow (`.github/workflows/bac
 2. **Repository-tester**: Överväg att lägga till integrationstester för repositories
 3. **Controller-tester**: Överväg att lägga till controller-tester
 4. **Frontend-tester**: Utöka React-komponenttester
+
+### Dag 7-status för grupp-DMs och samtal
+
+- `ConversationService` har nu utökad enhetstestning för gruppskapande, deduplicering av medlemmar, gruppnotifieringar, direktmeddelandegränsfall och åtkomstkontroll.
+- Realtime- och WebRTC-stabilisering har verifierats via backendtester och upprepade frontend-builds, men saknar ännu separata automatiserade frontendtester för signaling och peer-connection-flöden.
 
 ## Exkluderingar
 

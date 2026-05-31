@@ -13,6 +13,17 @@ Projektet fokuserar på:
 - Säker autentisering och skyddad API-kommunikation
 - Fortsatt produktutveckling i ett verkligare fullstack-flöde
 
+## Grupp-DMs Och Samtal MVP
+
+Den nuvarande MVP-versionen innehåller nu även den första fungerande leveransen för gruppkonversationer och samtal:
+
+- Gruppkonversationer med medlemskap, meddelanden och systemmeddelanden
+- Grundläggande SignalR-baserad samtalssignaling för direkt- och gruppkonversationer
+- MVP-flöden för röstsamtal och videosamtal i klienten
+- Enkel stabilisering för frånkoppling, återanslutning, stale call sessions och duplicerade WebRTC-svar
+
+Det här motsvarar i praktiken dag 1-7 i den ursprungliga grovplanen: design, backendgrund, grupp-DMs, signaling, röst/video-MVP samt en första stabiliserings- och dokumentationsomgång.
+
 ## 🏗️ Teknisk Stack
 
 - **Front-end**: React 18, React Router, SignalR-klient
@@ -156,14 +167,14 @@ SocialTDD/
 dotnet test SocialTDD.sln --no-restore
 ```
 
-**Senaste lokala testresultat (11 maj 2026):**
-- ✅ **96 tester passerar**
+**Senaste lokala testresultat (31 maj 2026):**
+- ✅ **103 tester passerar**
 - ❌ **0 tester misslyckas**
 - ⏭️ **0 tester hoppades över**
-- ⏱️ **Total tid: cirka 17 sekunder**
-- 📦 **Totalt antal tester: 96**
+- ⏱️ **Total tid: cirka 26 sekunder**
+- 📦 **Totalt antal tester: 103**
 
-Den senaste backend-testkörningen i arbetsomgången passerade fullt ut efter att de föråldrade testerna för timeline- och wall-flöden uppdaterades till den nuvarande paginerade implementationen.
+Den senaste backend-testkörningen i arbetsomgången passerade fullt ut och inkluderar nu även utökade tester för `ConversationService`, bland annat gruppskapande, medlemsvalidering, gruppnotifieringar och åtkomstkontroll.
 
 ### Coverage-rapport
 
@@ -195,6 +206,14 @@ npm --prefix frontend run build
 ```
 
 Den senaste frontend-builden i denna arbetsomgång kompilerade korrekt.
+
+### Senaste dag 7-verifiering
+
+Följande verifieringar kördes i stabiliseringsomgången den 31 maj 2026:
+
+- `dotnet test SocialTDD.sln --no-restore` → 103/103 tester gröna
+- `dotnet test backend/SocialTDD.Tests/SocialTDD.Tests.csproj --filter ConversationServiceTests` → 5/5 tester gröna
+- `npm --prefix frontend run build` → kompilerade korrekt
 
 ## 📊 Statisk Kodanalys
 

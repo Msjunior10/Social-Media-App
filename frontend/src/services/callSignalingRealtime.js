@@ -6,6 +6,9 @@ const HUB_URL = 'http://localhost:5000/hubs/calls';
 let connection = null;
 let startPromise = null;
 const listeners = new Set();
+let connectionConsumerCount = 0;
+
+const ACTIVE_CALL_ALREADY_EXISTS = 'A call is already active in this conversation.';
 
 const notifyListeners = (event) => {
   listeners.forEach((listener) => {
@@ -56,6 +59,14 @@ const buildConnection = () => {
 
   hubConnection.on('iceCandidateReceived', (payload) => {
     notifyListeners({ type: 'ice-candidate-received', payload });
+  });
+
+  hubConnection.on('callInviteReceived', (payload) => {
+    notifyListeners({ type: 'call-invite-received', payload });
+  });
+
+  hubConnection.on('callInviteResponded', (payload) => {
+    notifyListeners({ type: 'call-invite-responded', payload });
   });
 
   hubConnection.onreconnected(() => {
@@ -117,11 +128,14 @@ const invoke = async (methodName, ...args) => {
 
 export const callSignalingRealtime = {
   async connect() {
+    connectionConsumerCount += 1;
     await ensureConnection();
   },
 
   async disconnect() {
-    if (!connection) {
+    connectionConsumerCount = Math.max(0, connectionConsumerCount - 1);
+
+    if (connectionConsumerCount > 0 || !connection) {
       return;
     }
 
@@ -148,11 +162,30 @@ export const callSignalingRealtime = {
   },
 
   async startCall(conversationId, callType) {
-    await invoke('StartCall', conversationId, callType);
+    try {
+      await invoke('StartCall', conversationId, callType);
+    } catch (error) {
+      const message = error?.message || '';
+      if (!message.includes(ACTIVE_CALL_ALREADY_EXISTS)) {
+        throw error;
+      }
+
+      // Recover from an orphaned active call (e.g. prior disconnect/crash) and retry once.
+      await invoke('EndCall', conversationId);
+      await invoke('StartCall', conversationId, callType);
+    }
   },
 
   async endCall(conversationId) {
     await invoke('EndCall', conversationId);
+  },
+
+  async sendCallInvite(conversationId, targetUserId, callType) {
+    await invoke('SendCallInvite', conversationId, targetUserId, callType);
+  },
+
+  async respondToCallInvite(conversationId, targetUserId, accepted, callType) {
+    await invoke('RespondToCallInvite', conversationId, targetUserId, accepted, callType);
   },
 
   async sendOffer(conversationId, targetUserId, sdp) {

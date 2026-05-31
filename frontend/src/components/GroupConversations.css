@@ -96,11 +96,6 @@
 }
 
 .group-conversations-members {
-:root[data-theme='dark'] .group-conversations-file-input,
-:root[data-theme='dark'] .group-conversations-inline-preview {
-  background: rgba(12, 15, 21, 0.92);
-  border-color: rgba(148, 163, 184, 0.14);
-}
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -237,12 +232,81 @@
   font-size: 12px;
 }
 
+.group-conversations-call-banner {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(var(--app-accent-rgb), 0.24);
+  background: rgba(var(--app-accent-rgb), 0.1);
+  color: var(--app-text);
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+}
+
+.group-conversations-call-banner strong {
+  font-weight: 800;
+}
+
+.group-conversations-incoming-call {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(245, 158, 11, 0.38);
+  background: rgba(245, 158, 11, 0.12);
+  color: var(--app-text);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.group-conversations-incoming-call-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .group-conversations-audio-nodes {
   position: absolute;
   width: 1px;
   height: 1px;
   overflow: hidden;
   clip: rect(0 0 0 0);
+}
+
+.group-conversations-video-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.group-conversations-video-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px;
+  border-radius: 12px;
+  border: 1px solid var(--app-border);
+  background: rgba(255, 255, 255, 0.82);
+}
+
+.group-conversations-video-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--app-muted);
+}
+
+.group-conversations-video {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  border-radius: 10px;
+  background: #000;
 }
 
 .group-conversations-messages {
@@ -355,6 +419,22 @@
   border-color: rgba(148, 163, 184, 0.14);
 }
 
+:root[data-theme='dark'] .group-conversations-inline-preview,
+:root[data-theme='dark'] .group-conversations-video-card {
+  background: rgba(12, 15, 21, 0.92);
+  border-color: rgba(148, 163, 184, 0.14);
+}
+
+:root[data-theme='dark'] .group-conversations-call-banner {
+  border-color: rgba(148, 163, 184, 0.2);
+  background: rgba(15, 19, 27, 0.9);
+}
+
+:root[data-theme='dark'] .group-conversations-incoming-call {
+  border-color: rgba(245, 158, 11, 0.35);
+  background: rgba(53, 29, 6, 0.75);
+}
+
 .group-conversations-file-input::file-selector-button {
   margin-right: 12px;
   padding: 8px 12px;
@@ -435,6 +515,10 @@
 
 @media (max-width: 980px) {
   .group-conversations-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .group-conversations-video-grid {
     grid-template-columns: 1fr;
   }
 

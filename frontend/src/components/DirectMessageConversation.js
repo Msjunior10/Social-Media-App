@@ -5,6 +5,7 @@ import { dmApi } from '../services/dmApi';
 import { conversationApi } from '../services/conversationApi';
 import { callSignalingRealtime } from '../services/callSignalingRealtime';
 import { userApi } from '../services/userApi';
+import { consumePendingIncomingCall, peekPendingIncomingCall } from './IncomingCallOverlay';
 import './DirectMessageConversation.css';
 
 const MAX_MEDIA_SIZE_BYTES = 25 * 1024 * 1024;
@@ -33,6 +34,7 @@ function DirectMessageConversation({ userId, otherUserId, onConversationUpdated 
   const [isSignalingConnected, setIsSignalingConnected] = useState(false);
   const [isSignalingActionPending, setIsSignalingActionPending] = useState(false);
   const [isVoiceCallActive, setIsVoiceCallActive] = useState(false);
+  const [isVideoCallActive, setIsVideoCallActive] = useState(false);
   const [isMicEnabled, setIsMicEnabled] = useState(true);
   const [callStartedAt, setCallStartedAt] = useState(null);
   const [callElapsedSeconds, setCallElapsedSeconds] = useState(0);
@@ -41,12 +43,19 @@ function DirectMessageConversation({ userId, otherUserId, onConversationUpdated 
     callType: '',
     startedByUserId: null,
   });
-  const [callEvents, setCallEvents] = useState([]);
+  const [incomingCall, setIncomingCall] = useState(null);
   const [error, setError] = useState(null);
   const activeConversationIdRef = useRef('');
+  const incomingCallRef = useRef(null);
+  const callTypeRef = useRef('voice');
   const localStreamRef = useRef(null);
   const peerConnectionRef = useRef(null);
+  const applyingAnswerRef = useRef(false);
   const remoteAudioRef = useRef(null);
+  const localVideoRef = useRef(null);
+  const remoteVideoRef = useRef(null);
+  const ringtoneContextRef = useRef(null);
+  const ringtoneIntervalRef = useRef(null);
 
   const formatElapsed = useCallback((seconds) => {
     const safeSeconds = Math.max(0, Number.isFinite(seconds) ? seconds : 0);
@@ -60,6 +69,64 @@ function DirectMessageConversation({ userId, otherUserId, onConversationUpdated 
 
     return `${String(minutes).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`;
   }, []);
+
+  const isDuplicateRemoteAnswerError = useCallback((error) => {
+    const message = error?.message || '';
+    return message.includes("Failed to set remote answer sdp: Called in wrong state: stable");
+  }, []);
+
+  const stopIncomingRingtone = useCallback(() => {
+    if (ringtoneIntervalRef.current) {
+      clearInterval(ringtoneIntervalRef.current);
+      ringtoneIntervalRef.current = null;
+    }
+  }, []);
+
+  const playIncomingRingtonePulse = useCallback(async () => {
+    try {
+      const AudioContextConstructor = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContextConstructor) {
+        return;
+      }
+
+      if (!ringtoneContextRef.current) {
+        ringtoneContextRef.current = new AudioContextConstructor();
+      }
+
+      const audioContext = ringtoneContextRef.current;
+      if (audioContext.state === 'suspended') {
+        await audioContext.resume();
+      }
+
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      const startAt = audioContext.currentTime;
+
+      oscillator.type = 'sine';
+      oscillator.frequency.setValueAtTime(940, startAt);
+      gainNode.gain.setValueAtTime(0.0001, startAt);
+      gainNode.gain.exponentialRampToValueAtTime(0.08, startAt + 0.02);
+      gainNode.gain.exponentialRampToValueAtTime(0.0001, startAt + 0.32);
+
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      oscillator.start(startAt);
+      oscillator.stop(startAt + 0.34);
+    } catch {
+      // Ignore ringtone playback issues.
+    }
+  }, []);
+
+  const startIncomingRingtone = useCallback(() => {
+    if (ringtoneIntervalRef.current) {
+      return;
+    }
+
+    void playIncomingRingtonePulse();
+    ringtoneIntervalRef.current = setInterval(() => {
+      void playIncomingRingtonePulse();
+    }, 1200);
+  }, [playIncomingRingtonePulse]);
 
   const stopVoiceCallResources = useCallback(() => {
     const peerConnection = peerConnectionRef.current;
@@ -83,35 +150,81 @@ function DirectMessageConversation({ userId, otherUserId, onConversationUpdated 
       remoteAudioRef.current.srcObject = null;
     }
 
+    if (localVideoRef.current) {
+      localVideoRef.current.srcObject = null;
+    }
+
+    if (remoteVideoRef.current) {
+      remoteVideoRef.current.srcObject = null;
+    }
+
     setIsVoiceCallActive(false);
+    setIsVideoCallActive(false);
     setIsMicEnabled(true);
   }, []);
 
-  const ensureLocalAudioStream = useCallback(async () => {
-    if (localStreamRef.current) {
-      return localStreamRef.current;
+  const ensureLocalMediaStream = useCallback(async (callType = 'voice') => {
+    const shouldIncludeVideo = callType === 'video';
+    const existingStream = localStreamRef.current;
+    if (existingStream) {
+      const hasVideoTrack = existingStream.getVideoTracks().length > 0;
+      if (!shouldIncludeVideo || hasVideoTrack) {
+        return existingStream;
+      }
+
+      existingStream.getTracks().forEach((track) => track.stop());
+      localStreamRef.current = null;
     }
 
     let localStream;
     try {
       localStream = await navigator.mediaDevices.getUserMedia({
         audio: true,
-        video: false,
+        video: shouldIncludeVideo,
       });
     } catch (mediaError) {
       const message = (mediaError?.message || '').toLowerCase();
+      if (shouldIncludeVideo) {
+        const isCameraMissing = mediaError?.name === 'NotFoundError' || message.includes('video') || message.includes('camera');
+        if (isCameraMissing) {
+          try {
+            localStream = await navigator.mediaDevices.getUserMedia({
+              audio: true,
+              video: false,
+            });
+          } catch (audioOnlyError) {
+            const audioOnlyMessage = (audioOnlyError?.message || '').toLowerCase();
+            const isMicMissingOnFallback = audioOnlyError?.name === 'NotFoundError' || audioOnlyMessage.includes('requested device not found');
+            if (isMicMissingOnFallback) {
+              setIsMicEnabled(false);
+              return null;
+            }
+
+            throw audioOnlyError;
+          }
+        }
+      }
+
       const isMicMissing = mediaError?.name === 'NotFoundError' || message.includes('requested device not found');
       if (isMicMissing) {
         setIsMicEnabled(false);
         return null;
       }
 
-      throw mediaError;
+      if (!localStream) {
+        throw mediaError;
+      }
     }
 
     localStreamRef.current = localStream;
     setIsVoiceCallActive(true);
+    setIsVideoCallActive(localStream.getVideoTracks().length > 0);
     setIsMicEnabled(localStream.getAudioTracks().some((track) => track.enabled));
+
+    if (localVideoRef.current) {
+      localVideoRef.current.srcObject = localStream;
+    }
+
     return localStream;
   }, []);
 
@@ -149,11 +262,19 @@ function DirectMessageConversation({ userId, otherUserId, onConversationUpdated 
 
     peerConnection.ontrack = (event) => {
       const [remoteStream] = event.streams;
-      if (!remoteStream || !remoteAudioRef.current) {
+      if (!remoteStream) {
         return;
       }
 
-      remoteAudioRef.current.srcObject = remoteStream;
+      if (remoteAudioRef.current) {
+        remoteAudioRef.current.srcObject = remoteStream;
+      }
+
+      if (remoteVideoRef.current) {
+        remoteVideoRef.current.srcObject = remoteStream;
+      }
+
+      setIsVideoCallActive(remoteStream.getVideoTracks().length > 0);
     };
 
     peerConnection.onconnectionstatechange = () => {
@@ -170,6 +291,10 @@ function DirectMessageConversation({ userId, otherUserId, onConversationUpdated 
   }, [directConversationId, otherUserId]);
 
   useEffect(() => {
+    callTypeRef.current = callState.callType || 'voice';
+  }, [callState.callType]);
+
+  useEffect(() => {
     if (!selectedMedia) {
       setMediaPreviewUrl('');
       return undefined;
@@ -182,6 +307,22 @@ function DirectMessageConversation({ userId, otherUserId, onConversationUpdated 
   }, [selectedMedia]);
 
   const isVideoPreview = Boolean(selectedMedia?.type?.startsWith('video/'));
+
+  const refreshConversationMessages = useCallback(async () => {
+    if (!otherUserId) {
+      return;
+    }
+
+    try {
+      const conversation = await dmApi.getConversation(otherUserId);
+      const sortedConversation = Array.isArray(conversation)
+        ? [...conversation].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
+        : [];
+      setMessages(sortedConversation);
+    } catch {
+      // Ignore refresh failures caused by temporary network issues.
+    }
+  }, [otherUserId]);
 
   const fetchConversation = useCallback(async () => {
     if (!userId || !otherUserId) {
@@ -233,19 +374,42 @@ function DirectMessageConversation({ userId, otherUserId, onConversationUpdated 
   }, [fetchConversation]);
 
   useEffect(() => {
+    incomingCallRef.current = incomingCall;
+  }, [incomingCall]);
+
+  useEffect(() => {
     let isMounted = true;
 
-    const unsubscribe = callSignalingRealtime.subscribe((event) => {
-      if (!isMounted) {
-        return;
-      }
+    callSignalingRealtime.connect()
+      .then(() => {
+        if (isMounted) {
+          setIsSignalingConnected(true);
+        }
+      })
+      .catch((connectError) => {
+        if (!isMounted) {
+          return;
+        }
 
+        setIsSignalingConnected(false);
+        setError(connectError?.message || 'Could not connect to call signaling hub.');
+      });
+
+    return () => {
+      isMounted = false;
+      callSignalingRealtime.disconnect().catch(() => {
+        // Ignore cleanup errors.
+      });
+    };
+  }, []);
+
+  useEffect(() => {
+    const unsubscribe = callSignalingRealtime.subscribe((event) => {
       const payloadConversationId = event?.payload?.conversationId;
       if (payloadConversationId && payloadConversationId !== directConversationId) {
         return;
       }
 
-      const timestamp = new Date().toLocaleTimeString();
       const nextEventLabel = (() => {
         switch (event.type) {
           case 'connected':
@@ -280,10 +444,60 @@ function DirectMessageConversation({ userId, otherUserId, onConversationUpdated 
               callType: '',
               startedByUserId: null,
             });
+            setIncomingCall(null);
             setCallStartedAt(null);
             setCallElapsedSeconds(0);
+            stopIncomingRingtone();
             stopVoiceCallResources();
             return 'Call ended';
+          case 'call-invite-received':
+            {
+              const fromUserId = event?.payload?.fromUserId;
+              if (!fromUserId || fromUserId !== otherUserId || !directConversationId) {
+                return null;
+              }
+
+              const incomingCallType = event?.payload?.callType === 'video' ? 'video' : 'voice';
+              setIncomingCall({
+                fromUserId,
+                callType: incomingCallType,
+              });
+              startIncomingRingtone();
+              return `Incoming ${incomingCallType} call`;
+            }
+          case 'call-invite-responded':
+            (async () => {
+              try {
+                const fromUserId = event?.payload?.fromUserId;
+                const accepted = Boolean(event?.payload?.accepted);
+                if (!fromUserId || fromUserId !== otherUserId || !directConversationId) {
+                  return;
+                }
+
+                if (!accepted) {
+                  setError('The other user declined the call.');
+                  await callSignalingRealtime.endCall(directConversationId);
+                  return;
+                }
+
+                await refreshConversationMessages();
+
+                const expectedCallType = event?.payload?.callType === 'video' ? 'video' : 'voice';
+                await ensureLocalMediaStream(expectedCallType);
+                const peerConnection = getOrCreatePeerConnection();
+
+                if (peerConnection.signalingState !== 'stable') {
+                  return;
+                }
+
+                const offer = await peerConnection.createOffer();
+                await peerConnection.setLocalDescription(offer);
+                await callSignalingRealtime.sendOffer(directConversationId, otherUserId, offer.sdp || '');
+              } catch (inviteResponseError) {
+                setError(inviteResponseError?.message || 'Could not continue call after response.');
+              }
+            })();
+            return `Call response received from ${event?.payload?.fromUserId || 'unknown'}`;
           case 'offer-received':
             (async () => {
               try {
@@ -294,7 +508,15 @@ function DirectMessageConversation({ userId, otherUserId, onConversationUpdated 
                   return;
                 }
 
-                await ensureLocalAudioStream();
+                stopIncomingRingtone();
+                setIncomingCall(null);
+
+                if (incomingCallRef.current) {
+                  return;
+                }
+
+                const expectedCallType = callTypeRef.current === 'video' ? 'video' : 'voice';
+                await ensureLocalMediaStream(expectedCallType);
                 const peerConnection = getOrCreatePeerConnection();
 
                 if (peerConnection.signalingState !== 'stable') {
@@ -317,6 +539,7 @@ function DirectMessageConversation({ userId, otherUserId, onConversationUpdated 
             return 'Voice offer received';
           case 'answer-received':
             (async () => {
+              let shouldReleaseAnswerLock = false;
               try {
                 const fromUserId = event?.payload?.fromUserId;
                 const sdp = event?.payload?.sdp;
@@ -326,13 +549,32 @@ function DirectMessageConversation({ userId, otherUserId, onConversationUpdated 
                   return;
                 }
 
+                if (applyingAnswerRef.current) {
+                  return;
+                }
+
                 if (peerConnection.signalingState !== 'have-local-offer') {
+                  return;
+                }
+
+                applyingAnswerRef.current = true;
+                shouldReleaseAnswerLock = true;
+
+                if (peerConnection.signalingState !== 'have-local-offer' || peerConnection.currentRemoteDescription?.type === 'answer') {
                   return;
                 }
 
                 await peerConnection.setRemoteDescription({ type: 'answer', sdp });
               } catch (answerError) {
+                if (isDuplicateRemoteAnswerError(answerError)) {
+                  return;
+                }
+
                 setError(answerError?.message || 'Could not process incoming voice answer.');
+              } finally {
+                if (shouldReleaseAnswerLock) {
+                  applyingAnswerRef.current = false;
+                }
               }
             })();
             return 'Voice answer received';
@@ -370,33 +612,20 @@ function DirectMessageConversation({ userId, otherUserId, onConversationUpdated 
         return;
       }
 
-      setCallEvents((previousEvents) => [`${timestamp} - ${nextEventLabel}`, ...previousEvents].slice(0, 8));
     });
 
-    callSignalingRealtime.connect()
-      .then(() => {
-        if (isMounted) {
-          setIsSignalingConnected(true);
-        }
-      })
-      .catch((connectError) => {
-        if (!isMounted) {
-          return;
-        }
-
-        setIsSignalingConnected(false);
-        setError(connectError?.message || 'Could not connect to call signaling hub.');
-      });
-
     return () => {
-      isMounted = false;
       unsubscribe();
     };
   }, [
     directConversationId,
-    ensureLocalAudioStream,
+    ensureLocalMediaStream,
     getOrCreatePeerConnection,
+    isDuplicateRemoteAnswerError,
     otherUserId,
+    refreshConversationMessages,
+    startIncomingRingtone,
+    stopIncomingRingtone,
     stopVoiceCallResources,
   ]);
 
@@ -418,9 +647,10 @@ function DirectMessageConversation({ userId, otherUserId, onConversationUpdated 
           callType: '',
           startedByUserId: null,
         });
+        setIncomingCall(null);
         setCallStartedAt(null);
         setCallElapsedSeconds(0);
-        setCallEvents([]);
+        stopIncomingRingtone();
         stopVoiceCallResources();
       } catch (joinError) {
         setError(joinError?.message || 'Could not join call signaling for this DM conversation.');
@@ -428,10 +658,10 @@ function DirectMessageConversation({ userId, otherUserId, onConversationUpdated 
     };
 
     joinConversation();
-  }, [directConversationId, stopVoiceCallResources]);
+  }, [directConversationId, stopIncomingRingtone, stopVoiceCallResources]);
 
   useEffect(() => {
-    if (!callState.isActive || !callStartedAt) {
+    if ((!callState.isActive && !isVoiceCallActive) || !callStartedAt) {
       return undefined;
     }
 
@@ -444,7 +674,7 @@ function DirectMessageConversation({ userId, otherUserId, onConversationUpdated 
     const intervalId = setInterval(updateElapsed, 1000);
 
     return () => clearInterval(intervalId);
-  }, [callState.isActive, callStartedAt]);
+  }, [callState.isActive, callStartedAt, isVoiceCallActive]);
 
   useEffect(() => {
     return () => {
@@ -455,15 +685,21 @@ function DirectMessageConversation({ userId, otherUserId, onConversationUpdated 
         });
       }
 
-      callSignalingRealtime.disconnect().catch(() => {
-        // Ignore cleanup errors.
-      });
-
+      stopIncomingRingtone();
       stopVoiceCallResources();
+
+      const ringtoneContext = ringtoneContextRef.current;
+      ringtoneContextRef.current = null;
+      if (ringtoneContext) {
+        ringtoneContext.close().catch(() => {
+          // Ignore cleanup errors.
+        });
+      }
+
       activeConversationIdRef.current = '';
       setIsSignalingConnected(false);
     };
-  }, [stopVoiceCallResources]);
+  }, [stopIncomingRingtone, stopVoiceCallResources]);
 
   const latestActivity = useMemo(() => {
     if (messages.length === 0) {
@@ -510,6 +746,16 @@ function DirectMessageConversation({ userId, otherUserId, onConversationUpdated 
   });
 
   const conversationTitle = otherUser?.username || 'Conversation';
+  const activeCallType = callState.callType === 'video' || isVideoCallActive
+    ? 'video'
+    : callState.callType === 'voice' || isVoiceCallActive
+      ? 'voice'
+      : '';
+  const activeCallLabel = activeCallType === 'video'
+    ? 'Videosamtal'
+    : activeCallType === 'voice'
+      ? 'Röstsamtal'
+      : 'Samtal';
 
   const isVideoUrl = (url) => {
     if (!url) {
@@ -581,7 +827,7 @@ function DirectMessageConversation({ userId, otherUserId, onConversationUpdated 
     setSelectedGif(null);
   };
 
-  const handleStartCall = async () => {
+  const handleStartCall = async (callType = 'voice') => {
     if (!directConversationId || !otherUserId) {
       return;
     }
@@ -589,22 +835,21 @@ function DirectMessageConversation({ userId, otherUserId, onConversationUpdated 
     try {
       setError(null);
       setIsSignalingActionPending(true);
+      setCallStartedAt(new Date());
+      setCallElapsedSeconds(0);
 
-      const localStream = await ensureLocalAudioStream();
+      const localStream = await ensureLocalMediaStream(callType);
       if (!localStream) {
         setError('No microphone found. The call will start in listen-only mode.');
       }
 
-      await callSignalingRealtime.startCall(directConversationId, 'voice');
+      await callSignalingRealtime.startCall(directConversationId, callType);
 
-      const peerConnection = getOrCreatePeerConnection();
-      const offer = await peerConnection.createOffer();
-      await peerConnection.setLocalDescription(offer);
-      await callSignalingRealtime.sendOffer(directConversationId, otherUserId, offer.sdp || '');
+      await callSignalingRealtime.sendCallInvite(directConversationId, otherUserId, callType);
 
       setIsVoiceCallActive(true);
     } catch (signalingError) {
-      setError(signalingError?.message || 'Could not start voice call.');
+      setError(signalingError?.message || `Could not start ${callType} call.`);
       stopVoiceCallResources();
     } finally {
       setIsSignalingActionPending(false);
@@ -620,9 +865,106 @@ function DirectMessageConversation({ userId, otherUserId, onConversationUpdated 
       setError(null);
       setIsSignalingActionPending(true);
       await callSignalingRealtime.endCall(directConversationId);
+      setIncomingCall(null);
+      stopIncomingRingtone();
       stopVoiceCallResources();
     } catch (signalingError) {
       setError(signalingError?.message || 'Could not end voice call.');
+    } finally {
+      setIsSignalingActionPending(false);
+    }
+  };
+
+  const acceptIncomingCallInvite = useCallback(async (invite) => {
+    if (!invite || !directConversationId) {
+      return;
+    }
+
+    const incomingCallType = invite.callType === 'video' ? 'video' : 'voice';
+
+    setError(null);
+    setIsSignalingActionPending(true);
+    stopIncomingRingtone();
+    try {
+      const localStream = await ensureLocalMediaStream(incomingCallType);
+      if (!localStream) {
+        setError('No microphone found. The call will continue in listen-only mode.');
+      }
+
+      await callSignalingRealtime.respondToCallInvite(
+        directConversationId,
+        invite.fromUserId,
+        true,
+        incomingCallType
+      );
+
+      await refreshConversationMessages();
+
+      setIncomingCall(null);
+      setIsVoiceCallActive(true);
+    } catch (acceptError) {
+      setError(acceptError?.message || 'Could not accept incoming call.');
+    } finally {
+      setIsSignalingActionPending(false);
+    }
+  }, [directConversationId, ensureLocalMediaStream, refreshConversationMessages, stopIncomingRingtone]);
+
+  const handleAcceptIncomingCall = async () => {
+    if (!incomingCall || !directConversationId) {
+      return;
+    }
+
+    await acceptIncomingCallInvite(incomingCall);
+  };
+
+  useEffect(() => {
+    const pendingCall = peekPendingIncomingCall();
+    if (!pendingCall || pendingCall.isGroup) {
+      return;
+    }
+
+    if (!directConversationId || pendingCall.conversationId !== directConversationId || pendingCall.fromUserId !== otherUserId) {
+      return;
+    }
+
+    consumePendingIncomingCall();
+    void acceptIncomingCallInvite(pendingCall);
+  }, [acceptIncomingCallInvite, directConversationId, otherUserId]);
+
+  const handleDeclineIncomingCall = async () => {
+    if (!incomingCall || !directConversationId) {
+      return;
+    }
+
+    const incomingCallType = incomingCall.callType === 'video' ? 'video' : 'voice';
+
+    try {
+      setError(null);
+      setIsSignalingActionPending(true);
+      stopIncomingRingtone();
+
+      await callSignalingRealtime.respondToCallInvite(
+        directConversationId,
+        incomingCall.fromUserId,
+        false,
+        incomingCallType
+      );
+
+      if (callState.startedByUserId && callState.startedByUserId !== userId) {
+        await callSignalingRealtime.endCall(directConversationId);
+      }
+
+      setIncomingCall(null);
+      setCallState({
+        isActive: false,
+        callType: '',
+        startedByUserId: null,
+      });
+      setCallStartedAt(null);
+      setCallElapsedSeconds(0);
+      stopVoiceCallResources();
+    } catch (declineError) {
+      setError(declineError?.message || 'Could not decline incoming call.');
     } finally {
       setIsSignalingActionPending(false);
     }
@@ -682,7 +1024,46 @@ function DirectMessageConversation({ userId, otherUserId, onConversationUpdated 
 
       {error && <div className="dm-conversation-error" role="alert">{error}</div>}
 
+      {incomingCall && (
+        <div className="dm-conversation-incoming-call" role="alert" aria-live="assertive">
+          <strong>
+            {incomingCall.callType === 'video' ? 'Inkommande videosamtal' : 'Inkommande röstsamtal'}
+          </strong>
+          <div className="dm-conversation-incoming-call-actions">
+            <button
+              type="button"
+              className="composer-toolbar-button dm-conversation-toolbar-button"
+              disabled={isSignalingActionPending}
+              onClick={handleAcceptIncomingCall}
+            >
+              Svara
+            </button>
+            <button
+              type="button"
+              className="composer-toolbar-button dm-conversation-toolbar-button dm-conversation-toolbar-button-danger"
+              disabled={isSignalingActionPending}
+              onClick={handleDeclineIncomingCall}
+            >
+              Avvisa
+            </button>
+          </div>
+        </div>
+      )}
+
       <audio ref={remoteAudioRef} autoPlay />
+
+      {(isVideoCallActive || callState.callType === 'video') && (
+        <div className="dm-conversation-video-grid">
+          <div className="dm-conversation-video-card">
+            <span className="dm-conversation-video-label">You</span>
+            <video ref={localVideoRef} className="dm-conversation-video" autoPlay muted playsInline />
+          </div>
+          <div className="dm-conversation-video-card">
+            <span className="dm-conversation-video-label">{conversationTitle}</span>
+            <video ref={remoteVideoRef} className="dm-conversation-video" autoPlay playsInline />
+          </div>
+        </div>
+      )}
 
       {loading ? (
         <div className="dm-conversation-loading">Loading conversation...</div>
@@ -780,10 +1161,19 @@ function DirectMessageConversation({ userId, otherUserId, onConversationUpdated 
                 type="button"
                 className="composer-toolbar-button dm-conversation-toolbar-button"
                 disabled={sending || !directConversationId || isSignalingActionPending || callState.isActive || !isSignalingConnected || isVoiceCallActive}
-                onClick={handleStartCall}
+                onClick={() => handleStartCall('voice')}
               >
                 <span className="dm-conversation-btn-icon" aria-hidden="true">&#128222;</span>
                 <span>Start voice call</span>
+              </button>
+              <button
+                type="button"
+                className="composer-toolbar-button dm-conversation-toolbar-button"
+                disabled={sending || !directConversationId || isSignalingActionPending || callState.isActive || !isSignalingConnected || isVoiceCallActive}
+                onClick={() => handleStartCall('video')}
+              >
+                <span className="dm-conversation-btn-icon" aria-hidden="true">&#127909;</span>
+                <span>Start video call</span>
               </button>
               <button
                 type="button"
@@ -792,7 +1182,7 @@ function DirectMessageConversation({ userId, otherUserId, onConversationUpdated 
                 onClick={handleEndCall}
               >
                 <span className="dm-conversation-btn-icon" aria-hidden="true">&#128244;</span>
-                <span>End voice call</span>
+                <span>End call</span>
               </button>
               <button
                 type="button"
@@ -805,16 +1195,11 @@ function DirectMessageConversation({ userId, otherUserId, onConversationUpdated 
               </button>
             </ComposerToolbar>
             {(isVoiceCallActive || callState.isActive) && (
-              <p className="dm-conversation-signaling-meta">
-                Voice call state: {isVoiceCallActive ? 'connected' : 'waiting'} | Duration: {formatElapsed(callElapsedSeconds)}
+              <p className="dm-conversation-call-banner" role="status" aria-live="polite">
+                <strong>{callState.isActive || isVoiceCallActive ? `${activeCallLabel} pågår` : 'Startar samtal...'}</strong>
+                <span>Timer: {callElapsedSeconds}s</span>
+                <span>Duration: {formatElapsed(callElapsedSeconds)}</span>
               </p>
-            )}
-            {callEvents.length > 0 && (
-              <ul className="dm-conversation-signaling-log">
-                {callEvents.map((eventText, index) => (
-                  <li key={`${eventText}-${index}`}>{eventText}</li>
-                ))}
-              </ul>
             )}
             {selectedGif && (
               <div className="dm-conversation-inline-preview">

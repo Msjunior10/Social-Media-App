@@ -4,6 +4,7 @@ import { dmApi } from '../services/dmApi';
 import { conversationApi } from '../services/conversationApi';
 import { callSignalingRealtime } from '../services/callSignalingRealtime';
 import { userApi } from '../services/userApi';
+import { consumePendingIncomingCall, peekPendingIncomingCall } from './IncomingCallOverlay';
 import './GroupConversations.css';
 
 const MAX_MESSAGE_LENGTH = 500;
@@ -36,23 +37,31 @@ function GroupConversations({ currentUserId, initialConversationId = '' }) {
   const [isSignalingActionPending, setIsSignalingActionPending] = useState(false);
   const [isSignalingConnected, setIsSignalingConnected] = useState(false);
   const [isVoiceCallActive, setIsVoiceCallActive] = useState(false);
+  const [isVideoCallActive, setIsVideoCallActive] = useState(false);
   const [isMicEnabled, setIsMicEnabled] = useState(true);
+  const [callStartedAt, setCallStartedAt] = useState(null);
+  const [callElapsedSeconds, setCallElapsedSeconds] = useState(0);
   const [remoteParticipantIds, setRemoteParticipantIds] = useState([]);
   const [callState, setCallState] = useState({
     isActive: false,
     callType: '',
     startedByUserId: null,
   });
+  const [incomingCall, setIncomingCall] = useState(null);
   const [error, setError] = useState('');
   const activeConversationIdRef = useRef('');
   const selectedConversationIdRef = useRef('');
+  const incomingCallRef = useRef(null);
+  const callTypeRef = useRef('voice');
   const localStreamRef = useRef(null);
   const peerConnectionsRef = useRef(new Map());
+  const applyingAnswersRef = useRef(new Set());
   const remoteStreamsRef = useRef(new Map());
   const pendingIceCandidatesRef = useRef(new Map());
   const ringtoneContextRef = useRef(null);
   const ringtoneIntervalRef = useRef(null);
   const messageInputRef = useRef(null);
+  const localVideoRef = useRef(null);
 
   useEffect(() => {
     if (!selectedMedia) {
@@ -67,6 +76,34 @@ function GroupConversations({ currentUserId, initialConversationId = '' }) {
   }, [selectedMedia]);
 
   const isVideoPreview = Boolean(selectedMedia?.type?.startsWith('video/'));
+
+  const isDuplicateRemoteAnswerError = useCallback((error) => {
+    const message = error?.message || '';
+    return message.includes("Failed to set remote answer sdp: Called in wrong state: stable");
+  }, []);
+
+  const rejoinSelectedConversation = useCallback(async () => {
+    const conversationId = selectedConversationIdRef.current;
+    if (!conversationId) {
+      return;
+    }
+
+    await callSignalingRealtime.joinConversation(conversationId);
+    activeConversationIdRef.current = conversationId;
+  }, []);
+
+  const formatElapsed = useCallback((seconds) => {
+    const safeSeconds = Math.max(0, Number.isFinite(seconds) ? seconds : 0);
+    const hours = Math.floor(safeSeconds / 3600);
+    const minutes = Math.floor((safeSeconds % 3600) / 60);
+    const remainingSeconds = safeSeconds % 60;
+
+    if (hours > 0) {
+      return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`;
+    }
+
+    return `${String(minutes).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`;
+  }, []);
 
   const isMicrophoneMissingError = (mediaError) => {
     const message = (mediaError?.message || '').toLowerCase();
@@ -177,6 +214,7 @@ function GroupConversations({ currentUserId, initialConversationId = '' }) {
 
     remoteStreamsRef.current.clear();
     pendingIceCandidatesRef.current.clear();
+    applyingAnswersRef.current.clear();
     refreshRemoteParticipantIds();
 
     if (localStreamRef.current) {
@@ -184,22 +222,59 @@ function GroupConversations({ currentUserId, initialConversationId = '' }) {
       localStreamRef.current = null;
     }
 
+    if (localVideoRef.current) {
+      localVideoRef.current.srcObject = null;
+    }
+
     setIsVoiceCallActive(false);
+    setIsVideoCallActive(false);
     setIsMicEnabled(true);
   }, [refreshRemoteParticipantIds]);
 
-  const ensureLocalAudioStream = useCallback(async ({ allowWithoutMicrophone = false } = {}) => {
-    if (localStreamRef.current) {
-      return localStreamRef.current;
+  const ensureLocalMediaStream = useCallback(async (callType = 'voice', { allowWithoutMicrophone = false } = {}) => {
+    const shouldIncludeVideo = callType === 'video';
+    const existingStream = localStreamRef.current;
+    if (existingStream) {
+      const hasVideoTrack = existingStream.getVideoTracks().length > 0;
+      if (!shouldIncludeVideo || hasVideoTrack) {
+        return existingStream;
+      }
+
+      existingStream.getTracks().forEach((track) => track.stop());
+      localStreamRef.current = null;
     }
 
     let localStream;
     try {
       localStream = await navigator.mediaDevices.getUserMedia({
         audio: true,
-        video: false,
+        video: shouldIncludeVideo,
       });
     } catch (mediaError) {
+      if (shouldIncludeVideo) {
+        const message = (mediaError?.message || '').toLowerCase();
+        const isCameraMissing = mediaError?.name === 'NotFoundError' || message.includes('video') || message.includes('camera');
+        if (isCameraMissing) {
+          try {
+            localStream = await navigator.mediaDevices.getUserMedia({
+              audio: true,
+              video: false,
+            });
+          } catch (audioOnlyError) {
+            if (allowWithoutMicrophone && isMicrophoneMissingError(audioOnlyError)) {
+              setIsMicEnabled(false);
+              return null;
+            }
+
+            if (isMicrophoneMissingError(audioOnlyError)) {
+              throw new Error('No microphone was found. Connect a microphone or headset and try again.');
+            }
+
+            throw audioOnlyError;
+          }
+        }
+      }
+
       if (allowWithoutMicrophone && isMicrophoneMissingError(mediaError)) {
         setIsMicEnabled(false);
         return null;
@@ -209,12 +284,19 @@ function GroupConversations({ currentUserId, initialConversationId = '' }) {
         throw new Error('No microphone was found. Connect a microphone or headset and try again.');
       }
 
-      throw mediaError;
+      if (!localStream) {
+        throw mediaError;
+      }
     }
 
     localStreamRef.current = localStream;
     setIsVoiceCallActive(true);
+    setIsVideoCallActive(localStream.getVideoTracks().length > 0);
     setIsMicEnabled(localStream.getAudioTracks().some((track) => track.enabled));
+
+    if (localVideoRef.current) {
+      localVideoRef.current.srcObject = localStream;
+    }
 
     return localStream;
   }, []);
@@ -262,6 +344,9 @@ function GroupConversations({ currentUserId, initialConversationId = '' }) {
       }
 
       remoteStreamsRef.current.set(targetUserId, remoteStream);
+      if (remoteStream.getVideoTracks().length > 0) {
+        setIsVideoCallActive(true);
+      }
       refreshRemoteParticipantIds();
     };
 
@@ -303,6 +388,14 @@ function GroupConversations({ currentUserId, initialConversationId = '' }) {
   useEffect(() => {
     selectedConversationIdRef.current = selectedConversationId;
   }, [selectedConversationId]);
+
+  useEffect(() => {
+    incomingCallRef.current = incomingCall;
+  }, [incomingCall]);
+
+  useEffect(() => {
+    callTypeRef.current = callState.callType || 'voice';
+  }, [callState.callType]);
 
   useEffect(() => {
     let isMounted = true;
@@ -397,37 +490,59 @@ function GroupConversations({ currentUserId, initialConversationId = '' }) {
   useEffect(() => {
     let isMounted = true;
 
-    const unsubscribe = callSignalingRealtime.subscribe((event) => {
+    callSignalingRealtime.connect().catch((connectError) => {
       if (!isMounted) {
         return;
       }
+
+      setIsSignalingConnected(false);
+      setError(connectError?.message || 'Could not connect to call signaling hub.');
+    });
+
+    return () => {
+      isMounted = false;
+      callSignalingRealtime.disconnect().catch(() => {
+        // Ignore cleanup errors.
+      });
+    };
+  }, []);
+
+  useEffect(() => {
+    const unsubscribe = callSignalingRealtime.subscribe((event) => {
 
       const payloadConversationId = event?.payload?.conversationId;
       if (payloadConversationId && payloadConversationId !== selectedConversationIdRef.current) {
         return;
       }
 
-      const timestamp = new Date().toLocaleTimeString();
       const nextEventLabel = (() => {
         switch (event.type) {
           case 'connected':
             setIsSignalingConnected(true);
+            void rejoinSelectedConversation().catch((joinError) => {
+              setIsSignalingConnected(false);
+              setError(joinError?.message || 'Could not join call signaling for this conversation.');
+            });
             return 'Call signaling connected';
           case 'disconnected':
             setIsSignalingConnected(false);
             return 'Call signaling disconnected';
           case 'call-started':
+            {
+              const startedAtValue = event?.payload?.startedAt ? new Date(event.payload.startedAt) : new Date();
+              const hasValidStartedAt = !Number.isNaN(startedAtValue.getTime());
+              const nextStartedAt = hasValidStartedAt ? startedAtValue : new Date();
+              const elapsedFromStartedAt = Math.max(0, Math.floor((Date.now() - nextStartedAt.getTime()) / 1000));
+
+              setCallStartedAt(nextStartedAt);
+              setCallElapsedSeconds(elapsedFromStartedAt);
+            }
+
             setCallState({
               isActive: true,
               callType: event?.payload?.callType || 'voice',
               startedByUserId: event?.payload?.startedByUserId || null,
             });
-
-            if (event?.payload?.startedByUserId && event.payload.startedByUserId !== currentUserId) {
-              startIncomingRingtone();
-            } else {
-              stopIncomingRingtone();
-            }
 
             void refreshMessagesForConversation(payloadConversationId || selectedConversationIdRef.current);
             return `Call started (${event?.payload?.callType || 'voice'})`;
@@ -437,10 +552,59 @@ function GroupConversations({ currentUserId, initialConversationId = '' }) {
               callType: '',
               startedByUserId: null,
             });
+            setIncomingCall(null);
+            setCallStartedAt(null);
+            setCallElapsedSeconds(0);
             stopIncomingRingtone();
             stopVoiceCallResources();
             void refreshMessagesForConversation(payloadConversationId || selectedConversationIdRef.current);
             return 'Call ended';
+          case 'call-invite-received':
+            {
+              const fromUserId = event?.payload?.fromUserId;
+              if (!fromUserId || fromUserId === currentUserId) {
+                return null;
+              }
+
+              const incomingCallType = event?.payload?.callType === 'video' ? 'video' : 'voice';
+              setIncomingCall({
+                fromUserId,
+                callType: incomingCallType,
+              });
+              startIncomingRingtone();
+              return `Incoming ${incomingCallType} call from ${fromUserId}`;
+            }
+          case 'call-invite-responded':
+            (async () => {
+              try {
+                const fromUserId = event?.payload?.fromUserId;
+                const accepted = Boolean(event?.payload?.accepted);
+                if (!fromUserId || !selectedConversationIdRef.current) {
+                  return;
+                }
+
+                if (!accepted) {
+                  return;
+                }
+
+                await refreshMessagesForConversation(selectedConversationIdRef.current);
+
+                const expectedCallType = event?.payload?.callType === 'video' ? 'video' : 'voice';
+                await ensureLocalMediaStream(expectedCallType, { allowWithoutMicrophone: true });
+                const peerConnection = getOrCreatePeerConnection(fromUserId);
+
+                if (peerConnection.signalingState !== 'stable') {
+                  return;
+                }
+
+                const offer = await peerConnection.createOffer();
+                await peerConnection.setLocalDescription(offer);
+                await callSignalingRealtime.sendOffer(selectedConversationIdRef.current, fromUserId, offer.sdp || '');
+              } catch (inviteResponseError) {
+                setError(inviteResponseError?.message || 'Could not continue call after response.');
+              }
+            })();
+            return `Call response received from ${event?.payload?.fromUserId || 'unknown'}`;
           case 'participant-joined':
             return `Participant joined: ${event?.payload?.userId || 'unknown'}`;
           case 'participant-left':
@@ -456,8 +620,14 @@ function GroupConversations({ currentUserId, initialConversationId = '' }) {
                 }
 
                 stopIncomingRingtone();
+                setIncomingCall(null);
 
-                await ensureLocalAudioStream({ allowWithoutMicrophone: true });
+                if (incomingCallRef.current) {
+                  return;
+                }
+
+                const expectedCallType = callTypeRef.current === 'video' ? 'video' : 'voice';
+                await ensureLocalMediaStream(expectedCallType, { allowWithoutMicrophone: true });
                 const peerConnection = getOrCreatePeerConnection(fromUserId);
 
                 // Ignore duplicate offers while a previous negotiation is still unresolved.
@@ -482,6 +652,7 @@ function GroupConversations({ currentUserId, initialConversationId = '' }) {
             return `Offer received from ${event?.payload?.fromUserId || 'unknown'}`;
           case 'answer-received':
             (async () => {
+              let shouldReleaseAnswerLock = false;
               try {
                 const fromUserId = event?.payload?.fromUserId;
                 const sdp = event?.payload?.sdp;
@@ -495,15 +666,34 @@ function GroupConversations({ currentUserId, initialConversationId = '' }) {
                   return;
                 }
 
+                if (applyingAnswersRef.current.has(fromUserId)) {
+                  return;
+                }
+
                 // Ignore stale/duplicate answers when we are not waiting for one.
                 if (peerConnection.signalingState !== 'have-local-offer') {
+                  return;
+                }
+
+                applyingAnswersRef.current.add(fromUserId);
+                shouldReleaseAnswerLock = true;
+
+                if (peerConnection.signalingState !== 'have-local-offer' || peerConnection.currentRemoteDescription?.type === 'answer') {
                   return;
                 }
 
                 await peerConnection.setRemoteDescription({ type: 'answer', sdp });
                 await flushPendingIceCandidates(fromUserId, peerConnection);
               } catch (answerError) {
+                if (isDuplicateRemoteAnswerError(answerError)) {
+                  return;
+                }
+
                 setError(answerError?.message || 'Could not process incoming voice answer.');
+              } finally {
+                if (shouldReleaseAnswerLock) {
+                  applyingAnswersRef.current.delete(event?.payload?.fromUserId);
+                }
               }
             })();
             return `Answer received from ${event?.payload?.fromUserId || 'unknown'}`;
@@ -539,6 +729,10 @@ function GroupConversations({ currentUserId, initialConversationId = '' }) {
             return `ICE candidate received from ${event?.payload?.fromUserId || 'unknown'}`;
           case 'reconnected':
             setIsSignalingConnected(true);
+            void rejoinSelectedConversation().catch((joinError) => {
+              setIsSignalingConnected(false);
+              setError(joinError?.message || 'Could not rejoin call signaling for this conversation.');
+            });
             return 'Call signaling reconnected';
           default:
             return null;
@@ -551,26 +745,18 @@ function GroupConversations({ currentUserId, initialConversationId = '' }) {
 
     });
 
-    callSignalingRealtime.connect().catch((connectError) => {
-      if (!isMounted) {
-        return;
-      }
-
-      setIsSignalingConnected(false);
-      setError(connectError?.message || 'Could not connect to call signaling hub.');
-    });
-
     return () => {
-      isMounted = false;
       unsubscribe();
     };
   }, [
     currentUserId,
-    ensureLocalAudioStream,
+    ensureLocalMediaStream,
     refreshMessagesForConversation,
     flushPendingIceCandidates,
     getOrCreatePeerConnection,
+    isDuplicateRemoteAnswerError,
     queueIceCandidate,
+    rejoinSelectedConversation,
     startIncomingRingtone,
     stopIncomingRingtone,
     stopVoiceCallResources,
@@ -596,6 +782,9 @@ function GroupConversations({ currentUserId, initialConversationId = '' }) {
           callType: '',
           startedByUserId: null,
         });
+        setIncomingCall(null);
+        setCallStartedAt(null);
+        setCallElapsedSeconds(0);
         stopIncomingRingtone();
         stopVoiceCallResources();
       } catch (joinError) {
@@ -605,6 +794,22 @@ function GroupConversations({ currentUserId, initialConversationId = '' }) {
 
     joinConversation();
   }, [selectedConversationId, stopIncomingRingtone, stopVoiceCallResources]);
+
+  useEffect(() => {
+    if ((!callState.isActive && !isVoiceCallActive) || !callStartedAt) {
+      return undefined;
+    }
+
+    const updateElapsed = () => {
+      const elapsed = Math.max(0, Math.floor((Date.now() - callStartedAt.getTime()) / 1000));
+      setCallElapsedSeconds(elapsed);
+    };
+
+    updateElapsed();
+    const intervalId = setInterval(updateElapsed, 1000);
+
+    return () => clearInterval(intervalId);
+  }, [callState.isActive, callStartedAt, isVoiceCallActive]);
 
   useEffect(() => {
     return () => {
@@ -756,6 +961,16 @@ function GroupConversations({ currentUserId, initialConversationId = '' }) {
   };
 
   const isVideoMessageUrl = (url) => /\.(mp4|webm|ogg)(\?.*)?$/i.test(url || '');
+  const activeCallType = callState.callType === 'video' || isVideoCallActive
+    ? 'video'
+    : callState.callType === 'voice' || isVoiceCallActive
+      ? 'voice'
+      : '';
+  const activeCallLabel = activeCallType === 'video'
+    ? 'Videosamtal'
+    : activeCallType === 'voice'
+      ? 'Röstsamtal'
+      : 'Samtal';
 
   const handleStartCall = async (callType) => {
     if (!selectedConversationId) {
@@ -763,25 +978,23 @@ function GroupConversations({ currentUserId, initialConversationId = '' }) {
     }
 
     try {
+      callTypeRef.current = callType === 'video' ? 'video' : 'voice';
       setError('');
       setIsSignalingActionPending(true);
+      setCallStartedAt(new Date());
+      setCallElapsedSeconds(0);
       stopIncomingRingtone();
-      if (callType !== 'voice') {
-        throw new Error('Only voice calls are enabled in day 5 MVP.');
-      }
-
-      const localStream = await ensureLocalAudioStream({ allowWithoutMicrophone: true });
+      const localStream = await ensureLocalMediaStream(callType, { allowWithoutMicrophone: true });
       if (!localStream) {
         setError('No microphone found. The call will start in listen-only mode.');
       }
+      await callSignalingRealtime.joinConversation(selectedConversationId);
+      activeConversationIdRef.current = selectedConversationId;
       await callSignalingRealtime.startCall(selectedConversationId, callType);
 
       const participantIds = getParticipantIdsExceptCurrentUser();
       for (const participantId of participantIds) {
-        const peerConnection = getOrCreatePeerConnection(participantId);
-        const offer = await peerConnection.createOffer();
-        await peerConnection.setLocalDescription(offer);
-        await callSignalingRealtime.sendOffer(selectedConversationId, participantId, offer.sdp || '');
+        await callSignalingRealtime.sendCallInvite(selectedConversationId, participantId, callType);
       }
 
       setIsVoiceCallActive(true);
@@ -801,6 +1014,7 @@ function GroupConversations({ currentUserId, initialConversationId = '' }) {
     try {
       setError('');
       setIsSignalingActionPending(true);
+      setIncomingCall(null);
       stopIncomingRingtone();
       await callSignalingRealtime.endCall(selectedConversationId);
       stopVoiceCallResources();
@@ -828,6 +1042,105 @@ function GroupConversations({ currentUserId, initialConversationId = '' }) {
     });
 
     setIsMicEnabled(nextEnabledState);
+  };
+
+  const acceptIncomingCallInvite = useCallback(async (invite) => {
+    if (!invite || !selectedConversationId) {
+      return;
+    }
+
+    const incomingCallType = invite.callType === 'video' ? 'video' : 'voice';
+    callTypeRef.current = incomingCallType;
+
+    setError('');
+    setIsSignalingActionPending(true);
+    stopIncomingRingtone();
+    try {
+      const localStream = await ensureLocalMediaStream(incomingCallType, { allowWithoutMicrophone: true });
+      if (!localStream) {
+        setError('No microphone found. The call will continue in listen-only mode.');
+      }
+
+      await callSignalingRealtime.joinConversation(selectedConversationId);
+      activeConversationIdRef.current = selectedConversationId;
+
+      await callSignalingRealtime.respondToCallInvite(
+        selectedConversationId,
+        invite.fromUserId,
+        true,
+        incomingCallType
+      );
+
+      await refreshMessagesForConversation(selectedConversationId);
+
+      setIncomingCall(null);
+      setIsVoiceCallActive(true);
+    } catch (acceptError) {
+      setError(acceptError?.message || 'Could not accept incoming call.');
+    } finally {
+      setIsSignalingActionPending(false);
+    }
+  }, [ensureLocalMediaStream, refreshMessagesForConversation, selectedConversationId, stopIncomingRingtone]);
+
+  const handleAcceptIncomingCall = async () => {
+    if (!incomingCall || !selectedConversationId) {
+      return;
+    }
+
+    await acceptIncomingCallInvite(incomingCall);
+  };
+
+  useEffect(() => {
+    const pendingCall = peekPendingIncomingCall();
+    if (!pendingCall || !pendingCall.isGroup) {
+      return;
+    }
+
+    if (!selectedConversationId || pendingCall.conversationId !== selectedConversationId) {
+      return;
+    }
+
+    consumePendingIncomingCall();
+    void acceptIncomingCallInvite(pendingCall);
+  }, [acceptIncomingCallInvite, selectedConversationId]);
+
+  const handleDeclineIncomingCall = async () => {
+    if (!incomingCall || !selectedConversationId) {
+      return;
+    }
+
+    const incomingCallType = incomingCall.callType === 'video' ? 'video' : 'voice';
+
+    try {
+      setError('');
+      setIsSignalingActionPending(true);
+      stopIncomingRingtone();
+
+      await callSignalingRealtime.respondToCallInvite(
+        selectedConversationId,
+        incomingCall.fromUserId,
+        false,
+        incomingCallType
+      );
+
+      if (callState.startedByUserId && callState.startedByUserId !== currentUserId) {
+        await callSignalingRealtime.endCall(selectedConversationId);
+      }
+
+      setIncomingCall(null);
+      setCallState({
+        isActive: false,
+        callType: '',
+        startedByUserId: null,
+      });
+      setCallStartedAt(null);
+      setCallElapsedSeconds(0);
+      stopVoiceCallResources();
+    } catch (declineError) {
+      setError(declineError?.message || 'Could not decline incoming call.');
+    } finally {
+      setIsSignalingActionPending(false);
+    }
   };
 
   return (
@@ -910,6 +1223,32 @@ function GroupConversations({ currentUserId, initialConversationId = '' }) {
 
         {error && <p className="group-conversations-error">{error}</p>}
 
+        {incomingCall && (
+          <div className="group-conversations-incoming-call" role="alert" aria-live="assertive">
+            <strong>
+              {incomingCall.callType === 'video' ? 'Inkommande videosamtal' : 'Inkommande röstsamtal'}
+            </strong>
+            <div className="group-conversations-incoming-call-actions">
+              <button
+                type="button"
+                className="group-conversations-secondary-btn"
+                disabled={isSignalingActionPending}
+                onClick={handleAcceptIncomingCall}
+              >
+                Svara
+              </button>
+              <button
+                type="button"
+                className="group-conversations-secondary-btn danger"
+                disabled={isSignalingActionPending}
+                onClick={handleDeclineIncomingCall}
+              >
+                Avvisa
+              </button>
+            </div>
+          </div>
+        )}
+
         {remoteParticipantIds.length > 0 && (
           <div className="group-conversations-audio-nodes" aria-hidden="true">
             {remoteParticipantIds.map((participantId) => (
@@ -927,6 +1266,35 @@ function GroupConversations({ currentUserId, initialConversationId = '' }) {
                   }
                 }}
               />
+            ))}
+          </div>
+        )}
+
+        {(isVideoCallActive || callState.callType === 'video') && (
+          <div className="group-conversations-video-grid">
+            <div className="group-conversations-video-card">
+              <span className="group-conversations-video-label">You</span>
+              <video ref={localVideoRef} className="group-conversations-video" autoPlay muted playsInline />
+            </div>
+            {remoteParticipantIds.map((participantId) => (
+              <div key={`video-${participantId}`} className="group-conversations-video-card">
+                <span className="group-conversations-video-label">Participant</span>
+                <video
+                  autoPlay
+                  playsInline
+                  className="group-conversations-video"
+                  ref={(videoElement) => {
+                    if (!videoElement) {
+                      return;
+                    }
+
+                    const remoteStream = remoteStreamsRef.current.get(participantId);
+                    if (remoteStream && videoElement.srcObject !== remoteStream) {
+                      videoElement.srcObject = remoteStream;
+                    }
+                  }}
+                />
+              </div>
             ))}
           </div>
         )}
@@ -1005,12 +1373,21 @@ function GroupConversations({ currentUserId, initialConversationId = '' }) {
                 </button>
                 <button
                   type="button"
+                  className="group-conversations-secondary-btn"
+                  disabled={!selectedConversationId || isSignalingActionPending || callState.isActive || !isSignalingConnected || isVoiceCallActive}
+                  onClick={() => handleStartCall('video')}
+                >
+                  <span className="group-conversations-btn-icon" aria-hidden="true">&#127909;</span>
+                  <span>Start video call</span>
+                </button>
+                <button
+                  type="button"
                   className="group-conversations-secondary-btn danger"
                   disabled={!selectedConversationId || isSignalingActionPending || !callState.isActive}
                   onClick={handleEndCall}
                 >
                   <span className="group-conversations-btn-icon" aria-hidden="true">&#128244;</span>
-                  <span>End voice call</span>
+                  <span>End call</span>
                 </button>
                 <button
                   type="button"
@@ -1023,6 +1400,13 @@ function GroupConversations({ currentUserId, initialConversationId = '' }) {
                 </button>
               </div>
             </div>
+            {(isVoiceCallActive || callState.isActive) && (
+              <p className="group-conversations-call-banner" role="status" aria-live="polite">
+                <strong>{callState.isActive || isVoiceCallActive ? `${activeCallLabel} pågår` : 'Startar samtal...'}</strong>
+                <span>Timer: {callElapsedSeconds}s</span>
+                <span>Duration: {formatElapsed(callElapsedSeconds)}</span>
+              </p>
+            )}
             <input
               id="group-conversation-media"
               name="group-conversation-media"

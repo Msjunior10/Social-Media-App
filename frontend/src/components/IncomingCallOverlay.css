@@ -1,0 +1,94 @@
+.incoming-call-overlay {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 1600;
+  width: min(420px, calc(100vw - 24px));
+}
+
+.incoming-call-card {
+  border: 1px solid rgba(245, 158, 11, 0.45);
+  background: linear-gradient(155deg, rgba(251, 191, 36, 0.14), rgba(255, 255, 255, 0.96));
+  border-radius: 14px;
+  padding: 14px;
+  box-shadow: 0 18px 30px rgba(17, 24, 39, 0.22);
+  color: var(--app-text);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.incoming-call-kicker {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: rgba(245, 158, 11, 0.18);
+  color: #92400e;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.incoming-call-card h3 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.incoming-call-card p {
+  margin: 0;
+  color: var(--app-muted);
+}
+
+.incoming-call-path {
+  font-size: 12px;
+}
+
+.incoming-call-actions {
+  margin-top: 4px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.incoming-call-accept,
+.incoming-call-decline {
+  border: 1px solid transparent;
+  border-radius: 999px;
+  min-height: 36px;
+  padding: 8px 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.incoming-call-accept {
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  color: #fff;
+}
+
+.incoming-call-decline {
+  background: rgba(248, 113, 113, 0.16);
+  color: #b91c1c;
+  border-color: rgba(185, 28, 28, 0.32);
+}
+
+:root[data-theme='dark'] .incoming-call-card {
+  border-color: rgba(245, 158, 11, 0.34);
+  background: linear-gradient(155deg, rgba(120, 53, 15, 0.45), rgba(13, 18, 25, 0.95));
+}
+
+:root[data-theme='dark'] .incoming-call-kicker {
+  color: #fde68a;
+  background: rgba(245, 158, 11, 0.24);
+}
+
+@media (max-width: 680px) {
+  .incoming-call-overlay {
+    top: 12px;
+    left: 12px;
+    right: 12px;
+    width: auto;
+  }
+}

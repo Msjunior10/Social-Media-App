@@ -130,14 +130,6 @@ function Notifications() {
 
         return `/messages?${searchParams.toString()}`;
       }
-      case 'call_started': {
-        const searchParams = new URLSearchParams({ view: 'group' });
-        if (notification.conversationId) {
-          searchParams.set('conversationId', notification.conversationId);
-        }
-
-        return `/messages?${searchParams.toString()}`;
-      }
       case 'group_conversation':
         return '/messages?view=group';
       case 'follow':
@@ -171,8 +163,6 @@ function Notifications() {
         return 'message';
       case 'group_message':
         return 'group message';
-      case 'call_started':
-        return 'call';
       case 'group_conversation':
         return 'group';
       default:
@@ -198,8 +188,6 @@ function Notifications() {
         return '✉';
       case 'group_message':
         return '👥';
-      case 'call_started':
-        return '📞';
       case 'group_conversation':
         return '👥';
       default:
@@ -211,7 +199,6 @@ function Notifications() {
     switch (notification.type) {
       case 'direct_message':
       case 'group_message':
-      case 'call_started':
       case 'group_conversation':
         return 'Open thread';
       case 'follow':
@@ -232,7 +219,6 @@ function Notifications() {
       case 'direct_message':
         return 'Direct messages';
       case 'group_message':
-      case 'call_started':
       case 'group_conversation':
         return 'Group conversation';
       case 'follow':
@@ -297,7 +283,7 @@ function Notifications() {
       case 'follows':
         return notifications.filter((notification) => notification.type === 'follow').length;
       case 'messages':
-        return notifications.filter((notification) => ['direct_message', 'group_message', 'call_started', 'group_conversation'].includes(notification.type)).length;
+        return notifications.filter((notification) => ['direct_message', 'group_message', 'group_conversation'].includes(notification.type)).length;
       case 'all':
       default:
         return notifications.length;
@@ -313,7 +299,7 @@ function Notifications() {
       case 'follows':
         return notification.type === 'follow';
       case 'messages':
-        return ['direct_message', 'group_message', 'call_started', 'group_conversation'].includes(notification.type);
+        return ['direct_message', 'group_message', 'group_conversation'].includes(notification.type);
       default:
         return true;
     }

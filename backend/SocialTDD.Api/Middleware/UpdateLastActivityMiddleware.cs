@@ -1,10 +1,14 @@
 using SocialTDD.Api.Extensions;
 using SocialTDD.Application.Interfaces;
+using System.Collections.Concurrent;
 
 namespace SocialTDD.Api.Middleware;
 
 public class UpdateLastActivityMiddleware
 {
+    private static readonly ConcurrentDictionary<Guid, DateTime> LastUpdateByUserId = new();
+    private static readonly TimeSpan MinimumUpdateInterval = TimeSpan.FromMinutes(5);
+
     private readonly RequestDelegate _next;
     private readonly ILogger<UpdateLastActivityMiddleware> _logger;
 
@@ -21,7 +25,13 @@ public class UpdateLastActivityMiddleware
             try
             {
                 var userId = context.User.GetUserId();
-                await userRepository.UpdateLastActiveAsync(userId, DateTime.UtcNow);
+                var now = DateTime.UtcNow;
+                var previousUpdate = LastUpdateByUserId.GetOrAdd(userId, DateTime.MinValue);
+
+                if (now - previousUpdate >= MinimumUpdateInterval && LastUpdateByUserId.TryUpdate(userId, now, previousUpdate))
+                {
+                    await userRepository.UpdateLastActiveAsync(userId, now);
+                }
             }
             catch (Exception ex)
             {

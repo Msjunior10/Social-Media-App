@@ -7,21 +7,23 @@ namespace SocialTDD.Api.Hubs;
 [Authorize]
 public class CallSignalingHub : Hub
 {
+    private static readonly TimeSpan ActiveCallStaleAfter = TimeSpan.FromMinutes(15);
+
     public const string CallStartedMethod = "callStarted";
     public const string CallEndedMethod = "callEnded";
     public const string OfferReceivedMethod = "offerReceived";
     public const string AnswerReceivedMethod = "answerReceived";
     public const string IceCandidateReceivedMethod = "iceCandidateReceived";
+    public const string CallInviteReceivedMethod = "callInviteReceived";
+    public const string CallInviteRespondedMethod = "callInviteResponded";
     public const string ParticipantJoinedMethod = "participantJoined";
     public const string ParticipantLeftMethod = "participantLeft";
 
     private readonly IConversationRepository _conversationRepository;
-    private readonly INotificationService _notificationService;
 
-    public CallSignalingHub(IConversationRepository conversationRepository, INotificationService notificationService)
+    public CallSignalingHub(IConversationRepository conversationRepository)
     {
         _conversationRepository = conversationRepository;
-        _notificationService = notificationService;
     }
 
     public async Task JoinConversation(Guid conversationId)
@@ -68,12 +70,15 @@ public class CallSignalingHub : Hub
         var activeCallSession = await _conversationRepository.GetActiveCallSessionAsync(conversationId);
         if (activeCallSession != null)
         {
+            activeCallSession = await TryCloseStaleCallSessionAsync(activeCallSession);
+        }
+
+        if (activeCallSession != null)
+        {
             throw new HubException("A call is already active in this conversation.");
         }
 
-        var normalizedCallType = string.IsNullOrWhiteSpace(callType)
-            ? "voice"
-            : callType.Trim().ToLowerInvariant();
+        var normalizedCallType = NormalizeCallType(callType);
 
         if (normalizedCallType != "voice" && normalizedCallType != "video")
         {
@@ -104,7 +109,7 @@ public class CallSignalingHub : Hub
             Id = Guid.NewGuid(),
             ConversationId = conversationId,
             SenderId = currentUserId,
-            Message = $"{starterUsername} startade ett röstsamtal ({startedAt:yyyy-MM-dd HH:mm:ss} UTC).",
+            Message = $"{starterUsername} startade ett {GetCallDescriptor(normalizedCallType, useDefiniteForm: false)} ({startedAt:yyyy-MM-dd HH:mm:ss} UTC).",
             CreatedAt = startedAt,
             IsSystemMessage = true,
         });
@@ -119,15 +124,6 @@ public class CallSignalingHub : Hub
                 startedAt
             });
 
-        if (conversation != null)
-        {
-            foreach (var memberId in conversation.Members
-                         .Select(member => member.UserId)
-                         .Where(memberId => memberId != currentUserId))
-            {
-                await _notificationService.CreateCallStartedNotificationAsync(memberId, currentUserId, conversationId);
-            }
-        }
     }
 
     public async Task EndCall(Guid conversationId)
@@ -150,12 +146,14 @@ public class CallSignalingHub : Hub
                 ?.Username ?? "Unknown user";
 
             var duration = endedAt - activeCallSession.StartedAt;
+            var normalizedCallType = NormalizeCallType(activeCallSession.CallType);
+            var callDescriptor = GetCallDescriptor(normalizedCallType, useDefiniteForm: true);
             await _conversationRepository.CreateMessageAsync(new Domain.Entities.ConversationMessage
             {
                 Id = Guid.NewGuid(),
                 ConversationId = conversationId,
                 SenderId = currentUserId,
-                Message = $"{endedByUsername} avslutade röstsamtalet. Längd: {FormatDuration(duration)}. Start: {activeCallSession.StartedAt:yyyy-MM-dd HH:mm:ss} UTC.",
+                Message = $"{endedByUsername} avslutade {callDescriptor}. Längd: {FormatDuration(duration)}. Start: {activeCallSession.StartedAt:yyyy-MM-dd HH:mm:ss} UTC.",
                 CreatedAt = endedAt,
                 IsSystemMessage = true,
             });
@@ -168,6 +166,74 @@ public class CallSignalingHub : Hub
                 conversationId,
                 endedByUserId = currentUserId,
                 endedAt
+            });
+    }
+
+    public async Task SendCallInvite(Guid conversationId, Guid targetUserId, string callType)
+    {
+        var currentUserId = GetCurrentUserId();
+        await EnsureConversationMembershipAsync(conversationId, currentUserId);
+        await EnsureConversationMembershipAsync(conversationId, targetUserId);
+
+        var activeCallSession = await _conversationRepository.GetActiveCallSessionAsync(conversationId);
+        if (activeCallSession == null)
+        {
+            throw new HubException("No active call was found for this conversation.");
+        }
+
+        var normalizedCallType = NormalizeCallType(callType);
+        if (normalizedCallType != "voice" && normalizedCallType != "video")
+        {
+            throw new HubException("Call type must be either 'voice' or 'video'.");
+        }
+
+        await Clients.User(targetUserId.ToString()).SendAsync(
+            CallInviteReceivedMethod,
+            new
+            {
+                conversationId,
+                fromUserId = currentUserId,
+                callType = normalizedCallType,
+                invitedAt = DateTime.UtcNow
+            });
+    }
+
+    public async Task RespondToCallInvite(Guid conversationId, Guid targetUserId, bool accepted, string callType)
+    {
+        var currentUserId = GetCurrentUserId();
+        await EnsureConversationMembershipAsync(conversationId, currentUserId);
+        await EnsureConversationMembershipAsync(conversationId, targetUserId);
+
+        var normalizedCallType = NormalizeCallType(callType);
+
+        if (accepted)
+        {
+            var conversation = await _conversationRepository.GetConversationByIdAsync(conversationId);
+            var joinedByUsername = conversation?.Members
+                .FirstOrDefault(member => member.UserId == currentUserId)
+                ?.User
+                ?.Username ?? "Unknown user";
+
+            await _conversationRepository.CreateMessageAsync(new Domain.Entities.ConversationMessage
+            {
+                Id = Guid.NewGuid(),
+                ConversationId = conversationId,
+                SenderId = currentUserId,
+                Message = $"{joinedByUsername} anslöt till {GetCallDescriptor(normalizedCallType, useDefiniteForm: true)}.",
+                CreatedAt = DateTime.UtcNow,
+                IsSystemMessage = true,
+            });
+        }
+
+        await Clients.User(targetUserId.ToString()).SendAsync(
+            CallInviteRespondedMethod,
+            new
+            {
+                conversationId,
+                fromUserId = currentUserId,
+                accepted,
+                callType = normalizedCallType,
+                respondedAt = DateTime.UtcNow
             });
     }
 
@@ -266,5 +332,44 @@ public class CallSignalingHub : Hub
         return $"{duration.Minutes:00}:{duration.Seconds:00}";
     }
 
+    private static string NormalizeCallType(string? callType)
+    {
+        return string.IsNullOrWhiteSpace(callType)
+            ? "voice"
+            : callType.Trim().ToLowerInvariant();
+    }
+
+    private static string GetCallDescriptor(string normalizedCallType, bool useDefiniteForm)
+    {
+        var isVideoCall = string.Equals(normalizedCallType, "video", StringComparison.OrdinalIgnoreCase);
+        if (useDefiniteForm)
+        {
+            return isVideoCall ? "videosamtalet" : "röstsamtalet";
+        }
+
+        return isVideoCall ? "videosamtal" : "röstsamtal";
+    }
+
     public static string GetConversationGroup(Guid conversationId) => $"calls:conversation:{conversationId}";
+
+    private async Task<Domain.Entities.CallSession?> TryCloseStaleCallSessionAsync(Domain.Entities.CallSession activeCallSession)
+    {
+        if (activeCallSession.EndedAt.HasValue)
+        {
+            activeCallSession.Status = "ended";
+            await _conversationRepository.UpdateCallSessionAsync(activeCallSession);
+            return null;
+        }
+
+        var now = DateTime.UtcNow;
+        if (now - activeCallSession.StartedAt <= ActiveCallStaleAfter)
+        {
+            return activeCallSession;
+        }
+
+        activeCallSession.Status = "ended";
+        activeCallSession.EndedAt = now;
+        await _conversationRepository.UpdateCallSessionAsync(activeCallSession);
+        return null;
+    }
 }
